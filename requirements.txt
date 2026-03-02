@@ -2,3 +2,4 @@ flask
 flask-cors
 web3
 requests
+gunicorn
