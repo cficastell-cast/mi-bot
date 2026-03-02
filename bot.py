@@ -326,6 +326,13 @@ def config():
 
 @app.route("/", methods=["GET"])
 def home():
+    try:
+        return open("control.html").read(), 200, {"Content-Type": "text/html"}
+    except:
+        return jsonify({"msg": "CNKT Bot API corriendo", "wallet": account.address})
+
+@app.route("/api", methods=["GET"])
+def api_info():
     return jsonify({"msg": "CNKT Bot API corriendo", "wallet": account.address})
 
 if __name__ == "__main__":
@@ -333,4 +340,3 @@ if __name__ == "__main__":
     print("API corriendo en puerto " + str(port))
     print("Wallet: " + account.address)
     app.run(host="0.0.0.0", port=port)
-
