@@ -9,6 +9,13 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+# Contrasena de acceso (configura BOT_PASSWORD en Railway Variables)
+BOT_PASSWORD = os.environ.get("BOT_PASSWORD", "cnkt1234")
+
+def check_auth():
+    token = request.headers.get("X-Password") or request.args.get("password")
+    return token == BOT_PASSWORD
+
 # Conexion
 RPC_URL = os.environ.get("RPC_URL")
 w3 = Web3(Web3.HTTPProvider(RPC_URL))
@@ -262,6 +269,8 @@ def loop_bot():
 
 @app.route("/status", methods=["GET"])
 def status():
+    if not check_auth():
+        return jsonify({"error": "No autorizado"}), 401
     return jsonify({
         "activo": estado["activo"],
         "modo": estado["modo"],
@@ -282,10 +291,14 @@ def status():
 
 @app.route("/logs", methods=["GET"])
 def logs():
+    if not check_auth():
+        return jsonify({"error": "No autorizado"}), 401
     return jsonify({"logs": estado["logs"]})
 
 @app.route("/start", methods=["POST"])
 def start():
+    if not check_auth():
+        return jsonify({"error": "No autorizado"}), 401
     global bot_thread
     if estado["activo"]:
         return jsonify({"ok": False, "msg": "El bot ya esta corriendo"})
@@ -311,6 +324,8 @@ def start():
 
 @app.route("/stop", methods=["POST"])
 def stop():
+    if not check_auth():
+        return jsonify({"error": "No autorizado"}), 401
     if not estado["activo"]:
         return jsonify({"ok": False, "msg": "El bot no esta corriendo"})
     stop_event.set()
@@ -340,3 +355,4 @@ if __name__ == "__main__":
     print("API corriendo en puerto " + str(port))
     print("Wallet: " + account.address)
     app.run(host="0.0.0.0", port=port)
+
