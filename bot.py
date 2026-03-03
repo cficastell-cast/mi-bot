@@ -672,6 +672,7 @@ def admin_panel():
         return open(os.path.join(BASE_DIR, "admin.html")).read(), 200, {"Content-Type": "text/html"}
     except Exception as e:
         return "admin.html no encontrado: " + str(e), 404
+
 @app.route("/manifest.json", methods=["GET"])
 def manifest():
     try:
