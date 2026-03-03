@@ -12,11 +12,9 @@ from cryptography.fernet import Fernet
 app = Flask(__name__)
 CORS(app)
 
-# Encriptacion de private keys
-ENCRYPT_KEY = os.environ.get("ENCRYPT_KEY", Fernet.generate_key().decode())
+ENCRYPT_KEY = os.environ.get("ENCRYPT_KEY")
 fernet = Fernet(ENCRYPT_KEY.encode() if isinstance(ENCRYPT_KEY, str) else ENCRYPT_KEY)
 
-# Tokens
 USDT_ADDRESS = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
 CNKT_ADDRESS = "0x87bdfbe98ba55104701b2f2e999982a317905637"
 KYBER_ROUTER = "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
@@ -27,7 +25,6 @@ TOKEN_ABI = [
     {"inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}
 ]
 
-# Base de datos
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
@@ -59,35 +56,32 @@ def init_db():
             creado_en TIMESTAMP DEFAULT NOW()
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS bots_activos (
+            wallet VARCHAR(42) PRIMARY KEY,
+            rango_bajo FLOAT NOT NULL,
+            rango_alto FLOAT NOT NULL,
+            amount_usdt FLOAT NOT NULL,
+            stop_zona FLOAT NOT NULL,
+            actualizado_en TIMESTAMP DEFAULT NOW()
+        )
+    """)
     conn.commit()
     cur.close()
     conn.close()
     print("Base de datos lista!")
 
-# Bots activos: { wallet: { thread, stop_event, estado } }
 bots_activos = {}
 bots_lock = threading.Lock()
 
 def get_w3():
-    RPC_URL = os.environ.get("RPC_URL")
-    return Web3(Web3.HTTPProvider(RPC_URL))
+    return Web3(Web3.HTTPProvider(os.environ.get("RPC_URL")))
 
 def nuevo_estado():
     return {
-        "activo": False,
-        "modo": "COMPRA",
-        "precio": 0,
-        "usdt": 0,
-        "cnkt": 0,
-        "ciclos": 0,
-        "ganancia_total": 0,
-        "ultimo_log": "",
-        "logs": [],
-        "cnkt_comprados": 0,
-        "RANGO_BAJO": None,
-        "RANGO_ALTO": None,
-        "AMOUNT_USDT": None,
-        "STOP_ZONA": None,
+        "activo": False, "modo": "COMPRA", "precio": 0, "usdt": 0, "cnkt": 0,
+        "ciclos": 0, "ganancia_total": 0, "ultimo_log": "", "logs": [], "cnkt_comprados": 0,
+        "RANGO_BAJO": None, "RANGO_ALTO": None, "AMOUNT_USDT": None, "STOP_ZONA": None,
     }
 
 def log_estado(estado, msg):
@@ -98,6 +92,37 @@ def log_estado(estado, msg):
     estado["logs"].append(linea)
     if len(estado["logs"]) > 100:
         estado["logs"] = estado["logs"][-100:]
+
+def guardar_bot_activo(wallet, rango_bajo, rango_alto, amount_usdt, stop_zona):
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO bots_activos (wallet, rango_bajo, rango_alto, amount_usdt, stop_zona)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (wallet) DO UPDATE SET
+                rango_bajo = EXCLUDED.rango_bajo,
+                rango_alto = EXCLUDED.rango_alto,
+                amount_usdt = EXCLUDED.amount_usdt,
+                stop_zona = EXCLUDED.stop_zona,
+                actualizado_en = NOW()
+        """, (wallet, rango_bajo, rango_alto, amount_usdt, stop_zona))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print("Error guardando bot activo: " + str(e))
+
+def eliminar_bot_activo(wallet):
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM bots_activos WHERE wallet = %s", (wallet,))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print("Error eliminando bot activo: " + str(e))
 
 def guardar_ciclo(wallet, hora_compra, precio_compra, hora_venta, precio_venta, cnkt_comprado, cnkt_vendido, ganancia_usdt):
     try:
@@ -144,21 +169,15 @@ def loop_bot(wallet, private_key, estado, stop_event):
     def aprobar_tokens():
         log_estado(estado, "Aprobando tokens...")
         gas_price = int(w3.eth.gas_price * 1.5)
-        tx_usdt = usdt_contract.functions.approve(
-            KYBER_ROUTER, 1000 * 10**6
-        ).build_transaction({
-            "from": account.address,
-            "nonce": w3.eth.get_transaction_count(account.address),
+        tx_usdt = usdt_contract.functions.approve(KYBER_ROUTER, 1000 * 10**6).build_transaction({
+            "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
             "gasPrice": gas_price, "chainId": 137
         })
         w3.eth.send_raw_transaction(account.sign_transaction(tx_usdt).raw_transaction)
         time.sleep(15)
         log_estado(estado, "USDT aprobado!")
-        tx_cnkt = cnkt_contract.functions.approve(
-            KYBER_ROUTER, 10000000 * 10**18
-        ).build_transaction({
-            "from": account.address,
-            "nonce": w3.eth.get_transaction_count(account.address),
+        tx_cnkt = cnkt_contract.functions.approve(KYBER_ROUTER, 10000000 * 10**18).build_transaction({
+            "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
             "gasPrice": gas_price, "chainId": 137
         })
         w3.eth.send_raw_transaction(account.sign_transaction(tx_cnkt).raw_transaction)
@@ -173,12 +192,9 @@ def loop_bot(wallet, private_key, estado, stop_event):
         build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
             json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
                   "recipient": account.address, "slippageTolerance": 50}).json()
-        tx = {
-            "from": account.address, "to": build['data']['routerAddress'],
-            "data": build['data']['data'], "value": int(build['data']['transactionValue']),
-            "nonce": w3.eth.get_transaction_count(account.address),
-            "gasPrice": w3.eth.gas_price, "gas": int(build['data']['gas']) + 50000, "chainId": 137
-        }
+        tx = {"from": account.address, "to": build['data']['routerAddress'], "data": build['data']['data'],
+              "value": int(build['data']['transactionValue']), "nonce": w3.eth.get_transaction_count(account.address),
+              "gasPrice": w3.eth.gas_price, "gas": int(build['data']['gas']) + 50000, "chainId": 137}
         tx_hash = w3.eth.send_raw_transaction(account.sign_transaction(tx).raw_transaction)
         log_estado(estado, "COMPRA: https://polygonscan.com/tx/" + tx_hash.hex())
         time.sleep(15)
@@ -192,12 +208,9 @@ def loop_bot(wallet, private_key, estado, stop_event):
         build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
             json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
                   "recipient": account.address, "slippageTolerance": 50}).json()
-        tx = {
-            "from": account.address, "to": build['data']['routerAddress'],
-            "data": build['data']['data'], "value": int(build['data']['transactionValue']),
-            "nonce": w3.eth.get_transaction_count(account.address),
-            "gasPrice": w3.eth.gas_price, "gas": int(build['data']['gas']) + 50000, "chainId": 137
-        }
+        tx = {"from": account.address, "to": build['data']['routerAddress'], "data": build['data']['data'],
+              "value": int(build['data']['transactionValue']), "nonce": w3.eth.get_transaction_count(account.address),
+              "gasPrice": w3.eth.gas_price, "gas": int(build['data']['gas']) + 50000, "chainId": 137}
         tx_hash = w3.eth.send_raw_transaction(account.sign_transaction(tx).raw_transaction)
         log_estado(estado, "VENTA: https://polygonscan.com/tx/" + tx_hash.hex())
         time.sleep(15)
@@ -221,6 +234,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
     if not tiene_usdt and not tiene_cnkt:
         log_estado(estado, "ERROR: No tienes USDT ni CNKT suficiente")
         estado["activo"] = False
+        eliminar_bot_activo(wallet)
         return
 
     precio_inicial = get_precio()
@@ -257,6 +271,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
             if precio < STOP_ABAJO or precio > STOP_ARRIBA:
                 log_estado(estado, "PRECIO FUERA DE RANGO - BOT DETENIDO")
                 estado["activo"] = False
+                eliminar_bot_activo(wallet)
                 break
 
             if precio <= RANGO_BAJO and modo == "COMPRA":
@@ -320,6 +335,43 @@ def loop_bot(wallet, private_key, estado, stop_event):
     estado["activo"] = False
     log_estado(estado, "Bot detenido.")
 
+def iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt, stop_zona):
+    estado = nuevo_estado()
+    estado["activo"] = True
+    estado["RANGO_BAJO"] = rango_bajo
+    estado["RANGO_ALTO"] = rango_alto
+    estado["AMOUNT_USDT"] = amount_usdt
+    estado["STOP_ZONA"] = stop_zona
+
+    stop_event = threading.Event()
+    t = threading.Thread(target=loop_bot, args=(wallet, private_key, estado, stop_event), daemon=True)
+    t.start()
+
+    with bots_lock:
+        bots_activos[wallet] = {"thread": t, "stop_event": stop_event, "estado": estado}
+
+def restaurar_bots():
+    print("Restaurando bots activos...")
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT ba.wallet, ba.rango_bajo, ba.rango_alto, ba.amount_usdt, ba.stop_zona, u.private_key_enc FROM bots_activos ba JOIN usuarios u ON ba.wallet = u.wallet")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        for row in rows:
+            try:
+                private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
+                iniciar_bot_thread(row["wallet"], private_key, row["rango_bajo"], row["rango_alto"], row["amount_usdt"], row["stop_zona"])
+                print("Bot restaurado para " + row["wallet"][:6] + "...")
+            except Exception as e:
+                print("Error restaurando bot " + row["wallet"][:6] + ": " + str(e))
+
+        print(str(len(rows)) + " bots restaurados!")
+    except Exception as e:
+        print("Error restaurando bots: " + str(e))
+
 # API ENDPOINTS
 
 @app.route("/registro", methods=["POST"])
@@ -331,7 +383,6 @@ def registro():
     if not wallet or not private_key:
         return jsonify({"ok": False, "msg": "Faltan wallet y private_key"})
 
-    # Validar que la private key corresponde a la wallet
     try:
         w3 = get_w3()
         account = w3.eth.account.from_key(private_key)
@@ -340,7 +391,6 @@ def registro():
     except:
         return jsonify({"ok": False, "msg": "Private key invalida"})
 
-    # Encriptar private key
     pk_enc = fernet.encrypt(private_key.encode()).decode()
 
     try:
@@ -365,20 +415,11 @@ def status(wallet):
         if wallet in bots_activos:
             est = bots_activos[wallet]["estado"]
             return jsonify({
-                "activo": est["activo"],
-                "modo": est["modo"],
-                "precio": est["precio"],
-                "usdt": est["usdt"],
-                "cnkt": est["cnkt"],
-                "ciclos": est["ciclos"],
-                "ganancia_total": est["ganancia_total"],
-                "ultimo_log": est["ultimo_log"],
-                "config": {
-                    "RANGO_BAJO": est["RANGO_BAJO"],
-                    "RANGO_ALTO": est["RANGO_ALTO"],
-                    "AMOUNT_USDT": est["AMOUNT_USDT"],
-                    "STOP_ZONA": est["STOP_ZONA"],
-                },
+                "activo": est["activo"], "modo": est["modo"], "precio": est["precio"],
+                "usdt": est["usdt"], "cnkt": est["cnkt"], "ciclos": est["ciclos"],
+                "ganancia_total": est["ganancia_total"], "ultimo_log": est["ultimo_log"],
+                "config": {"RANGO_BAJO": est["RANGO_BAJO"], "RANGO_ALTO": est["RANGO_ALTO"],
+                           "AMOUNT_USDT": est["AMOUNT_USDT"], "STOP_ZONA": est["STOP_ZONA"]},
                 "wallet": wallet
             })
     return jsonify({"activo": False, "modo": "COMPRA", "precio": 0, "usdt": 0, "cnkt": 0,
@@ -416,7 +457,6 @@ def historial(wallet):
 def start(wallet):
     wallet = wallet.lower()
 
-    # Obtener private key de la base de datos
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -443,25 +483,13 @@ def start(wallet):
     except (KeyError, ValueError):
         return jsonify({"ok": False, "msg": "Faltan parametros"})
 
-    # Desencriptar private key
     try:
         private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
     except:
         return jsonify({"ok": False, "msg": "Error desencriptando key"})
 
-    estado = nuevo_estado()
-    estado["activo"] = True
-    estado["RANGO_BAJO"] = rango_bajo
-    estado["RANGO_ALTO"] = rango_alto
-    estado["AMOUNT_USDT"] = amount_usdt
-    estado["STOP_ZONA"] = stop_zona
-
-    stop_event = threading.Event()
-    t = threading.Thread(target=loop_bot, args=(wallet, private_key, estado, stop_event), daemon=True)
-    t.start()
-
-    with bots_lock:
-        bots_activos[wallet] = {"thread": t, "stop_event": stop_event, "estado": estado}
+    guardar_bot_activo(wallet, rango_bajo, rango_alto, amount_usdt, stop_zona)
+    iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt, stop_zona)
 
     return jsonify({"ok": True, "msg": "Bot iniciado!"})
 
@@ -472,6 +500,7 @@ def stop(wallet):
         if wallet not in bots_activos or not bots_activos[wallet]["estado"]["activo"]:
             return jsonify({"ok": False, "msg": "Bot no esta corriendo"})
         bots_activos[wallet]["stop_event"].set()
+    eliminar_bot_activo(wallet)
     return jsonify({"ok": True, "msg": "Deteniendo bot..."})
 
 @app.route("/", methods=["GET"])
@@ -483,6 +512,7 @@ def home():
 
 if __name__ == "__main__":
     init_db()
+    restaurar_bots()
     port = int(os.environ.get("PORT", 5000))
     print("API corriendo en puerto " + str(port))
     app.run(host="0.0.0.0", port=port)
