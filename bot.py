@@ -260,26 +260,15 @@ def loop_bot(wallet, private_key, estado, stop_event):
 
     usdt_actual = get_balance_usdt()
     cnkt_actual = get_balance_cnkt()
-    tiene_usdt = usdt_actual >= AMOUNT_USDT
-    tiene_cnkt = cnkt_actual >= cnkt_necesario
 
     log_estado(estado, "USDT: $" + str(round(usdt_actual, 2)))
     log_estado(estado, "CNKT: " + str(round(cnkt_actual, 2)))
 
-    if not tiene_usdt and not tiene_cnkt:
+    if usdt_actual < AMOUNT_USDT and cnkt_actual < cnkt_necesario:
         log_estado(estado, "ERROR: No tienes USDT ni CNKT suficiente")
         estado["activo"] = False
         eliminar_bot_activo(wallet)
         return
-
-    precio_inicial = get_precio()
-    mitad_rango = (RANGO_BAJO + RANGO_ALTO) / 2
-    if precio_inicial >= mitad_rango:
-        estado["modo"] = "VENTA"
-        log_estado(estado, "Precio en zona alta - modo VENTA")
-    else:
-        estado["modo"] = "COMPRA"
-        log_estado(estado, "Precio en zona baja - modo COMPRA")
 
     hora_compra_actual = None
     precio_compra_actual = None
@@ -295,11 +284,18 @@ def loop_bot(wallet, private_key, estado, stop_event):
 
             usdt = get_balance_usdt()
             cnkt = get_balance_cnkt()
-            modo = estado["modo"]
 
             estado["precio"] = round(precio, 6)
             estado["usdt"] = round(usdt, 2)
             estado["cnkt"] = round(cnkt, 2)
+
+            # ── ACTUALIZAR MODO SEGUN PRECIO SIEMPRE ──
+            if precio <= RANGO_BAJO:
+                estado["modo"] = "COMPRA"
+            elif precio >= RANGO_ALTO:
+                estado["modo"] = "VENTA"
+
+            modo = estado["modo"]
 
             log_estado(estado, "$" + str(round(precio,6)) + " | USDT: $" + str(round(usdt,2)) +
                        " | CNKT: " + str(round(cnkt,0)) + " | Modo: " + modo + " | Ciclos: " + str(estado["ciclos"]))
@@ -318,14 +314,12 @@ def loop_bot(wallet, private_key, estado, stop_event):
                     estado["cnkt_comprados"] = comprar()
                     cnkt_comprado_actual = estado["cnkt_comprados"]
                     log_estado(estado, "CNKT recibidos: " + str(round(estado["cnkt_comprados"], 2)))
-                    estado["modo"] = "VENTA"
                 else:
-                    log_estado(estado, "Sin USDT, cambiando a modo VENTA")
-                    estado["modo"] = "VENTA"
+                    log_estado(estado, "Esperando USDT suficiente...")
 
             elif precio >= RANGO_ALTO and modo == "VENTA":
                 cnkt_comp = estado["cnkt_comprados"]
-                if cnkt >= cnkt_comp and cnkt_comp > 0:
+                if cnkt_comp > 0 and cnkt >= cnkt_comp:
                     log_estado(estado, "Senal de VENTA!")
                     hora_venta = hora_cdmx()
                     usdt_recibido = vender(cnkt_comp)
@@ -340,25 +334,18 @@ def loop_bot(wallet, private_key, estado, stop_event):
                     cnkt_comprado_actual = 0
                     hora_compra_actual = None
                     precio_compra_actual = None
-                    estado["modo"] = "COMPRA"
-                elif cnkt_comp == 0:
-                    if cnkt >= cnkt_necesario:
-                        log_estado(estado, "Senal de VENTA!")
-                        hora_venta = hora_cdmx()
-                        usdt_recibido = vender(cnkt_necesario)
-                        ganancia = usdt_recibido - AMOUNT_USDT
-                        estado["ganancia_total"] += ganancia
-                        estado["ciclos"] += 1
-                        log_estado(estado, "Ganancia ciclo: $" + str(round(ganancia, 4)))
-                        log_estado(estado, "Ganancia total: $" + str(round(estado["ganancia_total"], 4)))
-                        guardar_ciclo(wallet, None, None, hora_venta, precio, 0, cnkt_necesario, ganancia, AMOUNT_USDT)
-                        estado["modo"] = "COMPRA"
-                    else:
-                        log_estado(estado, "Sin CNKT, cambiando a modo COMPRA")
-                        estado["modo"] = "COMPRA"
+                elif cnkt_comp == 0 and cnkt >= cnkt_necesario:
+                    log_estado(estado, "Senal de VENTA!")
+                    hora_venta = hora_cdmx()
+                    usdt_recibido = vender(cnkt_necesario)
+                    ganancia = usdt_recibido - AMOUNT_USDT
+                    estado["ganancia_total"] += ganancia
+                    estado["ciclos"] += 1
+                    log_estado(estado, "Ganancia ciclo: $" + str(round(ganancia, 4)))
+                    log_estado(estado, "Ganancia total: $" + str(round(estado["ganancia_total"], 4)))
+                    guardar_ciclo(wallet, None, None, hora_venta, precio, 0, cnkt_necesario, ganancia, AMOUNT_USDT)
                 else:
-                    log_estado(estado, "Sin CNKT suficiente, cambiando a modo COMPRA")
-                    estado["modo"] = "COMPRA"
+                    log_estado(estado, "Esperando CNKT suficiente...")
             else:
                 log_estado(estado, "Esperando...")
 
