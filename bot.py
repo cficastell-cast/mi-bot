@@ -34,6 +34,44 @@ TOKEN_ABI = [
 DATABASE_URL = os.environ.get("DATABASE_URL")
 CDMX = pytz.timezone('America/Mexico_City')
 
+# ── PRECIO GLOBAL COMPARTIDO ──────────────────────────────────────────────────
+precio_global = {"valor": 0, "actualizado": 0}
+precio_lock = threading.Lock()
+
+def loop_precio_global():
+    """Un solo hilo actualiza el precio cada 15s para todos los bots."""
+    while True:
+        try:
+            params = {"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": 10 * 10**6}
+            r = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
+                             params=params, timeout=10).json()
+            amount_out = float(r['data']['routeSummary']['amountOut']) / 10**18
+            amount_in_usd = float(r['data']['routeSummary']['amountInUsd'])
+            precio = amount_in_usd / amount_out
+            with precio_lock:
+                precio_global["valor"] = round(precio, 6)
+                precio_global["actualizado"] = time.time()
+        except Exception as e:
+            print("Error actualizando precio global: " + str(e))
+        time.sleep(15)
+
+def get_precio_actual():
+    with precio_lock:
+        return precio_global["valor"]
+
+# ── WEB3 COMPARTIDO ───────────────────────────────────────────────────────────
+_w3 = None
+_w3_lock = threading.Lock()
+
+def get_w3():
+    global _w3
+    with _w3_lock:
+        if _w3 is None:
+            _w3 = Web3(Web3.HTTPProvider(os.environ.get("RPC_URL")))
+        return _w3
+
+# ─────────────────────────────────────────────────────────────────────────────
+
 def hora_cdmx():
     return datetime.now(CDMX).strftime('%H:%M:%S')
 
@@ -98,9 +136,6 @@ def init_db():
 
 bots_activos = {}
 bots_lock = threading.Lock()
-
-def get_w3():
-    return Web3(Web3.HTTPProvider(os.environ.get("RPC_URL")))
 
 def nuevo_estado():
     return {
@@ -189,13 +224,6 @@ def loop_bot(wallet, private_key, estado, stop_event):
     INTERVALO   = 30
     cnkt_necesario = AMOUNT_USDT / RANGO_ALTO
 
-    def get_precio():
-        params = {"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": 10 * 10**6}
-        r = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes", params=params).json()
-        amount_out = float(r['data']['routeSummary']['amountOut']) / 10**18
-        amount_in_usd = float(r['data']['routeSummary']['amountInUsd'])
-        return amount_in_usd / amount_out
-
     def get_balance_usdt():
         return usdt_contract.functions.balanceOf(account.address).call() / 10**6
 
@@ -281,16 +309,18 @@ def loop_bot(wallet, private_key, estado, stop_event):
 
     while not stop_event.is_set():
         try:
-            precio = get_precio()
+            # Usa precio global compartido en lugar de llamar API
+            precio = get_precio_actual()
+
             if precio < 0.000001:
-                log_estado(estado, "Precio invalido, reintentando...")
-                time.sleep(10)
+                log_estado(estado, "Esperando precio...")
+                time.sleep(5)
                 continue
 
             usdt = get_balance_usdt()
             cnkt = get_balance_cnkt()
 
-            estado["precio"] = round(precio, 6)
+            estado["precio"] = precio
             estado["usdt"] = round(usdt, 2)
             estado["cnkt"] = round(cnkt, 2)
 
@@ -301,7 +331,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
 
             modo = estado["modo"]
 
-            log_estado(estado, "$" + str(round(precio,6)) + " | USDT: $" + str(round(usdt,2)) +
+            log_estado(estado, "$" + str(precio) + " | USDT: $" + str(round(usdt,2)) +
                        " | CNKT: " + str(round(cnkt,0)) + " | Modo: " + modo + " | Ciclos: " + str(estado["ciclos"]))
 
             if precio < STOP_ABAJO or precio > STOP_ARRIBA:
@@ -400,16 +430,11 @@ def restaurar_bots():
         print("Error restaurando bots: " + str(e))
 
 @app.route("/precio", methods=["GET"])
-def precio_actual():
-    try:
-        params = {"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": 10 * 10**6}
-        r = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes", params=params).json()
-        amount_out = float(r['data']['routeSummary']['amountOut']) / 10**18
-        amount_in_usd = float(r['data']['routeSummary']['amountInUsd'])
-        precio = amount_in_usd / amount_out
-        return jsonify({"ok": True, "precio": round(precio, 6)})
-    except Exception as e:
-        return jsonify({"ok": False, "precio": 0, "error": str(e)})
+def precio_endpoint():
+    precio = get_precio_actual()
+    if precio > 0:
+        return jsonify({"ok": True, "precio": precio})
+    return jsonify({"ok": False, "precio": 0})
 
 @app.route("/registro", methods=["POST"])
 def registro():
@@ -689,6 +714,10 @@ def icon():
 
 if __name__ == "__main__":
     init_db()
+    # Inicia hilo de precio global compartido
+    t_precio = threading.Thread(target=loop_precio_global, daemon=True)
+    t_precio.start()
+    print("Precio global iniciado!")
     restaurar_bots()
     port = int(os.environ.get("PORT", 5000))
     print("API corriendo en puerto " + str(port))
