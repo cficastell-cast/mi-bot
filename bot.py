@@ -28,6 +28,7 @@ account = w3.eth.account.from_key(private_key)
 USDT_ADDRESS = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
 CNKT_ADDRESS = "0x87bdfbe98ba55104701b2f2e999982a317905637"
 KYBER_ROUTER = "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+FEE_RECEIVER = "0x1C02ADbA08aA59Be60fB6d4DD79eD82F986Df918"
 
 TOKEN_ABI = [
     {"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},
@@ -49,7 +50,6 @@ estado = {
     "ultimo_log": "",
     "logs": [],
     "cnkt_comprados": 0,
-    # Configuracion (vacia hasta que el usuario la mande)
     "RANGO_BAJO": None,
     "RANGO_ALTO": None,
     "AMOUNT_USDT": None,
@@ -112,8 +112,17 @@ def comprar():
     route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
         params={"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": amount_in}).json()
     build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
-        json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
-              "recipient": account.address, "slippageTolerance": 50}).json()
+        json={
+            "routeSummary": route['data']['routeSummary'],
+            "sender": account.address,
+            "recipient": account.address,
+            "slippageTolerance": 50,
+            "feeConfig": {
+                "feeReceiver": FEE_RECEIVER,
+                "chargeFeeBy": "currency_in",
+                "feeAmount": "20"
+            }
+        }).json()
     tx = {
         "from": account.address,
         "to": build['data']['routerAddress'],
@@ -134,8 +143,17 @@ def vender(cantidad_cnkt):
     route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
         params={"tokenIn": CNKT_ADDRESS, "tokenOut": USDT_ADDRESS, "amountIn": amount_in}).json()
     build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
-        json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
-              "recipient": account.address, "slippageTolerance": 50}).json()
+        json={
+            "routeSummary": route['data']['routeSummary'],
+            "sender": account.address,
+            "recipient": account.address,
+            "slippageTolerance": 50,
+            "feeConfig": {
+                "feeReceiver": FEE_RECEIVER,
+                "chargeFeeBy": "currency_in",
+                "feeAmount": "20"
+            }
+        }).json()
     tx = {
         "from": account.address,
         "to": build['data']['routerAddress'],
@@ -265,7 +283,7 @@ def loop_bot():
     estado["activo"] = False
     log("Bot detenido.")
 
-# ─── API ENDPOINTS ───────────────────────────────────────────
+# API ENDPOINTS
 
 @app.route("/status", methods=["GET"])
 def status():
