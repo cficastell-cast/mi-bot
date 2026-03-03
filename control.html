@@ -122,8 +122,9 @@
   <div class="box">
     <div class="step-indicator"><div class="step"></div><div class="step active"></div></div>
     <h2>Activa tu <span style="color:var(--accent)">Bot</span></h2>
-    <p id="walletDetectada" style="color:var(--accent);font-size:12px;margin-bottom:16px;"></p>
-    <p>Elige tu nombre, crea una contrasena y pega tu private key.</p>
+    <p id="walletDetectada" style="color:var(--accent);font-size:12px;margin-bottom:8px;"></p>
+    <p style="margin-bottom:16px;">Confirma tu wallet, elige nombre, crea contrasena y pega tu private key.</p>
+    <input type="text" id="walletInput" placeholder="0x... confirma tu wallet address"/>
     <input type="text" id="botNombre" placeholder="Tu nombre (ej: El Mistico)" maxlength="50"/>
     <input type="password" id="botPassword" placeholder="Crea una contrasena (min 6 caracteres)"/>
     <input type="password" id="botPasswordConfirm" placeholder="Confirma tu contrasena"/>
@@ -268,7 +269,8 @@ async function conectarMetamask() {
     userWallet = accounts[0].toLowerCase();
     document.getElementById('overlayInicio').style.display = 'none';
     document.getElementById('overlayRegistro').style.display = 'flex';
-    document.getElementById('walletDetectada').textContent = '✅ ' + userWallet.slice(0,6) + '...' + userWallet.slice(-4) + ' conectada';
+    document.getElementById('walletDetectada').textContent = '✅ MetaMask conectado';
+    document.getElementById('walletInput').value = userWallet;
   } catch(e) {
     document.getElementById('inicioError').textContent = 'Error: ' + e.message;
   }
@@ -297,17 +299,19 @@ async function doLogin() {
 }
 
 async function registrar() {
+  const walletFinal = document.getElementById('walletInput').value.trim().toLowerCase();
   const pk = document.getElementById('botPrivateKey').value.trim();
   const nombre = document.getElementById('botNombre').value.trim() || 'Anonimo';
   const password = document.getElementById('botPassword').value;
   const passwordConfirm = document.getElementById('botPasswordConfirm').value;
-  if (!pk || !password) { document.getElementById('registroError').textContent = 'Completa todos los campos'; return; }
+  if (!walletFinal || !pk || !password) { document.getElementById('registroError').textContent = 'Completa todos los campos'; return; }
   if (password.length < 6) { document.getElementById('registroError').textContent = 'La contrasena debe tener al menos 6 caracteres'; return; }
   if (password !== passwordConfirm) { document.getElementById('registroError').textContent = 'Las contrasenas no coinciden'; return; }
+  userWallet = walletFinal;
   try {
     const r = await fetch(BOT_URL + '/registro', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({wallet: userWallet, private_key: pk, nombre, password})
+      body: JSON.stringify({wallet: walletFinal, private_key: pk, nombre, password})
     });
     const data = await r.json();
     if (data.ok) {
