@@ -9,22 +9,18 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# Contrasena de acceso (configura BOT_PASSWORD en Railway Variables)
 BOT_PASSWORD = os.environ.get("BOT_PASSWORD", "cnkt1234")
 
 def check_auth():
     token = request.headers.get("X-Password") or request.args.get("password")
     return token == BOT_PASSWORD
 
-# Conexion
 RPC_URL = os.environ.get("RPC_URL")
 w3 = Web3(Web3.HTTPProvider(RPC_URL))
 
-# Wallet
 private_key = os.environ.get("PRIVATE_KEY")
 account = w3.eth.account.from_key(private_key)
 
-# Tokens
 USDT_ADDRESS = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
 CNKT_ADDRESS = "0x87bdfbe98ba55104701b2f2e999982a317905637"
 KYBER_ROUTER = "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
@@ -38,7 +34,6 @@ TOKEN_ABI = [
 usdt_contract = w3.eth.contract(address=USDT_ADDRESS, abi=TOKEN_ABI)
 cnkt_contract = w3.eth.contract(address=Web3.to_checksum_address(CNKT_ADDRESS), abi=TOKEN_ABI)
 
-# Estado del bot
 estado = {
     "activo": False,
     "modo": "COMPRA",
@@ -110,18 +105,21 @@ def aprobar_tokens():
 def comprar():
     amount_in = int(estado["AMOUNT_USDT"] * 10**6)
     route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
-        params={"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": amount_in}).json()
+        params={
+            "tokenIn": USDT_ADDRESS,
+            "tokenOut": CNKT_ADDRESS,
+            "amountIn": amount_in,
+            "feeAmount": "20",
+            "isInBps": "true",
+            "feeReceiver": FEE_RECEIVER,
+            "chargeFeeBy": "currency_in"
+        }).json()
     build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
         json={
             "routeSummary": route['data']['routeSummary'],
             "sender": account.address,
             "recipient": account.address,
-            "slippageTolerance": 50,
-            "feeConfig": {
-                "feeReceiver": FEE_RECEIVER,
-                "chargeFeeBy": "currency_in",
-                "feeAmount": "20"
-            }
+            "slippageTolerance": 50
         }).json()
     tx = {
         "from": account.address,
@@ -141,18 +139,21 @@ def comprar():
 def vender(cantidad_cnkt):
     amount_in = int(cantidad_cnkt * 10**18)
     route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
-        params={"tokenIn": CNKT_ADDRESS, "tokenOut": USDT_ADDRESS, "amountIn": amount_in}).json()
+        params={
+            "tokenIn": CNKT_ADDRESS,
+            "tokenOut": USDT_ADDRESS,
+            "amountIn": amount_in,
+            "feeAmount": "20",
+            "isInBps": "true",
+            "feeReceiver": FEE_RECEIVER,
+            "chargeFeeBy": "currency_in"
+        }).json()
     build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
         json={
             "routeSummary": route['data']['routeSummary'],
             "sender": account.address,
             "recipient": account.address,
-            "slippageTolerance": 50,
-            "feeConfig": {
-                "feeReceiver": FEE_RECEIVER,
-                "chargeFeeBy": "currency_in",
-                "feeAmount": "20"
-            }
+            "slippageTolerance": 50
         }).json()
     tx = {
         "from": account.address,
@@ -283,8 +284,6 @@ def loop_bot():
     estado["activo"] = False
     log("Bot detenido.")
 
-# API ENDPOINTS
-
 @app.route("/status", methods=["GET"])
 def status():
     if not check_auth():
@@ -373,3 +372,4 @@ if __name__ == "__main__":
     print("API corriendo en puerto " + str(port))
     print("Wallet: " + account.address)
     app.run(host="0.0.0.0", port=port)
+
