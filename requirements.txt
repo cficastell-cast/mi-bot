@@ -3,3 +3,5 @@ flask-cors
 web3
 requests
 gunicorn
+psycopg2-binary
+cryptography
