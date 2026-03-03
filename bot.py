@@ -15,6 +15,8 @@ from cryptography.fernet import Fernet
 app = Flask(__name__)
 CORS(app)
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 ENCRYPT_KEY = os.environ.get("ENCRYPT_KEY")
 BOT_PASSWORD = os.environ.get("BOT_PASSWORD", "cnkt1234")
 fernet = Fernet(ENCRYPT_KEY.encode() if isinstance(ENCRYPT_KEY, str) else ENCRYPT_KEY)
@@ -655,16 +657,16 @@ def stop(wallet):
 @app.route("/", methods=["GET"])
 def home():
     try:
-        return open("control.html").read(), 200, {"Content-Type": "text/html"}
+        return open(os.path.join(BASE_DIR, "control.html")).read(), 200, {"Content-Type": "text/html"}
     except:
         return jsonify({"msg": "EVOX Bot API corriendo"})
 
 @app.route("/admin-panel", methods=["GET"])
 def admin_panel():
     try:
-        return open("admin.html").read(), 200, {"Content-Type": "text/html"}
-    except:
-        return "admin.html no encontrado", 404
+        return open(os.path.join(BASE_DIR, "admin.html")).read(), 200, {"Content-Type": "text/html"}
+    except Exception as e:
+        return "admin.html no encontrado: " + str(e), 404
 
 if __name__ == "__main__":
     init_db()
