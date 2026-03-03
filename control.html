@@ -73,17 +73,17 @@
   .ganancia-pos { color: var(--accent); }
   .ganancia-neg { color: var(--accent2); }
   .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 999; }
-  .box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 380px; text-align: center; }
+  .box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 400px; text-align: center; }
   .box h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 8px; }
   .box p { color: var(--muted); font-size: 12px; margin-bottom: 20px; line-height: 1.7; }
   .box input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'Space Mono', monospace; font-size: 13px; padding: 12px; border-radius: 8px; outline: none; margin-bottom: 12px; }
   .box input:focus { border-color: var(--accent); }
-  .btn-main { width: 100%; background: var(--accent); color: #0a0a0f; padding: 12px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn-main { width: 100%; background: var(--accent); color: #0a0a0f; padding: 12px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 8px; }
   .btn-main:hover { filter: brightness(1.1); }
-  .btn-outline { width: 100%; background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 10px; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-outline { width: 100%; background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 10px; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; }
   .btn-outline:hover { border-color: var(--accent3); color: var(--accent3); }
   .disclaimer { background: rgba(255,110,127,0.05); border: 1px solid rgba(255,110,127,0.2); border-radius: 8px; padding: 14px; margin-bottom: 16px; text-align: left; font-size: 11px; color: var(--accent2); line-height: 1.8; }
-  .wallet-badge { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .wallet-badge { font-size: 11px; color: var(--muted); }
   .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; font-size: 13px; z-index: 1000; opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: none; }
   .toast.show { opacity: 1; transform: translateY(0); }
   .toast.ok { border-color: var(--accent); color: var(--accent); }
@@ -102,42 +102,40 @@
     <div class="step-indicator">
       <div class="step active"></div>
       <div class="step"></div>
-      <div class="step"></div>
     </div>
     <h2>EVOX <span style="color:var(--accent)">Bot</span></h2>
-    <p>Conecta tu MetaMask para identificarte.<br>Esta es tu wallet principal, NO la del bot.</p>
+    <p>Conecta tu wallet dedicada al bot.<br>Esta misma wallet operará automáticamente.</p>
+    <div class="disclaimer">
+      ⚠️ USA UNA WALLET DEDICADA<br>
+      • Crea una wallet nueva en MetaMask<br>
+      • NUNCA uses tu wallet principal<br>
+      • Transfiere solo lo que vas a operar<br>
+      • EVOX no es responsable de pérdidas<br>
+      • Tu key se encripta en el servidor
+    </div>
     <button class="btn-main" onclick="conectarMetamask()">🦊 Conectar MetaMask</button>
     <div id="metamaskError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
   </div>
 </div>
 
-<!-- PASO 2: Registrar wallet del bot -->
+<!-- PASO 2: Pegar private key -->
 <div class="overlay" id="overlayRegistro" style="display:none">
   <div class="box">
     <div class="step-indicator">
       <div class="step"></div>
       <div class="step active"></div>
-      <div class="step"></div>
     </div>
-    <h2>Wallet <span style="color:var(--accent)">del Bot</span></h2>
-    <div class="disclaimer">
-      ⚠️ USA SOLO UNA WALLET DEDICADA<br>
-      • NUNCA uses tu wallet principal<br>
-      • Crea una wallet nueva en MetaMask<br>
-      • Transfiere solo lo que vas a operar<br>
-      • EVOX no es responsable de pérdidas<br>
-      • Tu key se encripta en el servidor
-    </div>
-    <p style="margin-bottom:12px;">Pega la dirección y private key de tu wallet dedicada al bot:</p>
-    <input type="text" id="botWallet" placeholder="0x... (dirección del bot)" />
-    <input type="password" id="botPrivateKey" placeholder="Private key del bot" />
-    <button class="btn-main" onclick="registrar()">REGISTRAR BOT</button>
+    <h2>Activa tu <span style="color:var(--accent)">Bot</span></h2>
+    <p id="walletDetectada" style="color:var(--accent);font-size:12px;margin-bottom:16px;"></p>
+    <p>Para que el bot opere 24/7 necesita tu private key. Se encripta y nunca se comparte.</p>
+    <input type="password" id="botPrivateKey" placeholder="Private key de tu wallet" />
+    <button class="btn-main" onclick="registrar()">ACTIVAR BOT</button>
     <button class="btn-outline" onclick="yaRegistrado()">Ya tengo cuenta →</button>
     <div id="registroError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
   </div>
 </div>
 
-<!-- PASO 3: App principal -->
+<!-- APP PRINCIPAL -->
 <div class="container" id="mainApp" style="display:none">
   <header>
     <h1>EVOX <span>Bot</span></h1>
@@ -253,37 +251,34 @@ async function conectarMetamask() {
     userWallet = accounts[0].toLowerCase();
     document.getElementById('overlayMetamask').style.display = 'none';
     document.getElementById('overlayRegistro').style.display = 'flex';
-    document.getElementById('walletBadge').textContent = 'MetaMask: ' + userWallet.slice(0,6) + '...' + userWallet.slice(-4);
+    document.getElementById('walletDetectada').textContent = '✅ ' + userWallet.slice(0,6) + '...' + userWallet.slice(-4) + ' conectada';
+    document.getElementById('walletBadge').textContent = userWallet.slice(0,6) + '...' + userWallet.slice(-4);
   } catch(e) {
-    document.getElementById('metamaskError').textContent = 'Error conectando MetaMask: ' + e.message;
+    document.getElementById('metamaskError').textContent = 'Error: ' + e.message;
   }
 }
 
 function yaRegistrado() {
   document.getElementById('overlayRegistro').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
-  document.getElementById('walletBadge').textContent = 'MetaMask: ' + userWallet.slice(0,6) + '...' + userWallet.slice(-4);
   fetchStatus();
   fetchHistorial();
   interval = setInterval(fetchStatus, 10000);
 }
 
 async function registrar() {
-  const wallet = document.getElementById('botWallet').value.trim();
   const pk = document.getElementById('botPrivateKey').value.trim();
-  if (!wallet || !pk) {
-    document.getElementById('registroError').textContent = 'Completa todos los campos';
-    return;
-  }
+  if (!pk) { document.getElementById('registroError').textContent = 'Pega tu private key'; return; }
+
   try {
     const r = await fetch(BOT_URL + '/registro', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({wallet, private_key: pk})
+      body: JSON.stringify({wallet: userWallet, private_key: pk})
     });
     const data = await r.json();
     if (data.ok) {
-      showToast('Registrado!', 'ok');
+      showToast('Bot activado!', 'ok');
       yaRegistrado();
     } else {
       document.getElementById('registroError').textContent = data.msg;
@@ -314,7 +309,7 @@ async function fetchLogs() {
       if (line.includes('COMPRA')) cls += ' compra';
       else if (line.includes('VENTA')) cls += ' venta';
       else if (line.includes('Error') || line.includes('ERROR')) cls += ' error';
-      else if (line.includes('BOT') || line.includes('Conectado')) cls += ' info';
+      else if (line.includes('BOT') || line.includes('Aprobando') || line.includes('aprobado')) cls += ' info';
       return '<div class="' + cls + '">' + line + '</div>';
     }).join('');
   } catch(e) { console.log('Error logs:', e); }
@@ -330,13 +325,13 @@ async function fetchHistorial() {
       el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin ciclos registrados aún...</div>';
       return;
     }
-    el.innerHTML = '<table><thead><tr><th>Fecha</th><th>Compra</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>' +
+    el.innerHTML = '<table><thead><tr><th>Fecha</th><th>Precio Compra</th><th>Precio Venta</th><th>Ganancia USDT</th></tr></thead><tbody>' +
       data.historial.map(c => `
         <tr>
           <td>${c.fecha}</td>
-          <td>$${c.precio_compra ? c.precio_compra.toFixed(6) : '—'}</td>
-          <td>$${c.precio_venta ? c.precio_venta.toFixed(6) : '—'}</td>
-          <td class="${c.ganancia_usdt >= 0 ? 'ganancia-pos' : 'ganancia-neg'}">$${c.ganancia_usdt ? c.ganancia_usdt.toFixed(4) : '—'}</td>
+          <td>${c.precio_compra ? '$' + c.precio_compra.toFixed(6) : '—'}</td>
+          <td>${c.precio_venta ? '$' + c.precio_venta.toFixed(6) : '—'}</td>
+          <td class="${c.ganancia_usdt >= 0 ? 'ganancia-pos' : 'ganancia-neg'}">${c.ganancia_usdt ? '$' + c.ganancia_usdt.toFixed(4) : '—'}</td>
         </tr>
       `).join('') + '</tbody></table>';
   } catch(e) { console.log('Error historial:', e); }
