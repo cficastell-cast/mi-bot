@@ -5,6 +5,7 @@ import requests
 import psycopg2
 import psycopg2.extras
 import pytz
+import bcrypt
 from datetime import datetime
 from web3 import Web3
 from flask import Flask, jsonify, request
@@ -46,10 +47,12 @@ def init_db():
             wallet VARCHAR(42) UNIQUE NOT NULL,
             nombre VARCHAR(50) DEFAULT 'Anonimo',
             private_key_enc TEXT NOT NULL,
+            password_hash VARCHAR(256),
             creado_en TIMESTAMP DEFAULT NOW()
         )
     """)
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nombre VARCHAR(50) DEFAULT 'Anonimo'")
+    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS password_hash VARCHAR(256)")
     cur.execute("""
         CREATE TABLE IF NOT EXISTS ciclos (
             id SERIAL PRIMARY KEY,
@@ -289,7 +292,6 @@ def loop_bot(wallet, private_key, estado, stop_event):
             estado["usdt"] = round(usdt, 2)
             estado["cnkt"] = round(cnkt, 2)
 
-            # ── ACTUALIZAR MODO SEGUN PRECIO SIEMPRE ──
             if precio <= RANGO_BAJO:
                 estado["modo"] = "COMPRA"
             elif precio >= RANGO_ALTO:
@@ -413,8 +415,11 @@ def registro():
     wallet = data.get("wallet", "").lower()
     private_key = data.get("private_key", "")
     nombre = data.get("nombre", "Anonimo").strip() or "Anonimo"
-    if not wallet or not private_key:
-        return jsonify({"ok": False, "msg": "Faltan wallet y private_key"})
+    password = data.get("password", "")
+    if not wallet or not private_key or not password:
+        return jsonify({"ok": False, "msg": "Faltan campos obligatorios"})
+    if len(password) < 6:
+        return jsonify({"ok": False, "msg": "La contrasena debe tener al menos 6 caracteres"})
     try:
         w3 = get_w3()
         account = w3.eth.account.from_key(private_key)
@@ -423,21 +428,48 @@ def registro():
     except:
         return jsonify({"ok": False, "msg": "Private key invalida"})
     pk_enc = fernet.encrypt(private_key.encode()).decode()
+    pwd_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     try:
         conn = get_db()
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO usuarios (wallet, nombre, private_key_enc)
-            VALUES (%s, %s, %s)
+            INSERT INTO usuarios (wallet, nombre, private_key_enc, password_hash)
+            VALUES (%s, %s, %s, %s)
             ON CONFLICT (wallet) DO UPDATE SET
-                private_key_enc=EXCLUDED.private_key_enc, nombre=EXCLUDED.nombre
-        """, (wallet.lower(), nombre, pk_enc))
+                private_key_enc=EXCLUDED.private_key_enc,
+                nombre=EXCLUDED.nombre,
+                password_hash=EXCLUDED.password_hash
+        """, (wallet.lower(), nombre, pk_enc, pwd_hash))
         conn.commit()
         cur.close()
         conn.close()
         return jsonify({"ok": True, "msg": "Usuario registrado!"})
     except Exception as e:
         return jsonify({"ok": False, "msg": "Error: " + str(e)})
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json or {}
+    wallet = data.get("wallet", "").lower()
+    password = data.get("password", "")
+    if not wallet or not password:
+        return jsonify({"ok": False, "msg": "Faltan wallet y contrasena"})
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT nombre, password_hash FROM usuarios WHERE wallet = %s", (wallet,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        return jsonify({"ok": False, "msg": "Error DB: " + str(e)})
+    if not row:
+        return jsonify({"ok": False, "msg": "Wallet no registrada"})
+    if not row["password_hash"]:
+        return jsonify({"ok": False, "msg": "Re-registrate para crear tu contrasena"})
+    if not bcrypt.checkpw(password.encode(), row["password_hash"].encode()):
+        return jsonify({"ok": False, "msg": "Contrasena incorrecta"})
+    return jsonify({"ok": True, "nombre": row["nombre"], "wallet": wallet})
 
 @app.route("/status/<wallet>", methods=["GET"])
 def status(wallet):

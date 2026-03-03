@@ -64,7 +64,7 @@
   .box input:focus{border-color:var(--accent)}
   .btn-main{width:100%;background:var(--accent);color:#0a0a0f;padding:12px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px}
   .btn-main:hover{filter:brightness(1.1)}
-  .btn-outline{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+  .btn-outline{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px}
   .btn-outline:hover{border-color:var(--accent3);color:var(--accent3)}
   .disclaimer{background:rgba(255,110,127,0.05);border:1px solid rgba(255,110,127,0.2);border-radius:8px;padding:14px;margin-bottom:16px;text-align:left;font-size:11px;color:var(--accent2);line-height:1.8}
   .wallet-badge{font-size:11px;color:var(--muted)}
@@ -78,16 +78,18 @@
   .tab.active{background:var(--accent);color:#0a0a0f}
   .tab-content{display:none}
   .tab-content.active{display:block}
+  .nombre-bienvenida{font-size:12px;color:var(--accent);margin-right:8px}
 </style>
 </head>
 <body>
 <div class="grid-bg"></div>
 
-<div class="overlay" id="overlayMetamask">
+<!-- PASO 1: METAMASK O LOGIN -->
+<div class="overlay" id="overlayInicio">
   <div class="box">
     <div class="step-indicator"><div class="step active"></div><div class="step"></div></div>
     <h2>EVOX <span style="color:var(--accent)">Bot</span></h2>
-    <p>Conecta tu wallet dedicada al bot.<br>Esta misma wallet operara automaticamente.</p>
+    <p>Conecta tu wallet o inicia sesion con tu cuenta.</p>
     <div class="disclaimer">
       ⚠️ USA UNA WALLET DEDICADA<br>
       • Crea una wallet nueva en MetaMask<br>
@@ -97,20 +99,36 @@
       • Tu key se encripta en el servidor
     </div>
     <button class="btn-main" onclick="conectarMetamask()">🦊 Conectar MetaMask</button>
-    <div id="metamaskError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
+    <button class="btn-outline" onclick="mostrarLogin()">🔑 Ya tengo cuenta</button>
+    <div id="inicioError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
   </div>
 </div>
 
+<!-- LOGIN CON WALLET + CONTRASENA -->
+<div class="overlay" id="overlayLogin" style="display:none">
+  <div class="box">
+    <h2>Iniciar <span style="color:var(--accent)">Sesion</span></h2>
+    <p>Ingresa tu wallet address y contrasena.</p>
+    <input type="text" id="loginWallet" placeholder="0x... tu wallet address"/>
+    <input type="password" id="loginPassword" placeholder="Tu contrasena" onkeydown="if(event.key==='Enter') doLogin()"/>
+    <button class="btn-main" onclick="doLogin()">ENTRAR</button>
+    <button class="btn-outline" onclick="volverInicio()">← Volver</button>
+    <div id="loginError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
+  </div>
+</div>
+
+<!-- REGISTRO NUEVO USUARIO -->
 <div class="overlay" id="overlayRegistro" style="display:none">
   <div class="box">
     <div class="step-indicator"><div class="step"></div><div class="step active"></div></div>
     <h2>Activa tu <span style="color:var(--accent)">Bot</span></h2>
     <p id="walletDetectada" style="color:var(--accent);font-size:12px;margin-bottom:16px;"></p>
-    <p>Elige tu nombre para el leaderboard y pega tu private key.</p>
+    <p>Elige tu nombre, crea una contrasena y pega tu private key.</p>
     <input type="text" id="botNombre" placeholder="Tu nombre (ej: El Mistico)" maxlength="50"/>
+    <input type="password" id="botPassword" placeholder="Crea una contrasena (min 6 caracteres)"/>
+    <input type="password" id="botPasswordConfirm" placeholder="Confirma tu contrasena"/>
     <input type="password" id="botPrivateKey" placeholder="Private key de tu wallet"/>
     <button class="btn-main" onclick="registrar()">ACTIVAR BOT</button>
-    <button class="btn-outline" onclick="yaRegistrado()">Ya tengo cuenta →</button>
     <div id="registroError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
   </div>
 </div>
@@ -119,6 +137,7 @@
   <header>
     <h1>EVOX <span>Bot</span></h1>
     <div style="display:flex;gap:12px;align-items:center;">
+      <span class="nombre-bienvenida" id="nombreBienvenida"></span>
       <div class="wallet-badge" id="walletBadge"></div>
       <div class="status-pill">
         <div class="dot" id="statusDot"></div>
@@ -207,6 +226,16 @@ function showToast(msg, tipo='ok') {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
+function mostrarLogin() {
+  document.getElementById('overlayInicio').style.display = 'none';
+  document.getElementById('overlayLogin').style.display = 'flex';
+}
+
+function volverInicio() {
+  document.getElementById('overlayLogin').style.display = 'none';
+  document.getElementById('overlayInicio').style.display = 'flex';
+}
+
 function calcularPorcentaje() {
   const rb = parseFloat(document.getElementById('rangoBajo').value);
   const ra = parseFloat(document.getElementById('rangoAlto').value);
@@ -230,39 +259,77 @@ function switchTab(tab) {
 }
 
 async function conectarMetamask() {
-  if (!window.ethereum) { document.getElementById('metamaskError').textContent = 'MetaMask no detectado. Instalalo primero.'; return; }
+  if (!window.ethereum) {
+    document.getElementById('inicioError').textContent = 'MetaMask no detectado. Usa "Ya tengo cuenta" desde movil.';
+    return;
+  }
   try {
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     userWallet = accounts[0].toLowerCase();
-    document.getElementById('overlayMetamask').style.display = 'none';
+    document.getElementById('overlayInicio').style.display = 'none';
     document.getElementById('overlayRegistro').style.display = 'flex';
     document.getElementById('walletDetectada').textContent = '✅ ' + userWallet.slice(0,6) + '...' + userWallet.slice(-4) + ' conectada';
-    document.getElementById('walletBadge').textContent = userWallet.slice(0,6) + '...' + userWallet.slice(-4);
-  } catch(e) { document.getElementById('metamaskError').textContent = 'Error: ' + e.message; }
+  } catch(e) {
+    document.getElementById('inicioError').textContent = 'Error: ' + e.message;
+  }
 }
 
-function yaRegistrado() {
-  document.getElementById('overlayRegistro').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'block';
-  fetchPrecio();
-  fetchStatus(); fetchHistorial(); fetchLeaderboard();
-  setInterval(fetchPrecio, 15000);
-  setInterval(() => { fetchStatus(); fetchLeaderboard(); }, 15000);
+async function doLogin() {
+  const wallet = document.getElementById('loginWallet').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  if (!wallet || !password) { document.getElementById('loginError').textContent = 'Completa todos los campos'; return; }
+  try {
+    const r = await fetch(BOT_URL + '/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({wallet, password})
+    });
+    const data = await r.json();
+    if (data.ok) {
+      userWallet = wallet;
+      document.getElementById('overlayLogin').style.display = 'none';
+      entrarApp(data.nombre);
+    } else {
+      document.getElementById('loginError').textContent = data.msg;
+    }
+  } catch(e) {
+    document.getElementById('loginError').textContent = 'Error: ' + e.message;
+  }
 }
 
 async function registrar() {
   const pk = document.getElementById('botPrivateKey').value.trim();
   const nombre = document.getElementById('botNombre').value.trim() || 'Anonimo';
-  if (!pk) { document.getElementById('registroError').textContent = 'Pega tu private key'; return; }
+  const password = document.getElementById('botPassword').value;
+  const passwordConfirm = document.getElementById('botPasswordConfirm').value;
+  if (!pk || !password) { document.getElementById('registroError').textContent = 'Completa todos los campos'; return; }
+  if (password.length < 6) { document.getElementById('registroError').textContent = 'La contrasena debe tener al menos 6 caracteres'; return; }
+  if (password !== passwordConfirm) { document.getElementById('registroError').textContent = 'Las contrasenas no coinciden'; return; }
   try {
     const r = await fetch(BOT_URL + '/registro', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({wallet: userWallet, private_key: pk, nombre})
+      body: JSON.stringify({wallet: userWallet, private_key: pk, nombre, password})
     });
     const data = await r.json();
-    if (data.ok) { showToast('Bot activado!', 'ok'); yaRegistrado(); }
-    else { document.getElementById('registroError').textContent = data.msg; }
-  } catch(e) { document.getElementById('registroError').textContent = 'Error: ' + e.message; }
+    if (data.ok) {
+      showToast('Bot activado!', 'ok');
+      document.getElementById('overlayRegistro').style.display = 'none';
+      entrarApp(nombre);
+    } else {
+      document.getElementById('registroError').textContent = data.msg;
+    }
+  } catch(e) {
+    document.getElementById('registroError').textContent = 'Error: ' + e.message;
+  }
+}
+
+function entrarApp(nombre) {
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('walletBadge').textContent = userWallet.slice(0,6) + '...' + userWallet.slice(-4);
+  document.getElementById('nombreBienvenida').textContent = nombre || '';
+  fetchPrecio();
+  fetchStatus(); fetchHistorial(); fetchLeaderboard();
+  setInterval(fetchPrecio, 15000);
+  setInterval(() => { fetchStatus(); fetchLeaderboard(); }, 15000);
 }
 
 async function fetchPrecio() {
