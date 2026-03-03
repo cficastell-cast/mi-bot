@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EVOX Bot">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="manifest" href="/manifest.json">
 <title>EVOX Bot</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
@@ -79,14 +84,16 @@
   .tab-content{display:none}
   .tab-content.active{display:block}
   .nombre-bienvenida{font-size:12px;color:var(--accent);margin-right:8px}
+  .logo-box{display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .logo-box img{width:72px;height:72px;border-radius:16px}
 </style>
 </head>
 <body>
 <div class="grid-bg"></div>
 
-<!-- PASO 1: METAMASK O LOGIN -->
 <div class="overlay" id="overlayInicio">
   <div class="box">
+    <div class="logo-box"><img src="/icon.png" alt="EVOX Bot"/></div>
     <div class="step-indicator"><div class="step active"></div><div class="step"></div></div>
     <h2>EVOX <span style="color:var(--accent)">Bot</span></h2>
     <p>Conecta tu wallet o inicia sesion con tu cuenta.</p>
@@ -104,9 +111,9 @@
   </div>
 </div>
 
-<!-- LOGIN CON WALLET + CONTRASENA -->
 <div class="overlay" id="overlayLogin" style="display:none">
   <div class="box">
+    <div class="logo-box"><img src="/icon.png" alt="EVOX Bot"/></div>
     <h2>Iniciar <span style="color:var(--accent)">Sesion</span></h2>
     <p>Ingresa tu wallet address y contrasena.</p>
     <input type="text" id="loginWallet" placeholder="0x... tu wallet address"/>
@@ -117,9 +124,9 @@
   </div>
 </div>
 
-<!-- REGISTRO NUEVO USUARIO -->
 <div class="overlay" id="overlayRegistro" style="display:none">
   <div class="box">
+    <div class="logo-box"><img src="/icon.png" alt="EVOX Bot"/></div>
     <div class="step-indicator"><div class="step"></div><div class="step active"></div></div>
     <h2>Activa tu <span style="color:var(--accent)">Bot</span></h2>
     <p id="walletDetectada" style="color:var(--accent);font-size:12px;margin-bottom:8px;"></p>

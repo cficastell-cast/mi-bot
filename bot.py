@@ -672,6 +672,19 @@ def admin_panel():
         return open(os.path.join(BASE_DIR, "admin.html")).read(), 200, {"Content-Type": "text/html"}
     except Exception as e:
         return "admin.html no encontrado: " + str(e), 404
+@app.route("/manifest.json", methods=["GET"])
+def manifest():
+    try:
+        return open(os.path.join(BASE_DIR, "manifest.json")).read(), 200, {"Content-Type": "application/json"}
+    except Exception as e:
+        return "{}", 404
+
+@app.route("/icon.png", methods=["GET"])
+def icon():
+    try:
+        return open(os.path.join(BASE_DIR, "icon.png"), "rb").read(), 200, {"Content-Type": "image/png"}
+    except Exception as e:
+        return "", 404
 
 if __name__ == "__main__":
     init_db()
