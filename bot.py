@@ -408,6 +408,18 @@ def restaurar_bots():
     except Exception as e:
         print("Error restaurando bots: " + str(e))
 
+@app.route("/precio", methods=["GET"])
+def precio_actual():
+    try:
+        params = {"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": 10 * 10**6}
+        r = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes", params=params).json()
+        amount_out = float(r['data']['routeSummary']['amountOut']) / 10**18
+        amount_in_usd = float(r['data']['routeSummary']['amountInUsd'])
+        precio = amount_in_usd / amount_out
+        return jsonify({"ok": True, "precio": round(precio, 6)})
+    except Exception as e:
+        return jsonify({"ok": False, "precio": 0, "error": str(e)})
+
 @app.route("/registro", methods=["POST"])
 def registro():
     data = request.json or {}

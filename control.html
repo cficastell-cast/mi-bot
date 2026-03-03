@@ -244,7 +244,9 @@ async function conectarMetamask() {
 function yaRegistrado() {
   document.getElementById('overlayRegistro').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
+  fetchPrecio();
   fetchStatus(); fetchHistorial(); fetchLeaderboard();
+  setInterval(fetchPrecio, 15000);
   setInterval(() => { fetchStatus(); fetchLeaderboard(); }, 15000);
 }
 
@@ -261,6 +263,14 @@ async function registrar() {
     if (data.ok) { showToast('Bot activado!', 'ok'); yaRegistrado(); }
     else { document.getElementById('registroError').textContent = data.msg; }
   } catch(e) { document.getElementById('registroError').textContent = 'Error: ' + e.message; }
+}
+
+async function fetchPrecio() {
+  try {
+    const r = await fetch(BOT_URL + '/precio');
+    const data = await r.json();
+    if (data.ok) document.getElementById('statPrecio').textContent = '$' + data.precio;
+  } catch(e) {}
 }
 
 async function fetchStatus() {
@@ -334,7 +344,6 @@ function actualizarUI(data) {
   const dot = document.getElementById('statusDot');
   if (data.activo) { dot.className='dot on'; document.getElementById('statusText').textContent='Corriendo'; }
   else { dot.className='dot off'; document.getElementById('statusText').textContent='Detenido'; }
-  document.getElementById('statPrecio').textContent = data.precio ? '$'+data.precio : '—';
   document.getElementById('statUSDT').textContent = data.usdt ? '$'+data.usdt : '—';
   document.getElementById('statCNKT').textContent = data.cnkt !== undefined ? data.cnkt : '—';
   const gan = data.ganancia_total;
