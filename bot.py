@@ -13,6 +13,7 @@ app = Flask(__name__)
 CORS(app)
 
 ENCRYPT_KEY = os.environ.get("ENCRYPT_KEY")
+BOT_PASSWORD = os.environ.get("BOT_PASSWORD", "cnkt1234")
 fernet = Fernet(ENCRYPT_KEY.encode() if isinstance(ENCRYPT_KEY, str) else ENCRYPT_KEY)
 
 USDT_ADDRESS = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
@@ -37,9 +38,14 @@ def init_db():
         CREATE TABLE IF NOT EXISTS usuarios (
             id SERIAL PRIMARY KEY,
             wallet VARCHAR(42) UNIQUE NOT NULL,
+            nombre VARCHAR(50) DEFAULT 'Anónimo',
             private_key_enc TEXT NOT NULL,
             creado_en TIMESTAMP DEFAULT NOW()
         )
+    """)
+    # Agregar columna nombre si no existe (para usuarios ya registrados)
+    cur.execute("""
+        ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nombre VARCHAR(50) DEFAULT 'Anónimo'
     """)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS ciclos (
@@ -101,10 +107,8 @@ def guardar_bot_activo(wallet, rango_bajo, rango_alto, amount_usdt, stop_zona):
             INSERT INTO bots_activos (wallet, rango_bajo, rango_alto, amount_usdt, stop_zona)
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (wallet) DO UPDATE SET
-                rango_bajo = EXCLUDED.rango_bajo,
-                rango_alto = EXCLUDED.rango_alto,
-                amount_usdt = EXCLUDED.amount_usdt,
-                stop_zona = EXCLUDED.stop_zona,
+                rango_bajo = EXCLUDED.rango_bajo, rango_alto = EXCLUDED.rango_alto,
+                amount_usdt = EXCLUDED.amount_usdt, stop_zona = EXCLUDED.stop_zona,
                 actualizado_en = NOW()
         """, (wallet, rango_bajo, rango_alto, amount_usdt, stop_zona))
         conn.commit()
@@ -342,11 +346,9 @@ def iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt,
     estado["RANGO_ALTO"] = rango_alto
     estado["AMOUNT_USDT"] = amount_usdt
     estado["STOP_ZONA"] = stop_zona
-
     stop_event = threading.Event()
     t = threading.Thread(target=loop_bot, args=(wallet, private_key, estado, stop_event), daemon=True)
     t.start()
-
     with bots_lock:
         bots_activos[wallet] = {"thread": t, "stop_event": stop_event, "estado": estado}
 
@@ -355,30 +357,50 @@ def restaurar_bots():
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT ba.wallet, ba.rango_bajo, ba.rango_alto, ba.amount_usdt, ba.stop_zona, u.private_key_enc FROM bots_activos ba JOIN usuarios u ON ba.wallet = u.wallet")
+        cur.execute("""
+            SELECT ba.wallet, ba.rango_bajo, ba.rango_alto, ba.amount_usdt, ba.stop_zona, u.private_key_enc
+            FROM bots_activos ba JOIN usuarios u ON ba.wallet = u.wallet
+        """)
         rows = cur.fetchall()
         cur.close()
         conn.close()
-
         for row in rows:
             try:
                 private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
                 iniciar_bot_thread(row["wallet"], private_key, row["rango_bajo"], row["rango_alto"], row["amount_usdt"], row["stop_zona"])
-                print("Bot restaurado para " + row["wallet"][:6] + "...")
+                print("Bot restaurado: " + row["wallet"][:6] + "...")
             except Exception as e:
-                print("Error restaurando bot " + row["wallet"][:6] + ": " + str(e))
-
+                print("Error restaurando: " + str(e))
         print(str(len(rows)) + " bots restaurados!")
     except Exception as e:
         print("Error restaurando bots: " + str(e))
 
-# API ENDPOINTS
+# ── HELPERS ──
+
+def get_stats_usuario(wallet):
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COALESCE(SUM(ganancia_usdt), 0) as ganancia_total,
+                   COUNT(*) as ciclos_total
+            FROM ciclos WHERE wallet = %s
+        """, (wallet,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return dict(row) if row else {"ganancia_total": 0, "ciclos_total": 0}
+    except:
+        return {"ganancia_total": 0, "ciclos_total": 0}
+
+# ── API ENDPOINTS ──
 
 @app.route("/registro", methods=["POST"])
 def registro():
     data = request.json or {}
     wallet = data.get("wallet", "").lower()
     private_key = data.get("private_key", "")
+    nombre = data.get("nombre", "Anónimo").strip() or "Anónimo"
 
     if not wallet or not private_key:
         return jsonify({"ok": False, "msg": "Faltan wallet y private_key"})
@@ -397,10 +419,12 @@ def registro():
         conn = get_db()
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO usuarios (wallet, private_key_enc)
-            VALUES (%s, %s)
-            ON CONFLICT (wallet) DO UPDATE SET private_key_enc = EXCLUDED.private_key_enc
-        """, (wallet.lower(), pk_enc))
+            INSERT INTO usuarios (wallet, nombre, private_key_enc)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (wallet) DO UPDATE SET
+                private_key_enc = EXCLUDED.private_key_enc,
+                nombre = EXCLUDED.nombre
+        """, (wallet.lower(), nombre, pk_enc))
         conn.commit()
         cur.close()
         conn.close()
@@ -443,8 +467,7 @@ def historial(wallet):
         cur.execute("""
             SELECT fecha, hora_compra, precio_compra, hora_venta, precio_venta,
                    cnkt_comprado, cnkt_vendido, ganancia_usdt
-            FROM ciclos WHERE wallet = %s
-            ORDER BY creado_en DESC LIMIT 50
+            FROM ciclos WHERE wallet = %s ORDER BY creado_en DESC LIMIT 50
         """, (wallet,))
         rows = cur.fetchall()
         cur.close()
@@ -453,10 +476,118 @@ def historial(wallet):
     except Exception as e:
         return jsonify({"historial": [], "error": str(e)})
 
+@app.route("/leaderboard", methods=["GET"])
+def leaderboard():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT u.nombre, u.wallet,
+                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
+                   COUNT(c.id) as ciclos_total
+            FROM usuarios u
+            LEFT JOIN ciclos c ON u.wallet = c.wallet
+            GROUP BY u.nombre, u.wallet
+            ORDER BY ganancia_total DESC
+            LIMIT 10
+        """)
+        top_ganancias = [dict(r) for r in cur.fetchall()]
+
+        cur.execute("""
+            SELECT u.nombre, u.wallet,
+                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
+                   COUNT(c.id) as ciclos_total
+            FROM usuarios u
+            LEFT JOIN ciclos c ON u.wallet = c.wallet
+            GROUP BY u.nombre, u.wallet
+            ORDER BY ciclos_total DESC
+            LIMIT 10
+        """)
+        top_ciclos = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+
+        # Ocultar wallet completa, solo mostrar primeros 6 y últimos 4
+        for lista in [top_ganancias, top_ciclos]:
+            for u in lista:
+                w = u["wallet"]
+                u["wallet_short"] = w[:6] + "..." + w[-4:]
+                del u["wallet"]
+
+        return jsonify({"top_ganancias": top_ganancias, "top_ciclos": top_ciclos})
+    except Exception as e:
+        return jsonify({"top_ganancias": [], "top_ciclos": [], "error": str(e)})
+
+@app.route("/admin", methods=["GET"])
+def admin():
+    pwd = request.args.get("password", "")
+    if pwd != BOT_PASSWORD:
+        return jsonify({"error": "No autorizado"}), 401
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+
+        # Total usuarios
+        cur.execute("SELECT COUNT(*) as total FROM usuarios")
+        total_usuarios = cur.fetchone()["total"]
+
+        # Bots activos en DB
+        cur.execute("SELECT COUNT(*) as total FROM bots_activos")
+        total_bots_db = cur.fetchone()["total"]
+
+        # Bots activos en memoria
+        with bots_lock:
+            bots_en_memoria = sum(1 for b in bots_activos.values() if b["estado"]["activo"])
+
+        # Ciclos totales y ganancia total plataforma
+        cur.execute("SELECT COUNT(*) as ciclos, COALESCE(SUM(ganancia_usdt), 0) as ganancia FROM ciclos")
+        stats = cur.fetchone()
+
+        # Lista de usuarios con sus stats
+        cur.execute("""
+            SELECT u.nombre, u.wallet, u.creado_en,
+                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
+                   COUNT(c.id) as ciclos_total
+            FROM usuarios u
+            LEFT JOIN ciclos c ON u.wallet = c.wallet
+            GROUP BY u.nombre, u.wallet, u.creado_en
+            ORDER BY ganancia_total DESC
+        """)
+        usuarios = [dict(r) for r in cur.fetchall()]
+
+        # Ultimos ciclos
+        cur.execute("""
+            SELECT c.wallet, u.nombre, c.fecha, c.precio_compra, c.precio_venta, c.ganancia_usdt, c.creado_en
+            FROM ciclos c JOIN usuarios u ON c.wallet = u.wallet
+            ORDER BY c.creado_en DESC LIMIT 20
+        """)
+        ultimos_ciclos = [dict(r) for r in cur.fetchall()]
+
+        cur.close()
+        conn.close()
+
+        # Agregar estado del bot a cada usuario
+        for u in usuarios:
+            w = u["wallet"].lower()
+            with bots_lock:
+                u["bot_activo"] = w in bots_activos and bots_activos[w]["estado"]["activo"]
+
+        return jsonify({
+            "resumen": {
+                "total_usuarios": total_usuarios,
+                "bots_activos": bots_en_memoria,
+                "ciclos_totales": stats["ciclos"],
+                "ganancia_plataforma": float(stats["ganancia"]),
+            },
+            "usuarios": usuarios,
+            "ultimos_ciclos": ultimos_ciclos
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/start/<wallet>", methods=["POST"])
 def start(wallet):
     wallet = wallet.lower()
-
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -490,7 +621,6 @@ def start(wallet):
 
     guardar_bot_activo(wallet, rango_bajo, rango_alto, amount_usdt, stop_zona)
     iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt, stop_zona)
-
     return jsonify({"ok": True, "msg": "Bot iniciado!"})
 
 @app.route("/stop/<wallet>", methods=["POST"])
@@ -509,6 +639,13 @@ def home():
         return open("control.html").read(), 200, {"Content-Type": "text/html"}
     except:
         return jsonify({"msg": "EVOX Bot API corriendo"})
+
+@app.route("/admin-panel", methods=["GET"])
+def admin_panel():
+    try:
+        return open("admin.html").read(), 200, {"Content-Type": "text/html"}
+    except:
+        return "admin.html no encontrado", 404
 
 if __name__ == "__main__":
     init_db()

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVOX Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0a0a0f; --surface:#12121a; --border:#1e1e2e; --accent:#7fff6e; --accent2:#ff6e7f; --accent3:#6e9fff; --text:#e8e8f0; --muted:#5a5a7a; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Space Mono',monospace; min-height:100vh; padding:24px; }
+  .grid-bg { position:fixed; top:0; left:0; width:100%; height:100%; background-image:linear-gradient(rgba(127,255,110,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(127,255,110,0.03) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+  .container { max-width:1100px; margin:0 auto; position:relative; z-index:1; }
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; padding-bottom:20px; border-bottom:1px solid var(--border); }
+  h1 { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; letter-spacing:-1px; }
+  h1 span { color:var(--accent); }
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .card-label { font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
+  .card-value { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; }
+  .green { color:var(--accent); } .red { color:var(--accent2); } .blue { color:var(--accent3); }
+  .panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:24px; }
+  .panel h2 { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:16px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; color:var(--muted); padding:10px 8px; border-bottom:1px solid var(--border); }
+  td { padding:10px 8px; border-bottom:1px solid var(--border); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:100px; font-size:11px; font-weight:700; }
+  .badge.on { background:rgba(127,255,110,0.1); color:var(--accent); border:1px solid rgba(127,255,110,0.3); }
+  .badge.off { background:rgba(255,110,127,0.1); color:var(--accent2); border:1px solid rgba(255,110,127,0.3); }
+  .overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:999; }
+  .box { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:40px; width:340px; text-align:center; }
+  .box h2 { font-family:'Syne',sans-serif; font-size:22px; font-weight:800; margin-bottom:8px; }
+  .box p { color:var(--muted); font-size:12px; margin-bottom:20px; }
+  .box input { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Space Mono',monospace; font-size:14px; padding:12px; border-radius:8px; outline:none; margin-bottom:12px; text-align:center; letter-spacing:2px; }
+  .box input:focus { border-color:var(--accent); }
+  .btn-main { width:100%; background:var(--accent); color:#0a0a0f; padding:12px; border-radius:8px; border:none; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-main:hover { filter:brightness(1.1); }
+  .ganancia-pos { color:var(--accent); } .ganancia-neg { color:var(--accent2); }
+  .refresh-btn { background:transparent; border:1px solid var(--border); color:var(--muted); padding:6px 14px; border-radius:6px; font-family:'Syne',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
+  .refresh-btn:hover { border-color:var(--accent3); color:var(--accent3); }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<div class="overlay" id="loginOverlay">
+  <div class="box">
+    <h2>EVOX <span style="color:var(--accent)">Admin</span></h2>
+    <p>Acceso restringido</p>
+    <input type="password" id="pwdInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()" />
+    <button class="btn-main" onclick="doLogin()">ENTRAR</button>
+    <div id="loginError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
+  </div>
+</div>
+
+<div class="container" id="mainApp" style="display:none">
+  <header>
+    <h1>EVOX <span>Admin</span></h1>
+    <button class="refresh-btn" onclick="cargarDatos()">↻ Actualizar</button>
+  </header>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Usuarios</div>
+      <div class="card-value blue" id="totalUsuarios">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Bots Activos</div>
+      <div class="card-value green" id="botsActivos">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Ciclos Totales</div>
+      <div class="card-value" id="ciclosTotales">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Ganancia Plataforma</div>
+      <div class="card-value green" id="gananciaPlatforma">—</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Usuarios</h2>
+    <div id="tablaUsuarios">Cargando...</div>
+  </div>
+
+  <div class="panel">
+    <h2>Últimos Ciclos</h2>
+    <div id="tablaUltimos">Cargando...</div>
+  </div>
+</div>
+
+<script>
+const BOT_URL = window.location.origin;
+let pwd = '';
+
+function doLogin() {
+  pwd = document.getElementById('pwdInput').value;
+  if (!pwd) return;
+  cargarDatos();
+}
+
+async function cargarDatos() {
+  try {
+    const r = await fetch(BOT_URL + '/admin?password=' + encodeURIComponent(pwd));
+    if (r.status === 401) { document.getElementById('loginError').textContent = 'Contraseña incorrecta'; return; }
+    const data = await r.json();
+
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+
+    document.getElementById('totalUsuarios').textContent = data.resumen.total_usuarios;
+    document.getElementById('botsActivos').textContent = data.resumen.bots_activos;
+    document.getElementById('ciclosTotales').textContent = data.resumen.ciclos_totales;
+    const gp = data.resumen.ganancia_plataforma;
+    const gpEl = document.getElementById('gananciaPlatforma');
+    gpEl.textContent = '$' + gp.toFixed(4);
+    gpEl.className = 'card-value ' + (gp >= 0 ? 'green' : 'red');
+
+    // Tabla usuarios
+    const tu = document.getElementById('tablaUsuarios');
+    if (!data.usuarios.length) { tu.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin usuarios aún</div>'; }
+    else {
+      tu.innerHTML = '<table><thead><tr><th>#</th><th>Nombre</th><th>Wallet</th><th>Bot</th><th>Ciclos</th><th>Ganancia</th><th>Registro</th></tr></thead><tbody>' +
+        data.usuarios.map((u, i) => `
+          <tr>
+            <td style="color:var(--muted)">${i+1}</td>
+            <td style="font-weight:700">${u.nombre}</td>
+            <td style="color:var(--muted)">${u.wallet.slice(0,6)}...${u.wallet.slice(-4)}</td>
+            <td><span class="badge ${u.bot_activo ? 'on' : 'off'}">${u.bot_activo ? '● ACTIVO' : '○ DETENIDO'}</span></td>
+            <td style="color:var(--accent3)">${u.ciclos_total}</td>
+            <td class="${u.ganancia_total >= 0 ? 'ganancia-pos' : 'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td>
+            <td style="color:var(--muted)">${new Date(u.creado_en).toLocaleDateString()}</td>
+          </tr>
+        `).join('') + '</tbody></table>';
+    }
+
+    // Ultimos ciclos
+    const tc = document.getElementById('tablaUltimos');
+    if (!data.ultimos_ciclos.length) { tc.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin ciclos aún</div>'; }
+    else {
+      tc.innerHTML = '<table><thead><tr><th>Nombre</th><th>Wallet</th><th>Fecha</th><th>Compra</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>' +
+        data.ultimos_ciclos.map(c => `
+          <tr>
+            <td style="font-weight:700">${c.nombre}</td>
+            <td style="color:var(--muted)">${c.wallet.slice(0,6)}...${c.wallet.slice(-4)}</td>
+            <td style="color:var(--muted)">${c.fecha}</td>
+            <td>$${c.precio_compra ? c.precio_compra.toFixed(6) : '—'}</td>
+            <td>$${c.precio_venta ? c.precio_venta.toFixed(6) : '—'}</td>
+            <td class="${c.ganancia_usdt >= 0 ? 'ganancia-pos' : 'ganancia-neg'}">$${parseFloat(c.ganancia_usdt).toFixed(4)}</td>
+          </tr>
+        `).join('') + '</tbody></table>';
+    }
+
+  } catch(e) {
+    document.getElementById('loginError').textContent = 'Error: ' + e.message;
+  }
+}
+</script>
+</body>
+</html>
