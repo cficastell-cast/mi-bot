@@ -4,6 +4,8 @@ import time
 import requests
 import psycopg2
 import psycopg2.extras
+import pytz
+from datetime import datetime
 from web3 import Web3
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -27,6 +29,10 @@ TOKEN_ABI = [
 ]
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+CDMX = pytz.timezone('America/Mexico_City')
+
+def hora_cdmx():
+    return datetime.now(CDMX).strftime('%H:%M:%S')
 
 def get_db():
     return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
@@ -38,15 +44,12 @@ def init_db():
         CREATE TABLE IF NOT EXISTS usuarios (
             id SERIAL PRIMARY KEY,
             wallet VARCHAR(42) UNIQUE NOT NULL,
-            nombre VARCHAR(50) DEFAULT 'Anónimo',
+            nombre VARCHAR(50) DEFAULT 'Anonimo',
             private_key_enc TEXT NOT NULL,
             creado_en TIMESTAMP DEFAULT NOW()
         )
     """)
-    # Agregar columna nombre si no existe (para usuarios ya registrados)
-    cur.execute("""
-        ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nombre VARCHAR(50) DEFAULT 'Anónimo'
-    """)
+    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nombre VARCHAR(50) DEFAULT 'Anonimo'")
     cur.execute("""
         CREATE TABLE IF NOT EXISTS ciclos (
             id SERIAL PRIMARY KEY,
@@ -59,6 +62,17 @@ def init_db():
             cnkt_comprado FLOAT,
             cnkt_vendido FLOAT,
             ganancia_usdt FLOAT,
+            amount_usdt FLOAT DEFAULT 0,
+            creado_en TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("ALTER TABLE ciclos ADD COLUMN IF NOT EXISTS amount_usdt FLOAT DEFAULT 0")
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS swaps (
+            id SERIAL PRIMARY KEY,
+            wallet VARCHAR(42) NOT NULL,
+            tipo VARCHAR(10) NOT NULL,
+            amount_usdt FLOAT NOT NULL,
             creado_en TIMESTAMP DEFAULT NOW()
         )
     """)
@@ -91,7 +105,7 @@ def nuevo_estado():
     }
 
 def log_estado(estado, msg):
-    hora = time.strftime('%H:%M:%S')
+    hora = hora_cdmx()
     linea = hora + " | " + msg
     print(linea)
     estado["ultimo_log"] = linea
@@ -107,9 +121,9 @@ def guardar_bot_activo(wallet, rango_bajo, rango_alto, amount_usdt, stop_zona):
             INSERT INTO bots_activos (wallet, rango_bajo, rango_alto, amount_usdt, stop_zona)
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (wallet) DO UPDATE SET
-                rango_bajo = EXCLUDED.rango_bajo, rango_alto = EXCLUDED.rango_alto,
-                amount_usdt = EXCLUDED.amount_usdt, stop_zona = EXCLUDED.stop_zona,
-                actualizado_en = NOW()
+                rango_bajo=EXCLUDED.rango_bajo, rango_alto=EXCLUDED.rango_alto,
+                amount_usdt=EXCLUDED.amount_usdt, stop_zona=EXCLUDED.stop_zona,
+                actualizado_en=NOW()
         """, (wallet, rango_bajo, rango_alto, amount_usdt, stop_zona))
         conn.commit()
         cur.close()
@@ -128,14 +142,27 @@ def eliminar_bot_activo(wallet):
     except Exception as e:
         print("Error eliminando bot activo: " + str(e))
 
-def guardar_ciclo(wallet, hora_compra, precio_compra, hora_venta, precio_venta, cnkt_comprado, cnkt_vendido, ganancia_usdt):
+def registrar_swap(wallet, tipo, amount_usdt):
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO swaps (wallet, tipo, amount_usdt) VALUES (%s, %s, %s)", (wallet, tipo, amount_usdt))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print("Error registrando swap: " + str(e))
+
+def guardar_ciclo(wallet, hora_compra, precio_compra, hora_venta, precio_venta, cnkt_comprado, cnkt_vendido, ganancia_usdt, amount_usdt):
     try:
         conn = get_db()
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO ciclos (wallet, hora_compra, precio_compra, hora_venta, precio_venta, cnkt_comprado, cnkt_vendido, ganancia_usdt)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (wallet, hora_compra, precio_compra, hora_venta, precio_venta, cnkt_comprado, cnkt_vendido, ganancia_usdt))
+            INSERT INTO ciclos (wallet, hora_compra, precio_compra, hora_venta, precio_venta,
+                                cnkt_comprado, cnkt_vendido, ganancia_usdt, amount_usdt)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (wallet, hora_compra, precio_compra, hora_venta, precio_venta,
+              cnkt_comprado, cnkt_vendido, ganancia_usdt, amount_usdt))
         conn.commit()
         cur.close()
         conn.close()
@@ -192,7 +219,8 @@ def loop_bot(wallet, private_key, estado, stop_event):
         amount_in = int(AMOUNT_USDT * 10**6)
         route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
             params={"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": amount_in,
-                    "feeAmount": "20", "isInBps": "true", "feeReceiver": FEE_RECEIVER, "chargeFeeBy": "currency_in"}).json()
+                    "feeAmount": "20", "isInBps": "true", "feeReceiver": FEE_RECEIVER,
+                    "chargeFeeBy": "currency_in"}).json()
         build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
             json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
                   "recipient": account.address, "slippageTolerance": 50}).json()
@@ -201,6 +229,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
               "gasPrice": w3.eth.gas_price, "gas": int(build['data']['gas']) + 50000, "chainId": 137}
         tx_hash = w3.eth.send_raw_transaction(account.sign_transaction(tx).raw_transaction)
         log_estado(estado, "COMPRA: https://polygonscan.com/tx/" + tx_hash.hex())
+        registrar_swap(wallet, "COMPRA", AMOUNT_USDT)
         time.sleep(15)
         return float(route['data']['routeSummary']['amountOut']) / 10**18
 
@@ -208,7 +237,8 @@ def loop_bot(wallet, private_key, estado, stop_event):
         amount_in = int(cantidad_cnkt * 10**18)
         route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
             params={"tokenIn": CNKT_ADDRESS, "tokenOut": USDT_ADDRESS, "amountIn": amount_in,
-                    "feeAmount": "20", "isInBps": "true", "feeReceiver": FEE_RECEIVER, "chargeFeeBy": "currency_in"}).json()
+                    "feeAmount": "20", "isInBps": "true", "feeReceiver": FEE_RECEIVER,
+                    "chargeFeeBy": "currency_in"}).json()
         build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
             json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
                   "recipient": account.address, "slippageTolerance": 50}).json()
@@ -217,6 +247,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
               "gasPrice": w3.eth.gas_price, "gas": int(build['data']['gas']) + 50000, "chainId": 137}
         tx_hash = w3.eth.send_raw_transaction(account.sign_transaction(tx).raw_transaction)
         log_estado(estado, "VENTA: https://polygonscan.com/tx/" + tx_hash.hex())
+        registrar_swap(wallet, "VENTA", AMOUNT_USDT)
         time.sleep(15)
         return float(route['data']['routeSummary']['amountOut']) / 10**6
 
@@ -270,7 +301,8 @@ def loop_bot(wallet, private_key, estado, stop_event):
             estado["usdt"] = round(usdt, 2)
             estado["cnkt"] = round(cnkt, 2)
 
-            log_estado(estado, "$" + str(round(precio,6)) + " | USDT: $" + str(round(usdt,2)) + " | CNKT: " + str(round(cnkt,0)) + " | Modo: " + modo + " | Ciclos: " + str(estado["ciclos"]))
+            log_estado(estado, "$" + str(round(precio,6)) + " | USDT: $" + str(round(usdt,2)) +
+                       " | CNKT: " + str(round(cnkt,0)) + " | Modo: " + modo + " | Ciclos: " + str(estado["ciclos"]))
 
             if precio < STOP_ABAJO or precio > STOP_ARRIBA:
                 log_estado(estado, "PRECIO FUERA DE RANGO - BOT DETENIDO")
@@ -281,7 +313,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
             if precio <= RANGO_BAJO and modo == "COMPRA":
                 if usdt >= AMOUNT_USDT:
                     log_estado(estado, "Senal de COMPRA!")
-                    hora_compra_actual = time.strftime('%H:%M:%S')
+                    hora_compra_actual = hora_cdmx()
                     precio_compra_actual = precio
                     estado["cnkt_comprados"] = comprar()
                     cnkt_comprado_actual = estado["cnkt_comprados"]
@@ -295,7 +327,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
                 cnkt_comp = estado["cnkt_comprados"]
                 if cnkt >= cnkt_comp and cnkt_comp > 0:
                     log_estado(estado, "Senal de VENTA!")
-                    hora_venta = time.strftime('%H:%M:%S')
+                    hora_venta = hora_cdmx()
                     usdt_recibido = vender(cnkt_comp)
                     ganancia = usdt_recibido - AMOUNT_USDT
                     estado["ganancia_total"] += ganancia
@@ -303,7 +335,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
                     log_estado(estado, "Ganancia ciclo: $" + str(round(ganancia, 4)))
                     log_estado(estado, "Ganancia total: $" + str(round(estado["ganancia_total"], 4)))
                     guardar_ciclo(wallet, hora_compra_actual, precio_compra_actual,
-                                  hora_venta, precio, cnkt_comprado_actual, cnkt_comp, ganancia)
+                                  hora_venta, precio, cnkt_comprado_actual, cnkt_comp, ganancia, AMOUNT_USDT)
                     estado["cnkt_comprados"] = 0
                     cnkt_comprado_actual = 0
                     hora_compra_actual = None
@@ -312,14 +344,14 @@ def loop_bot(wallet, private_key, estado, stop_event):
                 elif cnkt_comp == 0:
                     if cnkt >= cnkt_necesario:
                         log_estado(estado, "Senal de VENTA!")
-                        hora_venta = time.strftime('%H:%M:%S')
+                        hora_venta = hora_cdmx()
                         usdt_recibido = vender(cnkt_necesario)
                         ganancia = usdt_recibido - AMOUNT_USDT
                         estado["ganancia_total"] += ganancia
                         estado["ciclos"] += 1
                         log_estado(estado, "Ganancia ciclo: $" + str(round(ganancia, 4)))
                         log_estado(estado, "Ganancia total: $" + str(round(estado["ganancia_total"], 4)))
-                        guardar_ciclo(wallet, None, None, hora_venta, precio, 0, cnkt_necesario, ganancia)
+                        guardar_ciclo(wallet, None, None, hora_venta, precio, 0, cnkt_necesario, ganancia, AMOUNT_USDT)
                         estado["modo"] = "COMPRA"
                     else:
                         log_estado(estado, "Sin CNKT, cambiando a modo COMPRA")
@@ -367,7 +399,8 @@ def restaurar_bots():
         for row in rows:
             try:
                 private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
-                iniciar_bot_thread(row["wallet"], private_key, row["rango_bajo"], row["rango_alto"], row["amount_usdt"], row["stop_zona"])
+                iniciar_bot_thread(row["wallet"], private_key, row["rango_bajo"],
+                                   row["rango_alto"], row["amount_usdt"], row["stop_zona"])
                 print("Bot restaurado: " + row["wallet"][:6] + "...")
             except Exception as e:
                 print("Error restaurando: " + str(e))
@@ -375,36 +408,14 @@ def restaurar_bots():
     except Exception as e:
         print("Error restaurando bots: " + str(e))
 
-# ── HELPERS ──
-
-def get_stats_usuario(wallet):
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT COALESCE(SUM(ganancia_usdt), 0) as ganancia_total,
-                   COUNT(*) as ciclos_total
-            FROM ciclos WHERE wallet = %s
-        """, (wallet,))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
-        return dict(row) if row else {"ganancia_total": 0, "ciclos_total": 0}
-    except:
-        return {"ganancia_total": 0, "ciclos_total": 0}
-
-# ── API ENDPOINTS ──
-
 @app.route("/registro", methods=["POST"])
 def registro():
     data = request.json or {}
     wallet = data.get("wallet", "").lower()
     private_key = data.get("private_key", "")
-    nombre = data.get("nombre", "Anónimo").strip() or "Anónimo"
-
+    nombre = data.get("nombre", "Anonimo").strip() or "Anonimo"
     if not wallet or not private_key:
         return jsonify({"ok": False, "msg": "Faltan wallet y private_key"})
-
     try:
         w3 = get_w3()
         account = w3.eth.account.from_key(private_key)
@@ -412,9 +423,7 @@ def registro():
             return jsonify({"ok": False, "msg": "La private key no corresponde a esta wallet"})
     except:
         return jsonify({"ok": False, "msg": "Private key invalida"})
-
     pk_enc = fernet.encrypt(private_key.encode()).decode()
-
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -422,8 +431,7 @@ def registro():
             INSERT INTO usuarios (wallet, nombre, private_key_enc)
             VALUES (%s, %s, %s)
             ON CONFLICT (wallet) DO UPDATE SET
-                private_key_enc = EXCLUDED.private_key_enc,
-                nombre = EXCLUDED.nombre
+                private_key_enc=EXCLUDED.private_key_enc, nombre=EXCLUDED.nombre
         """, (wallet.lower(), nombre, pk_enc))
         conn.commit()
         cur.close()
@@ -485,35 +493,25 @@ def leaderboard():
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
                    COUNT(c.id) as ciclos_total
-            FROM usuarios u
-            LEFT JOIN ciclos c ON u.wallet = c.wallet
-            GROUP BY u.nombre, u.wallet
-            ORDER BY ganancia_total DESC
-            LIMIT 10
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
+            GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 10
         """)
         top_ganancias = [dict(r) for r in cur.fetchall()]
-
         cur.execute("""
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
                    COUNT(c.id) as ciclos_total
-            FROM usuarios u
-            LEFT JOIN ciclos c ON u.wallet = c.wallet
-            GROUP BY u.nombre, u.wallet
-            ORDER BY ciclos_total DESC
-            LIMIT 10
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
+            GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 10
         """)
         top_ciclos = [dict(r) for r in cur.fetchall()]
         cur.close()
         conn.close()
-
-        # Ocultar wallet completa, solo mostrar primeros 6 y últimos 4
         for lista in [top_ganancias, top_ciclos]:
             for u in lista:
                 w = u["wallet"]
                 u["wallet_short"] = w[:6] + "..." + w[-4:]
                 del u["wallet"]
-
         return jsonify({"top_ganancias": top_ganancias, "top_ciclos": top_ciclos})
     except Exception as e:
         return jsonify({"top_ganancias": [], "top_ciclos": [], "error": str(e)})
@@ -526,58 +524,53 @@ def admin():
     try:
         conn = get_db()
         cur = conn.cursor()
-
-        # Total usuarios
         cur.execute("SELECT COUNT(*) as total FROM usuarios")
         total_usuarios = cur.fetchone()["total"]
-
-        # Bots activos en DB
-        cur.execute("SELECT COUNT(*) as total FROM bots_activos")
-        total_bots_db = cur.fetchone()["total"]
-
-        # Bots activos en memoria
         with bots_lock:
             bots_en_memoria = sum(1 for b in bots_activos.values() if b["estado"]["activo"])
-
-        # Ciclos totales y ganancia total plataforma
-        cur.execute("SELECT COUNT(*) as ciclos, COALESCE(SUM(ganancia_usdt), 0) as ganancia FROM ciclos")
-        stats = cur.fetchone()
-
-        # Lista de usuarios con sus stats
+        cur.execute("SELECT COUNT(*) as ciclos FROM ciclos")
+        ciclos_totales = cur.fetchone()["ciclos"]
+        cur.execute("SELECT COUNT(*) as total FROM swaps WHERE tipo = 'COMPRA'")
+        compras_totales = cur.fetchone()["total"]
+        cur.execute("SELECT COUNT(*) as total FROM swaps WHERE tipo = 'VENTA'")
+        ventas_totales = cur.fetchone()["total"]
+        cur.execute("""
+            SELECT COALESCE(SUM(amount_usdt), 0) as volumen
+            FROM swaps WHERE creado_en >= NOW() - INTERVAL '24 hours'
+        """)
+        volumen_24h = float(cur.fetchone()["volumen"])
+        cur.execute("SELECT COALESCE(SUM(amount_usdt), 0) as total FROM swaps")
+        total_swaps_usdt = float(cur.fetchone()["total"])
+        comisiones_estimadas = total_swaps_usdt * 0.002
         cur.execute("""
             SELECT u.nombre, u.wallet, u.creado_en,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
                    COUNT(c.id) as ciclos_total
-            FROM usuarios u
-            LEFT JOIN ciclos c ON u.wallet = c.wallet
-            GROUP BY u.nombre, u.wallet, u.creado_en
-            ORDER BY ganancia_total DESC
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
+            GROUP BY u.nombre, u.wallet, u.creado_en ORDER BY ganancia_total DESC
         """)
         usuarios = [dict(r) for r in cur.fetchall()]
-
-        # Ultimos ciclos
         cur.execute("""
             SELECT c.wallet, u.nombre, c.fecha, c.precio_compra, c.precio_venta, c.ganancia_usdt, c.creado_en
             FROM ciclos c JOIN usuarios u ON c.wallet = u.wallet
             ORDER BY c.creado_en DESC LIMIT 20
         """)
         ultimos_ciclos = [dict(r) for r in cur.fetchall()]
-
         cur.close()
         conn.close()
-
-        # Agregar estado del bot a cada usuario
         for u in usuarios:
             w = u["wallet"].lower()
             with bots_lock:
                 u["bot_activo"] = w in bots_activos and bots_activos[w]["estado"]["activo"]
-
         return jsonify({
             "resumen": {
                 "total_usuarios": total_usuarios,
                 "bots_activos": bots_en_memoria,
-                "ciclos_totales": stats["ciclos"],
-                "ganancia_plataforma": float(stats["ganancia"]),
+                "ciclos_totales": ciclos_totales,
+                "compras_totales": compras_totales,
+                "ventas_totales": ventas_totales,
+                "volumen_24h": volumen_24h,
+                "comisiones_estimadas": comisiones_estimadas,
             },
             "usuarios": usuarios,
             "ultimos_ciclos": ultimos_ciclos
@@ -597,14 +590,11 @@ def start(wallet):
         conn.close()
     except Exception as e:
         return jsonify({"ok": False, "msg": "Error DB: " + str(e)})
-
     if not row:
         return jsonify({"ok": False, "msg": "Usuario no registrado"})
-
     with bots_lock:
         if wallet in bots_activos and bots_activos[wallet]["estado"]["activo"]:
             return jsonify({"ok": False, "msg": "Bot ya esta corriendo"})
-
     data = request.json or {}
     try:
         rango_bajo  = float(data["rango_bajo"])
@@ -613,12 +603,10 @@ def start(wallet):
         stop_zona   = float(data.get("stop_zona", 0.03))
     except (KeyError, ValueError):
         return jsonify({"ok": False, "msg": "Faltan parametros"})
-
     try:
         private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
     except:
         return jsonify({"ok": False, "msg": "Error desencriptando key"})
-
     guardar_bot_activo(wallet, rango_bajo, rango_alto, amount_usdt, stop_zona)
     iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt, stop_zona)
     return jsonify({"ok": True, "msg": "Bot iniciado!"})

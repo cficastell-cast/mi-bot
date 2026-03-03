@@ -6,94 +6,94 @@
 <title>EVOX Bot</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0a0a0f; --surface:#12121a; --border:#1e1e2e; --accent:#7fff6e; --accent2:#ff6e7f; --accent3:#6e9fff; --text:#e8e8f0; --muted:#5a5a7a; }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--bg); color:var(--text); font-family:'Space Mono',monospace; min-height:100vh; padding:24px; }
-  .grid-bg { position:fixed; top:0; left:0; width:100%; height:100%; background-image:linear-gradient(rgba(127,255,110,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(127,255,110,0.03) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
-  .container { max-width:900px; margin:0 auto; position:relative; z-index:1; }
-  header { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; padding-bottom:20px; border-bottom:1px solid var(--border); }
-  h1 { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; letter-spacing:-1px; }
-  h1 span { color:var(--accent); }
-  .status-pill { display:flex; align-items:center; gap:8px; padding:6px 16px; border-radius:100px; border:1px solid var(--border); font-size:13px; }
-  .dot { width:8px; height:8px; border-radius:50%; background:var(--muted); transition:background 0.3s; }
-  .dot.on { background:var(--accent); box-shadow:0 0 8px var(--accent); animation:pulse 1.5s infinite; }
-  .dot.off { background:var(--accent2); }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
-  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px; }
-  .card-label { font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
-  .card-value { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; }
-  .green{color:var(--accent)} .red{color:var(--accent2)} .blue{color:var(--accent3)}
-  .panels { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
-  .panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; }
-  .panel h2 { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:16px; }
-  .field { margin-bottom:14px; }
-  .field label { display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
-  .field input { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Space Mono',monospace; font-size:14px; padding:10px 12px; border-radius:6px; outline:none; transition:border-color 0.2s; }
-  .field input:focus { border-color:var(--accent); }
-  .btn-row { display:flex; gap:10px; margin-top:8px; }
-  button { flex:1; padding:12px; border-radius:8px; border:none; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; letter-spacing:1px; cursor:pointer; transition:all 0.2s; }
-  .btn-start { background:var(--accent); color:#0a0a0f; }
-  .btn-start:hover { filter:brightness(1.1); transform:translateY(-1px); }
-  .btn-start:disabled { opacity:0.3; cursor:not-allowed; transform:none; }
-  .btn-stop { background:transparent; border:1px solid var(--accent2); color:var(--accent2); }
-  .btn-stop:hover { background:var(--accent2); color:#0a0a0f; }
-  .btn-stop:disabled { opacity:0.3; cursor:not-allowed; }
-  .btn-secondary { background:transparent; border:1px solid var(--border); color:var(--muted); padding:8px 16px; font-size:12px; flex:none; }
-  .btn-secondary:hover { border-color:var(--accent3); color:var(--accent3); }
-  .log-panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:24px; }
-  .log-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-  .log-header h2 { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--muted); }
-  .log-box { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:12px; height:200px; overflow-y:auto; font-size:12px; line-height:1.8; }
-  .log-line{color:var(--muted)} .log-line.compra{color:var(--accent)} .log-line.venta{color:var(--accent2)} .log-line.error{color:var(--accent2)} .log-line.info{color:var(--accent3)}
-  .bottom-panels { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
-  .historial-panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; }
-  .historial-panel h2 { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:16px; }
-  table { width:100%; border-collapse:collapse; font-size:12px; }
-  th { text-align:left; color:var(--muted); padding:8px; border-bottom:1px solid var(--border); }
-  td { padding:8px; border-bottom:1px solid var(--border); }
-  .ganancia-pos{color:var(--accent)} .ganancia-neg{color:var(--accent2)}
-  .rank { font-family:'Syne',sans-serif; font-weight:800; }
-  .rank-1{color:#FFD700} .rank-2{color:#C0C0C0} .rank-3{color:#CD7F32}
-  .overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:999; }
-  .box { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:40px; width:400px; text-align:center; }
-  .box h2 { font-family:'Syne',sans-serif; font-size:22px; font-weight:800; margin-bottom:8px; }
-  .box p { color:var(--muted); font-size:12px; margin-bottom:20px; line-height:1.7; }
-  .box input { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Space Mono',monospace; font-size:13px; padding:12px; border-radius:8px; outline:none; margin-bottom:12px; }
-  .box input:focus { border-color:var(--accent); }
-  .btn-main { width:100%; background:var(--accent); color:#0a0a0f; padding:12px; border-radius:8px; border:none; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; }
-  .btn-main:hover { filter:brightness(1.1); }
-  .btn-outline { width:100%; background:transparent; border:1px solid var(--border); color:var(--muted); padding:10px; border-radius:8px; font-family:'Syne',sans-serif; font-size:13px; font-weight:700; cursor:pointer; }
-  .btn-outline:hover { border-color:var(--accent3); color:var(--accent3); }
-  .disclaimer { background:rgba(255,110,127,0.05); border:1px solid rgba(255,110,127,0.2); border-radius:8px; padding:14px; margin-bottom:16px; text-align:left; font-size:11px; color:var(--accent2); line-height:1.8; }
-  .wallet-badge { font-size:11px; color:var(--muted); }
-  .toast { position:fixed; bottom:24px; right:24px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 20px; font-size:13px; z-index:1000; opacity:0; transform:translateY(10px); transition:all 0.3s; pointer-events:none; }
-  .toast.show{opacity:1;transform:translateY(0)} .toast.ok{border-color:var(--accent);color:var(--accent)} .toast.err{border-color:var(--accent2);color:var(--accent2)}
-  .step-indicator { display:flex; gap:8px; justify-content:center; margin-bottom:24px; }
-  .step { width:8px; height:8px; border-radius:50%; background:var(--border); }
-  .step.active { background:var(--accent); }
-  .tabs { display:flex; gap:0; margin-bottom:20px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-  .tab { flex:1; padding:10px; background:transparent; border:none; color:var(--muted); font-family:'Syne',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
-  .tab.active { background:var(--accent); color:#0a0a0f; }
-  .tab-content { display:none; }
-  .tab-content.active { display:block; }
+  :root{--bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;--accent:#7fff6e;--accent2:#ff6e7f;--accent3:#6e9fff;--text:#e8e8f0;--muted:#5a5a7a}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;min-height:100vh;padding:24px}
+  .grid-bg{position:fixed;top:0;left:0;width:100%;height:100%;background-image:linear-gradient(rgba(127,255,110,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(127,255,110,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+  .container{max-width:900px;margin:0 auto;position:relative;z-index:1}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+  h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px}
+  h1 span{color:var(--accent)}
+  .status-pill{display:flex;align-items:center;gap:8px;padding:6px 16px;border-radius:100px;border:1px solid var(--border);font-size:13px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background 0.3s}
+  .dot.on{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.5s infinite}
+  .dot.off{background:var(--accent2)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+  .card-label{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+  .card-value{font-family:'Syne',sans-serif;font-size:22px;font-weight:700}
+  .green{color:var(--accent)}.blue{color:var(--accent3)}
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
+  .panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+  .field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:14px;padding:10px 12px;border-radius:6px;outline:none;transition:border-color 0.2s}
+  .field input:focus{border-color:var(--accent)}
+  .calc-hint{font-size:11px;color:var(--accent3);margin-top:4px;height:16px}
+  .btn-row{display:flex;gap:10px;margin-top:8px}
+  button{flex:1;padding:12px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s}
+  .btn-start{background:var(--accent);color:#0a0a0f}
+  .btn-start:hover{filter:brightness(1.1);transform:translateY(-1px)}
+  .btn-start:disabled{opacity:0.3;cursor:not-allowed;transform:none}
+  .btn-stop{background:transparent;border:1px solid var(--accent2);color:var(--accent2)}
+  .btn-stop:hover{background:var(--accent2);color:#0a0a0f}
+  .btn-stop:disabled{opacity:0.3;cursor:not-allowed}
+  .btn-secondary{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;font-size:12px;flex:none}
+  .btn-secondary:hover{border-color:var(--accent3);color:var(--accent3)}
+  .log-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
+  .log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .log-header h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted)}
+  .log-box{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;height:200px;overflow-y:auto;font-size:12px;line-height:1.8}
+  .log-line{color:var(--muted)}.log-line.compra{color:var(--accent)}.log-line.venta{color:var(--accent2)}.log-line.error{color:var(--accent2)}.log-line.info{color:var(--accent3)}
+  .bottom-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+  .historial-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
+  .historial-panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;color:var(--muted);padding:8px;border-bottom:1px solid var(--border)}
+  td{padding:8px;border-bottom:1px solid var(--border)}
+  .ganancia-pos{color:var(--accent)}.ganancia-neg{color:var(--accent2)}
+  .rank{font-family:'Syne',sans-serif;font-weight:800}
+  .rank-1{color:#FFD700}.rank-2{color:#C0C0C0}.rank-3{color:#CD7F32}
+  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999}
+  .box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;width:400px;text-align:center}
+  .box h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
+  .box p{color:var(--muted);font-size:12px;margin-bottom:20px;line-height:1.7}
+  .box input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;padding:12px;border-radius:8px;outline:none;margin-bottom:12px}
+  .box input:focus{border-color:var(--accent)}
+  .btn-main{width:100%;background:var(--accent);color:#0a0a0f;padding:12px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px}
+  .btn-main:hover{filter:brightness(1.1)}
+  .btn-outline{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+  .btn-outline:hover{border-color:var(--accent3);color:var(--accent3)}
+  .disclaimer{background:rgba(255,110,127,0.05);border:1px solid rgba(255,110,127,0.2);border-radius:8px;padding:14px;margin-bottom:16px;text-align:left;font-size:11px;color:var(--accent2);line-height:1.8}
+  .wallet-badge{font-size:11px;color:var(--muted)}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 20px;font-size:13px;z-index:1000;opacity:0;transform:translateY(10px);transition:all 0.3s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateY(0)}.toast.ok{border-color:var(--accent);color:var(--accent)}.toast.err{border-color:var(--accent2);color:var(--accent2)}
+  .step-indicator{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
+  .step{width:8px;height:8px;border-radius:50%;background:var(--border)}
+  .step.active{background:var(--accent)}
+  .tabs{display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .tab{flex:1;padding:10px;background:transparent;border:none;color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s}
+  .tab.active{background:var(--accent);color:#0a0a0f}
+  .tab-content{display:none}
+  .tab-content.active{display:block}
 </style>
 </head>
 <body>
 <div class="grid-bg"></div>
 
-<!-- PASO 1: MetaMask -->
 <div class="overlay" id="overlayMetamask">
   <div class="box">
     <div class="step-indicator"><div class="step active"></div><div class="step"></div></div>
     <h2>EVOX <span style="color:var(--accent)">Bot</span></h2>
-    <p>Conecta tu wallet dedicada al bot.<br>Esta misma wallet operará automáticamente.</p>
+    <p>Conecta tu wallet dedicada al bot.<br>Esta misma wallet operara automaticamente.</p>
     <div class="disclaimer">
       ⚠️ USA UNA WALLET DEDICADA<br>
       • Crea una wallet nueva en MetaMask<br>
       • NUNCA uses tu wallet principal<br>
       • Transfiere solo lo que vas a operar<br>
-      • EVOX no es responsable de pérdidas<br>
+      • EVOX no es responsable de perdidas<br>
       • Tu key se encripta en el servidor
     </div>
     <button class="btn-main" onclick="conectarMetamask()">🦊 Conectar MetaMask</button>
@@ -101,22 +101,20 @@
   </div>
 </div>
 
-<!-- PASO 2: Registro -->
 <div class="overlay" id="overlayRegistro" style="display:none">
   <div class="box">
     <div class="step-indicator"><div class="step"></div><div class="step active"></div></div>
     <h2>Activa tu <span style="color:var(--accent)">Bot</span></h2>
     <p id="walletDetectada" style="color:var(--accent);font-size:12px;margin-bottom:16px;"></p>
     <p>Elige tu nombre para el leaderboard y pega tu private key.</p>
-    <input type="text" id="botNombre" placeholder="Tu nombre (ej: El Místico 🎭)" maxlength="50" />
-    <input type="password" id="botPrivateKey" placeholder="Private key de tu wallet" />
+    <input type="text" id="botNombre" placeholder="Tu nombre (ej: El Mistico)" maxlength="50"/>
+    <input type="password" id="botPrivateKey" placeholder="Private key de tu wallet"/>
     <button class="btn-main" onclick="registrar()">ACTIVAR BOT</button>
     <button class="btn-outline" onclick="yaRegistrado()">Ya tengo cuenta →</button>
     <div id="registroError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
   </div>
 </div>
 
-<!-- APP PRINCIPAL -->
 <div class="container" id="mainApp" style="display:none">
   <header>
     <h1>EVOX <span>Bot</span></h1>
@@ -138,9 +136,16 @@
 
   <div class="panels">
     <div class="panel">
-      <h2>Configuración</h2>
-      <div class="field"><label>Rango Bajo (compra en $)</label><input type="number" id="rangoBajo" placeholder="0.001720" step="0.000001"></div>
-      <div class="field"><label>Rango Alto (vende en $)</label><input type="number" id="rangoAlto" placeholder="0.001750" step="0.000001"></div>
+      <h2>Configuracion</h2>
+      <div class="field">
+        <label>Rango Bajo (compra en $)</label>
+        <input type="number" id="rangoBajo" placeholder="0.001720" step="0.000001" oninput="calcularPorcentaje()">
+      </div>
+      <div class="field">
+        <label>Rango Alto (vende en $)</label>
+        <input type="number" id="rangoAlto" placeholder="0.001750" step="0.000001" oninput="calcularPorcentaje()">
+        <div class="calc-hint" id="calcHint"></div>
+      </div>
       <div class="field"><label>Capital USDT</label><input type="number" id="amountUsdt" placeholder="10"></div>
       <div class="field"><label>Stop Loss (%)</label><input type="number" id="stopZona" placeholder="3" step="1"></div>
       <div class="btn-row">
@@ -176,7 +181,7 @@
   <div class="bottom-panels">
     <div class="historial-panel">
       <h2>Mi Historial</h2>
-      <div id="historialTabla"><div style="color:var(--muted);font-size:12px;">Sin ciclos aún...</div></div>
+      <div id="historialTabla"><div style="color:var(--muted);font-size:12px;">Sin ciclos aun...</div></div>
     </div>
     <div class="historial-panel">
       <h2>🏆 Leaderboard</h2>
@@ -195,7 +200,6 @@
 <script>
 const BOT_URL = window.location.origin;
 let userWallet = '';
-let interval = null;
 
 function showToast(msg, tipo='ok') {
   const t = document.getElementById('toast');
@@ -203,14 +207,30 @@ function showToast(msg, tipo='ok') {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
+function calcularPorcentaje() {
+  const rb = parseFloat(document.getElementById('rangoBajo').value);
+  const ra = parseFloat(document.getElementById('rangoAlto').value);
+  const hint = document.getElementById('calcHint');
+  if (rb && ra && ra > rb) {
+    const pct = ((ra - rb) / rb * 100).toFixed(2);
+    hint.textContent = '↑ Ganancia potencial por ciclo: ' + pct + '%';
+    hint.style.color = 'var(--accent3)';
+  } else if (rb && ra && ra <= rb) {
+    hint.textContent = 'El rango alto debe ser mayor al bajo';
+    hint.style.color = 'var(--accent2)';
+  } else {
+    hint.textContent = '';
+  }
+}
+
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='ganancias') || (i===1 && tab==='ciclos')));
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='ganancias')||(i===1&&tab==='ciclos')));
   document.getElementById('tabGanancias').classList.toggle('active', tab==='ganancias');
   document.getElementById('tabCiclos').classList.toggle('active', tab==='ciclos');
 }
 
 async function conectarMetamask() {
-  if (!window.ethereum) { document.getElementById('metamaskError').textContent = 'MetaMask no detectado. Instálalo primero.'; return; }
+  if (!window.ethereum) { document.getElementById('metamaskError').textContent = 'MetaMask no detectado. Instalalo primero.'; return; }
   try {
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     userWallet = accounts[0].toLowerCase();
@@ -225,12 +245,12 @@ function yaRegistrado() {
   document.getElementById('overlayRegistro').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
   fetchStatus(); fetchHistorial(); fetchLeaderboard();
-  interval = setInterval(() => { fetchStatus(); fetchLeaderboard(); }, 15000);
+  setInterval(() => { fetchStatus(); fetchLeaderboard(); }, 15000);
 }
 
 async function registrar() {
   const pk = document.getElementById('botPrivateKey').value.trim();
-  const nombre = document.getElementById('botNombre').value.trim() || 'Anónimo';
+  const nombre = document.getElementById('botNombre').value.trim() || 'Anonimo';
   if (!pk) { document.getElementById('registroError').textContent = 'Pega tu private key'; return; }
   try {
     const r = await fetch(BOT_URL + '/registro', {
@@ -257,13 +277,13 @@ async function fetchLogs() {
     const r = await fetch(BOT_URL + '/logs/' + userWallet);
     const data = await r.json();
     const box = document.getElementById('logBox');
-    if (!data.logs.length) { box.innerHTML = '<div class="log-line info">Sin logs aún...</div>'; return; }
+    if (!data.logs.length) { box.innerHTML = '<div class="log-line info">Sin logs aun...</div>'; return; }
     box.innerHTML = data.logs.slice().reverse().map(line => {
       let cls = 'log-line';
       if (line.includes('COMPRA')) cls += ' compra';
       else if (line.includes('VENTA')) cls += ' venta';
-      else if (line.includes('Error') || line.includes('ERROR')) cls += ' error';
-      else if (line.includes('BOT') || line.includes('Aprobando') || line.includes('aprobado')) cls += ' info';
+      else if (line.includes('Error')||line.includes('ERROR')) cls += ' error';
+      else if (line.includes('BOT')||line.includes('Aprobando')||line.includes('aprobado')) cls += ' info';
       return '<div class="' + cls + '">' + line + '</div>';
     }).join('');
   } catch(e) {}
@@ -275,12 +295,12 @@ async function fetchHistorial() {
     const r = await fetch(BOT_URL + '/historial/' + userWallet);
     const data = await r.json();
     const el = document.getElementById('historialTabla');
-    if (!data.historial.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin ciclos aún...</div>'; return; }
+    if (!data.historial.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin ciclos aun...</div>'; return; }
     el.innerHTML = '<table><thead><tr><th>Fecha</th><th>Compra</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>' +
       data.historial.map(c => `<tr>
         <td>${c.fecha}</td>
-        <td>${c.precio_compra ? '$'+c.precio_compra.toFixed(6) : '—'}</td>
-        <td>${c.precio_venta ? '$'+c.precio_venta.toFixed(6) : '—'}</td>
+        <td>${c.precio_compra?'$'+c.precio_compra.toFixed(6):'—'}</td>
+        <td>${c.precio_venta?'$'+c.precio_venta.toFixed(6):'—'}</td>
         <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">${c.ganancia_usdt?'$'+c.ganancia_usdt.toFixed(4):'—'}</td>
       </tr>`).join('') + '</tbody></table>';
   } catch(e) {}
@@ -291,7 +311,6 @@ async function fetchLeaderboard() {
     const r = await fetch(BOT_URL + '/leaderboard');
     const data = await r.json();
     const medals = ['🥇','🥈','🥉'];
-
     document.getElementById('tabGanancias').innerHTML = data.top_ganancias.length ?
       '<table><thead><tr><th>#</th><th>Nombre</th><th>Ganancia</th></tr></thead><tbody>' +
       data.top_ganancias.map((u,i) => `<tr>
@@ -299,8 +318,7 @@ async function fetchLeaderboard() {
         <td style="font-weight:700">${u.nombre}</td>
         <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td>
       </tr>`).join('') + '</tbody></table>' :
-      '<div style="color:var(--muted);font-size:12px;">Sin datos aún...</div>';
-
+      '<div style="color:var(--muted);font-size:12px;">Sin datos aun...</div>';
     document.getElementById('tabCiclos').innerHTML = data.top_ciclos.length ?
       '<table><thead><tr><th>#</th><th>Nombre</th><th>Ciclos</th></tr></thead><tbody>' +
       data.top_ciclos.map((u,i) => `<tr>
@@ -308,7 +326,7 @@ async function fetchLeaderboard() {
         <td style="font-weight:700">${u.nombre}</td>
         <td style="color:var(--accent3);font-weight:700">${u.ciclos_total}</td>
       </tr>`).join('') + '</tbody></table>' :
-      '<div style="color:var(--muted);font-size:12px;">Sin datos aún...</div>';
+      '<div style="color:var(--muted);font-size:12px;">Sin datos aun...</div>';
   } catch(e) {}
 }
 
@@ -316,28 +334,22 @@ function actualizarUI(data) {
   const dot = document.getElementById('statusDot');
   if (data.activo) { dot.className='dot on'; document.getElementById('statusText').textContent='Corriendo'; }
   else { dot.className='dot off'; document.getElementById('statusText').textContent='Detenido'; }
-
   document.getElementById('statPrecio').textContent = data.precio ? '$'+data.precio : '—';
   document.getElementById('statUSDT').textContent = data.usdt ? '$'+data.usdt : '—';
   document.getElementById('statCNKT').textContent = data.cnkt !== undefined ? data.cnkt : '—';
-
   const gan = data.ganancia_total;
   const ganEl = document.getElementById('statGanancia');
   ganEl.textContent = gan !== undefined ? '$'+gan.toFixed(4) : '—';
   ganEl.style.color = gan >= 0 ? 'var(--accent)' : 'var(--accent2)';
-
   const modoEl = document.getElementById('modoActual');
   modoEl.textContent = data.modo || '—';
   modoEl.style.color = data.modo==='COMPRA' ? 'var(--accent)' : 'var(--accent2)';
-
   document.getElementById('ciclos').textContent = data.ciclos !== undefined ? data.ciclos : '—';
-
   if (data.config && data.config.RANGO_BAJO) {
     const c = data.config;
     document.getElementById('configActiva').innerHTML =
       'Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+'<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
   }
-
   document.getElementById('btnStart').disabled = data.activo;
   document.getElementById('btnStop').disabled = !data.activo;
   fetchLogs();
@@ -348,10 +360,8 @@ async function startBot() {
   const ra = parseFloat(document.getElementById('rangoAlto').value);
   const au = parseFloat(document.getElementById('amountUsdt').value);
   const sz = (parseFloat(document.getElementById('stopZona').value) || 3) / 100;
-
   if (!rb || !ra || !au) { showToast('Completa todos los campos','err'); return; }
   if (rb >= ra) { showToast('Rango bajo debe ser menor al alto','err'); return; }
-
   try {
     const r = await fetch(BOT_URL+'/start/'+userWallet, {
       method:'POST', headers:{'Content-Type':'application/json'},
