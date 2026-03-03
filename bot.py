@@ -434,6 +434,11 @@ def registro():
     try:
         conn = get_db()
         cur = conn.cursor()
+        cur.execute("SELECT wallet FROM usuarios WHERE nombre = %s AND wallet != %s", (nombre, wallet.lower()))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({"ok": False, "msg": "Ese nombre ya esta en uso, elige otro"})
         cur.execute("""
             INSERT INTO usuarios (wallet, nombre, private_key_enc, password_hash)
             VALUES (%s, %s, %s, %s)
