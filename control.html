@@ -15,7 +15,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;min-height:100vh;padding:24px}
   .grid-bg{position:fixed;top:0;left:0;width:100%;height:100%;background-image:linear-gradient(rgba(127,255,110,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(127,255,110,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
-  .container{max-width:900px;margin:0 auto;position:relative;z-index:1}
+  .container{max-width:960px;margin:0 auto;position:relative;z-index:1}
   header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border)}
   h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px}
   h1 span{color:var(--accent)}
@@ -29,6 +29,10 @@
   .card-label{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
   .card-value{font-family:'Syne',sans-serif;font-size:22px;font-weight:700}
   .green{color:var(--accent)}.blue{color:var(--accent3)}
+  .gan-row{display:flex;justify-content:space-between;align-items:baseline;gap:4px;margin-top:4px}
+  .gan-hoy{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+  .gan-acum{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted)}
+  .gan-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
   .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
   .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
   .panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
@@ -37,6 +41,14 @@
   .field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:14px;padding:10px 12px;border-radius:6px;outline:none;transition:border-color 0.2s}
   .field input:focus{border-color:var(--accent)}
   .calc-hint{font-size:11px;color:var(--accent3);margin-top:4px;height:16px}
+  .rango-visual{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px}
+  .rango-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+  .rango-row.alto{border-bottom:1px dashed var(--border);padding-bottom:10px;margin-bottom:4px}
+  .rango-row.bajo{border-top:1px dashed var(--border);padding-top:10px;margin-top:4px}
+  .rango-label{font-size:10px;text-transform:uppercase;letter-spacing:1px}
+  .rango-valor{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+  .rango-precio-actual{text-align:center;padding:8px 0;font-size:11px;color:var(--muted)}
+  .rango-precio-actual span{color:var(--accent3);font-weight:700}
   .btn-row{display:flex;gap:10px;margin-top:8px}
   button{flex:1;padding:12px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s}
   .btn-start{background:var(--accent);color:#0a0a0f}
@@ -47,6 +59,10 @@
   .btn-stop:disabled{opacity:0.3;cursor:not-allowed}
   .btn-secondary{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;font-size:12px;flex:none}
   .btn-secondary:hover{border-color:var(--accent3);color:var(--accent3)}
+  .stat-doble{display:flex;gap:12px}
+  .stat-doble-item{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center}
+  .stat-doble-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+  .stat-doble-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}
   .log-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
   .log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .log-header h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted)}
@@ -55,14 +71,20 @@
   .bottom-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
   .historial-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
   .historial-panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th{text-align:left;color:var(--muted);padding:8px;border-bottom:1px solid var(--border)}
-  td{padding:8px;border-bottom:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{text-align:left;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+  td{padding:6px 8px;border-bottom:1px solid var(--border)}
   .ganancia-pos{color:var(--accent)}.ganancia-neg{color:var(--accent2)}
   .rank{font-family:'Syne',sans-serif;font-weight:800}
   .rank-1{color:#FFD700}.rank-2{color:#C0C0C0}.rank-3{color:#CD7F32}
-  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999}
-  .box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;width:400px;text-align:center}
+  .tabs{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .tab{flex:1;padding:8px;background:transparent;border:none;color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s}
+  .tab.active{background:var(--accent);color:#0a0a0f}
+  .tabs3{display:flex;gap:0;margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .tab3{flex:1;padding:7px;background:transparent;border:none;color:var(--muted);font-family:'Syne',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s}
+  .tab3.active{background:var(--accent3);color:#0a0a0f}
+  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;overflow-y:auto}
+  .box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;width:400px;text-align:center;margin:auto}
   .box h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
   .box p{color:var(--muted);font-size:12px;margin-bottom:20px;line-height:1.7}
   .box input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;padding:12px;border-radius:8px;outline:none;margin-bottom:12px}
@@ -78,11 +100,6 @@
   .step-indicator{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
   .step{width:8px;height:8px;border-radius:50%;background:var(--border)}
   .step.active{background:var(--accent)}
-  .tabs{display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
-  .tab{flex:1;padding:10px;background:transparent;border:none;color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s}
-  .tab.active{background:var(--accent);color:#0a0a0f}
-  .tab-content{display:none}
-  .tab-content.active{display:block}
   .nombre-bienvenida{font-size:12px;color:var(--accent);margin-right:8px}
   .logo-box{display:flex;align-items:center;justify-content:center;margin-bottom:16px}
   .logo-box img{width:72px;height:72px;border-radius:16px}
@@ -158,19 +175,39 @@
     <div class="card"><div class="card-label">Precio CNKT</div><div class="card-value blue" id="statPrecio">—</div></div>
     <div class="card"><div class="card-label">USDT</div><div class="card-value" id="statUSDT">—</div></div>
     <div class="card"><div class="card-label">CNKT</div><div class="card-value" id="statCNKT">—</div></div>
-    <div class="card"><div class="card-label">Ganancia</div><div class="card-value green" id="statGanancia">—</div></div>
+    <div class="card">
+      <div class="card-label">Ganancia</div>
+      <div class="gan-row">
+        <div class="gan-hoy" id="statGananciaHoy">—</div>
+        <div class="gan-acum" id="statGananciaAcum">—</div>
+      </div>
+      <div class="gan-labels"><span>Hoy</span><span>Acumulada</span></div>
+    </div>
   </div>
 
   <div class="panels">
     <div class="panel">
       <h2>Configuracion</h2>
+      <div class="rango-visual">
+        <div class="rango-row alto">
+          <span class="rango-label" style="color:var(--accent2)">▲ Vende en</span>
+          <span class="rango-valor" style="color:var(--accent2)" id="visualRangoAlto">—</span>
+          <span style="font-size:10px;color:var(--accent2)">VENTA</span>
+        </div>
+        <div class="rango-precio-actual">Precio actual: <span id="visualPrecio">—</span></div>
+        <div class="rango-row bajo">
+          <span class="rango-label" style="color:var(--accent)">▼ Compra en</span>
+          <span class="rango-valor" style="color:var(--accent)" id="visualRangoBajo">—</span>
+          <span style="font-size:10px;color:var(--accent)">COMPRA</span>
+        </div>
+      </div>
       <div class="field">
         <label>Rango Bajo (compra en $)</label>
-        <input type="number" id="rangoBajo" placeholder="0.001720" step="0.000001" oninput="calcularPorcentaje()">
+        <input type="number" id="rangoBajo" placeholder="0.001720" step="0.000001" oninput="calcularPorcentaje();actualizarRangoVisual()">
       </div>
       <div class="field">
         <label>Rango Alto (vende en $)</label>
-        <input type="number" id="rangoAlto" placeholder="0.001750" step="0.000001" oninput="calcularPorcentaje()">
+        <input type="number" id="rangoAlto" placeholder="0.001750" step="0.000001" oninput="calcularPorcentaje();actualizarRangoVisual()">
         <div class="calc-hint" id="calcHint"></div>
       </div>
       <div class="field"><label>Capital USDT</label><input type="number" id="amountUsdt" placeholder="10"></div>
@@ -187,8 +224,17 @@
         <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;" id="modoActual">—</div>
       </div>
       <div class="field">
-        <label>Ciclos completados</label>
-        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent3);" id="ciclos">—</div>
+        <label>Ciclos</label>
+        <div class="stat-doble">
+          <div class="stat-doble-item">
+            <div class="stat-doble-label">Hoy</div>
+            <div class="stat-doble-val" style="color:var(--accent3)" id="ciclosHoy">—</div>
+          </div>
+          <div class="stat-doble-item">
+            <div class="stat-doble-label">Total</div>
+            <div class="stat-doble-val" style="color:var(--accent3)" id="ciclosTotal">—</div>
+          </div>
+        </div>
       </div>
       <div class="field">
         <label>Config activa</label>
@@ -212,12 +258,16 @@
     </div>
     <div class="historial-panel">
       <h2>🏆 Leaderboard</h2>
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('ganancias')">Ganancias</button>
-        <button class="tab" onclick="switchTab('ciclos')">Ciclos</button>
+      <div class="tabs3">
+        <button class="tab3 active" onclick="switchLbPeriodo('hoy')">Hoy</button>
+        <button class="tab3" onclick="switchLbPeriodo('mes')">Mes</button>
+        <button class="tab3" onclick="switchLbPeriodo('historico')">Historico</button>
       </div>
-      <div id="tabGanancias" class="tab-content active"></div>
-      <div id="tabCiclos" class="tab-content"></div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchLbTipo('ganancias')">Ganancias</button>
+        <button class="tab" onclick="switchLbTipo('ciclos')">Ciclos</button>
+      </div>
+      <div id="lbContent"><div style="color:var(--muted);font-size:12px;">Cargando...</div></div>
     </div>
   </div>
 </div>
@@ -227,6 +277,9 @@
 <script>
 const BOT_URL = window.location.origin;
 let userWallet = '';
+let lbPeriodo = 'hoy';
+let lbTipo = 'ganancias';
+let lbData = {};
 
 function showToast(msg, tipo='ok') {
   const t = document.getElementById('toast');
@@ -250,20 +303,46 @@ function calcularPorcentaje() {
   const hint = document.getElementById('calcHint');
   if (rb && ra && ra > rb) {
     const pct = ((ra - rb) / rb * 100).toFixed(2);
-    hint.textContent = '↑ Ganancia potencial por ciclo: ' + pct + '%';
+    hint.textContent = 'Ganancia potencial por ciclo: ' + pct + '%';
     hint.style.color = 'var(--accent3)';
   } else if (rb && ra && ra <= rb) {
     hint.textContent = 'El rango alto debe ser mayor al bajo';
     hint.style.color = 'var(--accent2)';
-  } else {
-    hint.textContent = '';
-  }
+  } else { hint.textContent = ''; }
 }
 
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='ganancias')||(i===1&&tab==='ciclos')));
-  document.getElementById('tabGanancias').classList.toggle('active', tab==='ganancias');
-  document.getElementById('tabCiclos').classList.toggle('active', tab==='ciclos');
+function actualizarRangoVisual() {
+  const rb = parseFloat(document.getElementById('rangoBajo').value);
+  const ra = parseFloat(document.getElementById('rangoAlto').value);
+  document.getElementById('visualRangoBajo').textContent = rb ? '$' + rb.toFixed(6) : '—';
+  document.getElementById('visualRangoAlto').textContent = ra ? '$' + ra.toFixed(6) : '—';
+}
+
+function switchLbPeriodo(periodo) {
+  lbPeriodo = periodo;
+  document.querySelectorAll('.tab3').forEach((t,i) => t.classList.toggle('active', ['hoy','mes','historico'][i]===periodo));
+  renderLeaderboard();
+}
+
+function switchLbTipo(tipo) {
+  lbTipo = tipo;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['ganancias','ciclos'][i]===tipo));
+  renderLeaderboard();
+}
+
+function renderLeaderboard() {
+  const key = lbPeriodo + '_' + lbTipo;
+  const lista = lbData[key] || [];
+  const medals = ['🥇','🥈','🥉'];
+  const el = document.getElementById('lbContent');
+  if (!lista.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin datos aun...</div>'; return; }
+  if (lbTipo === 'ganancias') {
+    el.innerHTML = '<table><thead><tr><th>#</th><th>Nombre</th><th>Ganancia</th></tr></thead><tbody>' +
+      lista.map((u,i) => `<tr><td><span class="rank rank-${i+1}">${medals[i]||i+1}</span></td><td style="font-weight:700">${u.nombre}</td><td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td></tr>`).join('') + '</tbody></table>';
+  } else {
+    el.innerHTML = '<table><thead><tr><th>#</th><th>Nombre</th><th>Ciclos</th></tr></thead><tbody>' +
+      lista.map((u,i) => `<tr><td><span class="rank rank-${i+1}">${medals[i]||i+1}</span></td><td style="font-weight:700">${u.nombre}</td><td style="color:var(--accent3);font-weight:700">${u.ciclos_total}</td></tr>`).join('') + '</tbody></table>';
+  }
 }
 
 async function conectarMetamask() {
@@ -276,11 +355,9 @@ async function conectarMetamask() {
     userWallet = accounts[0].toLowerCase();
     document.getElementById('overlayInicio').style.display = 'none';
     document.getElementById('overlayRegistro').style.display = 'flex';
-    document.getElementById('walletDetectada').textContent = '✅ MetaMask conectado';
+    document.getElementById('walletDetectada').textContent = 'MetaMask conectado';
     document.getElementById('walletInput').value = userWallet;
-  } catch(e) {
-    document.getElementById('inicioError').textContent = 'Error: ' + e.message;
-  }
+  } catch(e) { document.getElementById('inicioError').textContent = 'Error: ' + e.message; }
 }
 
 async function doLogin() {
@@ -288,21 +365,11 @@ async function doLogin() {
   const password = document.getElementById('loginPassword').value;
   if (!wallet || !password) { document.getElementById('loginError').textContent = 'Completa todos los campos'; return; }
   try {
-    const r = await fetch(BOT_URL + '/login', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({wallet, password})
-    });
+    const r = await fetch(BOT_URL + '/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet, password}) });
     const data = await r.json();
-    if (data.ok) {
-      userWallet = wallet;
-      document.getElementById('overlayLogin').style.display = 'none';
-      entrarApp(data.nombre);
-    } else {
-      document.getElementById('loginError').textContent = data.msg;
-    }
-  } catch(e) {
-    document.getElementById('loginError').textContent = 'Error: ' + e.message;
-  }
+    if (data.ok) { userWallet = wallet; document.getElementById('overlayLogin').style.display = 'none'; entrarApp(data.nombre); }
+    else { document.getElementById('loginError').textContent = data.msg; }
+  } catch(e) { document.getElementById('loginError').textContent = 'Error: ' + e.message; }
 }
 
 async function registrar() {
@@ -316,38 +383,30 @@ async function registrar() {
   if (password !== passwordConfirm) { document.getElementById('registroError').textContent = 'Las contrasenas no coinciden'; return; }
   userWallet = walletFinal;
   try {
-    const r = await fetch(BOT_URL + '/registro', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({wallet: walletFinal, private_key: pk, nombre, password})
-    });
+    const r = await fetch(BOT_URL + '/registro', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({wallet: walletFinal, private_key: pk, nombre, password}) });
     const data = await r.json();
-    if (data.ok) {
-      showToast('Bot activado!', 'ok');
-      document.getElementById('overlayRegistro').style.display = 'none';
-      entrarApp(nombre);
-    } else {
-      document.getElementById('registroError').textContent = data.msg;
-    }
-  } catch(e) {
-    document.getElementById('registroError').textContent = 'Error: ' + e.message;
-  }
+    if (data.ok) { showToast('Bot activado!', 'ok'); document.getElementById('overlayRegistro').style.display = 'none'; entrarApp(nombre); }
+    else { document.getElementById('registroError').textContent = data.msg; }
+  } catch(e) { document.getElementById('registroError').textContent = 'Error: ' + e.message; }
 }
 
 function entrarApp(nombre) {
   document.getElementById('mainApp').style.display = 'block';
   document.getElementById('walletBadge').textContent = userWallet.slice(0,6) + '...' + userWallet.slice(-4);
   document.getElementById('nombreBienvenida').textContent = nombre || '';
-  fetchPrecio();
-  fetchStatus(); fetchHistorial(); fetchLeaderboard();
+  fetchPrecio(); fetchStatus(); fetchHistorial(); fetchLeaderboard(); fetchCiclosHoy();
   setInterval(fetchPrecio, 15000);
-  setInterval(() => { fetchStatus(); fetchLeaderboard(); }, 15000);
+  setInterval(() => { fetchStatus(); fetchLeaderboard(); fetchCiclosHoy(); }, 15000);
 }
 
 async function fetchPrecio() {
   try {
     const r = await fetch(BOT_URL + '/precio');
     const data = await r.json();
-    if (data.ok) document.getElementById('statPrecio').textContent = '$' + data.precio;
+    if (data.ok) {
+      document.getElementById('statPrecio').textContent = '$' + data.precio;
+      document.getElementById('visualPrecio').textContent = '$' + data.precio;
+    }
   } catch(e) {}
 }
 
@@ -384,13 +443,32 @@ async function fetchHistorial() {
     const data = await r.json();
     const el = document.getElementById('historialTabla');
     if (!data.historial.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin ciclos aun...</div>'; return; }
-    el.innerHTML = '<table><thead><tr><th>Fecha</th><th>Compra</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>' +
+    el.innerHTML = '<table><thead><tr><th>Fecha</th><th>Hora</th><th>Compra</th><th>Venta</th><th>Gan.</th></tr></thead><tbody>' +
       data.historial.map(c => `<tr>
-        <td>${c.fecha}</td>
-        <td>${c.precio_compra?'$'+c.precio_compra.toFixed(6):'—'}</td>
-        <td>${c.precio_venta?'$'+c.precio_venta.toFixed(6):'—'}</td>
-        <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">${c.ganancia_usdt?'$'+c.ganancia_usdt.toFixed(4):'—'}</td>
+        <td>${c.fecha||'—'}</td>
+        <td style="color:var(--muted)">${c.hora_registro||c.hora_venta||'—'}</td>
+        <td>${c.precio_compra&&c.precio_compra>0?'$'+parseFloat(c.precio_compra).toFixed(6):'previo'}</td>
+        <td>${c.precio_venta?'$'+parseFloat(c.precio_venta).toFixed(6):'—'}</td>
+        <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">${c.ganancia_usdt?'$'+parseFloat(c.ganancia_usdt).toFixed(4):'—'}</td>
       </tr>`).join('') + '</tbody></table>';
+  } catch(e) {}
+}
+
+async function fetchCiclosHoy() {
+  if (!userWallet) return;
+  try {
+    const r = await fetch(BOT_URL + '/ciclos_hoy/' + userWallet);
+    const data = await r.json();
+    if (data.ok) {
+      document.getElementById('ciclosHoy').textContent = data.ciclos_hoy;
+      document.getElementById('ciclosTotal').textContent = data.ciclos_total;
+      const ganHoyEl = document.getElementById('statGananciaHoy');
+      ganHoyEl.textContent = '$' + parseFloat(data.ganancia_hoy||0).toFixed(4);
+      ganHoyEl.style.color = data.ganancia_hoy >= 0 ? 'var(--accent)' : 'var(--accent2)';
+      const ganAcumEl = document.getElementById('statGananciaAcum');
+      ganAcumEl.textContent = '$' + parseFloat(data.ganancia_acum||0).toFixed(4);
+      ganAcumEl.style.color = data.ganancia_acum >= 0 ? 'var(--accent)' : 'var(--accent2)';
+    }
   } catch(e) {}
 }
 
@@ -398,23 +476,8 @@ async function fetchLeaderboard() {
   try {
     const r = await fetch(BOT_URL + '/leaderboard');
     const data = await r.json();
-    const medals = ['🥇','🥈','🥉'];
-    document.getElementById('tabGanancias').innerHTML = data.top_ganancias.length ?
-      '<table><thead><tr><th>#</th><th>Nombre</th><th>Ganancia</th></tr></thead><tbody>' +
-      data.top_ganancias.map((u,i) => `<tr>
-        <td><span class="rank rank-${i+1}">${medals[i]||i+1}</span></td>
-        <td style="font-weight:700">${u.nombre}</td>
-        <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td>
-      </tr>`).join('') + '</tbody></table>' :
-      '<div style="color:var(--muted);font-size:12px;">Sin datos aun...</div>';
-    document.getElementById('tabCiclos').innerHTML = data.top_ciclos.length ?
-      '<table><thead><tr><th>#</th><th>Nombre</th><th>Ciclos</th></tr></thead><tbody>' +
-      data.top_ciclos.map((u,i) => `<tr>
-        <td><span class="rank rank-${i+1}">${medals[i]||i+1}</span></td>
-        <td style="font-weight:700">${u.nombre}</td>
-        <td style="color:var(--accent3);font-weight:700">${u.ciclos_total}</td>
-      </tr>`).join('') + '</tbody></table>' :
-      '<div style="color:var(--muted);font-size:12px;">Sin datos aun...</div>';
+    lbData = data;
+    renderLeaderboard();
   } catch(e) {}
 }
 
@@ -424,18 +487,14 @@ function actualizarUI(data) {
   else { dot.className='dot off'; document.getElementById('statusText').textContent='Detenido'; }
   document.getElementById('statUSDT').textContent = data.usdt ? '$'+data.usdt : '—';
   document.getElementById('statCNKT').textContent = data.cnkt !== undefined ? data.cnkt : '—';
-  const gan = data.ganancia_total;
-  const ganEl = document.getElementById('statGanancia');
-  ganEl.textContent = gan !== undefined ? '$'+gan.toFixed(4) : '—';
-  ganEl.style.color = gan >= 0 ? 'var(--accent)' : 'var(--accent2)';
   const modoEl = document.getElementById('modoActual');
   modoEl.textContent = data.modo || '—';
   modoEl.style.color = data.modo==='COMPRA' ? 'var(--accent)' : 'var(--accent2)';
-  document.getElementById('ciclos').textContent = data.ciclos !== undefined ? data.ciclos : '—';
   if (data.config && data.config.RANGO_BAJO) {
     const c = data.config;
-    document.getElementById('configActiva').innerHTML =
-      'Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+'<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
+    document.getElementById('configActiva').innerHTML = 'Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+'<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
+    document.getElementById('visualRangoBajo').textContent = '$' + c.RANGO_BAJO;
+    document.getElementById('visualRangoAlto').textContent = '$' + c.RANGO_ALTO;
   }
   document.getElementById('btnStart').disabled = data.activo;
   document.getElementById('btnStop').disabled = !data.activo;
@@ -450,10 +509,7 @@ async function startBot() {
   if (!rb || !ra || !au) { showToast('Completa todos los campos','err'); return; }
   if (rb >= ra) { showToast('Rango bajo debe ser menor al alto','err'); return; }
   try {
-    const r = await fetch(BOT_URL+'/start/'+userWallet, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({rango_bajo:rb, rango_alto:ra, amount_usdt:au, stop_zona:sz})
-    });
+    const r = await fetch(BOT_URL+'/start/'+userWallet, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({rango_bajo:rb, rango_alto:ra, amount_usdt:au, stop_zona:sz}) });
     const data = await r.json();
     if (data.ok) { showToast('Bot iniciado!','ok'); setTimeout(fetchStatus,2000); }
     else { showToast(data.msg,'err'); }

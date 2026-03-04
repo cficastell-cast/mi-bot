@@ -202,9 +202,8 @@ def guardar_ciclo(wallet, hora_compra, precio_compra, hora_venta, precio_venta, 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (wallet, hora_compra_final, precio_compra_final, hora_venta, precio_venta,
               cnkt_comprado, cnkt_vendido, ganancia_usdt, amount_usdt))
-        cur.execute("""
-            UPDATE usuarios SET ganancia_acumulada = ganancia_acumulada + %s WHERE wallet = %s
-        """, (ganancia_usdt, wallet))
+        cur.execute("UPDATE usuarios SET ganancia_acumulada = ganancia_acumulada + %s WHERE wallet = %s",
+                    (ganancia_usdt, wallet))
         conn.commit()
         cur.close()
         conn.close()
@@ -326,7 +325,6 @@ def loop_bot(wallet, private_key, estado, stop_event):
     while not stop_event.is_set():
         try:
             precio = get_precio_actual()
-
             if precio < 0.000001:
                 log_estado(estado, "Esperando precio...")
                 time.sleep(5)
@@ -452,6 +450,35 @@ def precio_endpoint():
         return jsonify({"ok": True, "precio": precio})
     return jsonify({"ok": False, "precio": 0})
 
+@app.route("/ciclos_hoy/<wallet>", methods=["GET"])
+def ciclos_hoy(wallet):
+    wallet = wallet.lower()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COUNT(*) as ciclos_hoy,
+                   COALESCE(SUM(ganancia_usdt), 0) as ganancia_hoy
+            FROM ciclos WHERE wallet = %s
+            AND fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date
+        """, (wallet,))
+        hoy = cur.fetchone()
+        cur.execute("SELECT COUNT(*) as ciclos_total FROM ciclos WHERE wallet = %s", (wallet,))
+        total = cur.fetchone()
+        cur.execute("SELECT ganancia_acumulada FROM usuarios WHERE wallet = %s", (wallet,))
+        acum = cur.fetchone()
+        cur.close()
+        conn.close()
+        return jsonify({
+            "ok": True,
+            "ciclos_hoy": int(hoy["ciclos_hoy"]) if hoy else 0,
+            "ciclos_total": int(total["ciclos_total"]) if total else 0,
+            "ganancia_hoy": float(hoy["ganancia_hoy"]) if hoy else 0,
+            "ganancia_acum": float(acum["ganancia_acumulada"]) if acum else 0,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
 @app.route("/registro", methods=["POST"])
 def registro():
     data = request.json or {}
@@ -576,6 +603,47 @@ def leaderboard():
     try:
         conn = get_db()
         cur = conn.cursor()
+        # HOY ganancias
+        cur.execute("""
+            SELECT u.nombre, u.wallet,
+                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
+                   COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
+            AND c.fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date
+            GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
+        """)
+        hoy_ganancias = [dict(r) for r in cur.fetchall()]
+        # HOY ciclos
+        cur.execute("""
+            SELECT u.nombre, u.wallet,
+                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
+                   COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
+            AND c.fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date
+            GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
+        """)
+        hoy_ciclos = [dict(r) for r in cur.fetchall()]
+        # MES ganancias
+        cur.execute("""
+            SELECT u.nombre, u.wallet,
+                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
+                   COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
+            AND DATE_TRUNC('month', c.creado_en AT TIME ZONE 'America/Mexico_City') = DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Mexico_City')
+            GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
+        """)
+        mes_ganancias = [dict(r) for r in cur.fetchall()]
+        # MES ciclos
+        cur.execute("""
+            SELECT u.nombre, u.wallet,
+                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
+                   COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
+            AND DATE_TRUNC('month', c.creado_en AT TIME ZONE 'America/Mexico_City') = DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Mexico_City')
+            GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
+        """)
+        mes_ciclos = [dict(r) for r in cur.fetchall()]
+        # HISTORICO ganancias
         cur.execute("""
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
@@ -583,7 +651,8 @@ def leaderboard():
             FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
             GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
         """)
-        top_ganancias = [dict(r) for r in cur.fetchall()]
+        historico_ganancias = [dict(r) for r in cur.fetchall()]
+        # HISTORICO ciclos
         cur.execute("""
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
@@ -591,17 +660,25 @@ def leaderboard():
             FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
             GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
         """)
-        top_ciclos = [dict(r) for r in cur.fetchall()]
+        historico_ciclos = [dict(r) for r in cur.fetchall()]
         cur.close()
         conn.close()
-        for lista in [top_ganancias, top_ciclos]:
+        # limpiar wallet de todas las listas
+        for lista in [hoy_ganancias, hoy_ciclos, mes_ganancias, mes_ciclos, historico_ganancias, historico_ciclos]:
             for u in lista:
                 w = u["wallet"]
                 u["wallet_short"] = w[:6] + "..." + w[-4:]
                 del u["wallet"]
-        return jsonify({"top_ganancias": top_ganancias, "top_ciclos": top_ciclos})
+        return jsonify({
+            "hoy_ganancias": hoy_ganancias,
+            "hoy_ciclos": hoy_ciclos,
+            "mes_ganancias": mes_ganancias,
+            "mes_ciclos": mes_ciclos,
+            "historico_ganancias": historico_ganancias,
+            "historico_ciclos": historico_ciclos,
+        })
     except Exception as e:
-        return jsonify({"top_ganancias": [], "top_ciclos": [], "error": str(e)})
+        return jsonify({"error": str(e)})
 
 @app.route("/admin", methods=["GET"])
 def admin():
