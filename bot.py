@@ -603,7 +603,6 @@ def leaderboard():
     try:
         conn = get_db()
         cur = conn.cursor()
-        # HOY ganancias
         cur.execute("""
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
@@ -613,7 +612,6 @@ def leaderboard():
             GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
         """)
         hoy_ganancias = [dict(r) for r in cur.fetchall()]
-        # HOY ciclos
         cur.execute("""
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
@@ -623,7 +621,6 @@ def leaderboard():
             GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
         """)
         hoy_ciclos = [dict(r) for r in cur.fetchall()]
-        # MES ganancias
         cur.execute("""
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
@@ -633,7 +630,6 @@ def leaderboard():
             GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
         """)
         mes_ganancias = [dict(r) for r in cur.fetchall()]
-        # MES ciclos
         cur.execute("""
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
@@ -643,7 +639,6 @@ def leaderboard():
             GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
         """)
         mes_ciclos = [dict(r) for r in cur.fetchall()]
-        # HISTORICO ganancias
         cur.execute("""
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
@@ -652,7 +647,6 @@ def leaderboard():
             GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
         """)
         historico_ganancias = [dict(r) for r in cur.fetchall()]
-        # HISTORICO ciclos
         cur.execute("""
             SELECT u.nombre, u.wallet,
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
@@ -663,7 +657,6 @@ def leaderboard():
         historico_ciclos = [dict(r) for r in cur.fetchall()]
         cur.close()
         conn.close()
-        # limpiar wallet de todas las listas
         for lista in [hoy_ganancias, hoy_ciclos, mes_ganancias, mes_ciclos, historico_ganancias, historico_ciclos]:
             for u in lista:
                 w = u["wallet"]
@@ -768,6 +761,13 @@ def start(wallet):
         stop_zona   = float(data.get("stop_zona", 0.03))
     except (KeyError, ValueError):
         return jsonify({"ok": False, "msg": "Faltan parametros"})
+
+    # Validacion de rango minimo
+    min_pct = 0.03 if amount_usdt < 10 else 0.04
+    pct_rango = (rango_alto - rango_bajo) / rango_bajo
+    if pct_rango < min_pct:
+        return jsonify({"ok": False, "msg": "Margen demasiado pequeño para operar de forma segura (minimo " + str(int(min_pct * 100)) + "%)"})
+
     try:
         private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
     except:
