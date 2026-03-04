@@ -23,7 +23,7 @@
   .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
   .panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
   table{width:100%;border-collapse:collapse;font-size:12px}
-  th{text-align:left;color:var(--muted);padding:10px 8px;border-bottom:1px solid var(--border)}
+  th{text-align:left;color:var(--muted);padding:10px 8px;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:1px}
   td{padding:10px 8px;border-bottom:1px solid var(--border)}
   .badge{display:inline-block;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:700}
   .badge.on{background:rgba(127,255,110,0.1);color:var(--accent);border:1px solid rgba(127,255,110,0.3)}
@@ -80,11 +80,13 @@
 <script>
 const BOT_URL = window.location.origin;
 let pwd = '';
+
 function doLogin() {
   pwd = document.getElementById('pwdInput').value;
   if (!pwd) return;
   cargarDatos();
 }
+
 async function cargarDatos() {
   try {
     const r = await fetch(BOT_URL + '/admin?password=' + encodeURIComponent(pwd));
@@ -92,6 +94,7 @@ async function cargarDatos() {
     const data = await r.json();
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
+
     document.getElementById('totalUsuarios').textContent = data.resumen.total_usuarios;
     document.getElementById('botsActivos').textContent = data.resumen.bots_activos;
     document.getElementById('ciclosTotales').textContent = data.resumen.ciclos_totales;
@@ -99,9 +102,12 @@ async function cargarDatos() {
     document.getElementById('ventasTotales').textContent = data.resumen.ventas_totales;
     document.getElementById('volumen24h').textContent = '$' + data.resumen.volumen_24h.toFixed(2);
     document.getElementById('comisionesEvox').textContent = '$' + data.resumen.comisiones_estimadas.toFixed(4);
+
+    // TABLA USUARIOS
     const tu = document.getElementById('tablaUsuarios');
-    if (!data.usuarios.length) { tu.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin usuarios aun</div>'; }
-    else {
+    if (!data.usuarios.length) {
+      tu.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin usuarios aun</div>';
+    } else {
       tu.innerHTML = '<table><thead><tr><th>#</th><th>Nombre</th><th>Wallet</th><th>Bot</th><th>Ciclos</th><th>Ganancia</th><th>Registro</th></tr></thead><tbody>' +
         data.usuarios.map((u,i) => `<tr>
           <td style="color:var(--muted)">${i+1}</td>
@@ -113,20 +119,27 @@ async function cargarDatos() {
           <td style="color:var(--muted)">${new Date(u.creado_en).toLocaleDateString()}</td>
         </tr>`).join('') + '</tbody></table>';
     }
+
+    // TABLA ULTIMOS CICLOS — con hora CDMX y amount_usdt
     const tc = document.getElementById('tablaUltimos');
-    if (!data.ultimos_ciclos.length) { tc.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin ciclos aun</div>'; }
-    else {
-      tc.innerHTML = '<table><thead><tr><th>Nombre</th><th>Wallet</th><th>Fecha</th><th>Compra</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>' +
+    if (!data.ultimos_ciclos.length) {
+      tc.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin ciclos aun</div>';
+    } else {
+      tc.innerHTML = '<table><thead><tr><th>Nombre</th><th>Wallet</th><th>Fecha</th><th>Hora</th><th>Capital</th><th>Compra</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>' +
         data.ultimos_ciclos.map(c => `<tr>
           <td style="font-weight:700">${c.nombre}</td>
           <td style="color:var(--muted)">${c.wallet.slice(0,6)}...${c.wallet.slice(-4)}</td>
-          <td style="color:var(--muted)">${c.fecha}</td>
-          <td>$${c.precio_compra?c.precio_compra.toFixed(6):'—'}</td>
-          <td>$${c.precio_venta?c.precio_venta.toFixed(6):'—'}</td>
+          <td style="color:var(--muted)">${c.fecha||'—'}</td>
+          <td style="color:var(--muted)">${c.hora_registro||'—'}</td>
+          <td style="color:var(--accent3)">$${c.amount_usdt?parseFloat(c.amount_usdt).toFixed(2):'—'}</td>
+          <td>${c.precio_compra?'$'+parseFloat(c.precio_compra).toFixed(6):'previo'}</td>
+          <td>${c.precio_venta?'$'+parseFloat(c.precio_venta).toFixed(6):'—'}</td>
           <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(c.ganancia_usdt).toFixed(4)}</td>
         </tr>`).join('') + '</tbody></table>';
     }
-  } catch(e) { document.getElementById('loginError').textContent = 'Error: ' + e.message; }
+  } catch(e) {
+    document.getElementById('loginError').textContent = 'Error: ' + e.message;
+  }
 }
 </script>
 </body>
