@@ -41,14 +41,6 @@
   .field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:14px;padding:10px 12px;border-radius:6px;outline:none;transition:border-color 0.2s}
   .field input:focus{border-color:var(--accent)}
   .calc-hint{font-size:11px;color:var(--accent3);margin-top:4px;height:16px}
-  .rango-visual{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px}
-  .rango-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
-  .rango-row.alto{border-bottom:1px dashed var(--border);padding-bottom:10px;margin-bottom:4px}
-  .rango-row.bajo{border-top:1px dashed var(--border);padding-top:10px;margin-top:4px}
-  .rango-label{font-size:10px;text-transform:uppercase;letter-spacing:1px}
-  .rango-valor{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
-  .rango-precio-actual{text-align:center;padding:8px 0;font-size:11px;color:var(--muted)}
-  .rango-precio-actual span{color:var(--accent3);font-weight:700}
   .btn-row{display:flex;gap:10px;margin-top:8px}
   button{flex:1;padding:12px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s}
   .btn-start{background:var(--accent);color:#0a0a0f}
@@ -188,27 +180,14 @@
   <div class="panels">
     <div class="panel">
       <h2>Configuracion</h2>
-      <div class="rango-visual">
-        <div class="rango-row alto">
-          <span class="rango-label" style="color:var(--accent2)">▲ Vende en</span>
-          <span class="rango-valor" style="color:var(--accent2)" id="visualRangoAlto">—</span>
-          <span style="font-size:10px;color:var(--accent2)">VENTA</span>
-        </div>
-        <div class="rango-precio-actual">Precio actual: <span id="visualPrecio">—</span></div>
-        <div class="rango-row bajo">
-          <span class="rango-label" style="color:var(--accent)">▼ Compra en</span>
-          <span class="rango-valor" style="color:var(--accent)" id="visualRangoBajo">—</span>
-          <span style="font-size:10px;color:var(--accent)">COMPRA</span>
-        </div>
+      <div class="field">
+        <label>Rango Alto (vende en $)</label>
+        <input type="number" id="rangoAlto" placeholder="0.001750" step="0.000001" oninput="calcularPorcentaje()">
+        <div class="calc-hint" id="calcHint"></div>
       </div>
       <div class="field">
         <label>Rango Bajo (compra en $)</label>
-        <input type="number" id="rangoBajo" placeholder="0.001720" step="0.000001" oninput="calcularPorcentaje();actualizarRangoVisual()">
-      </div>
-      <div class="field">
-        <label>Rango Alto (vende en $)</label>
-        <input type="number" id="rangoAlto" placeholder="0.001750" step="0.000001" oninput="calcularPorcentaje();actualizarRangoVisual()">
-        <div class="calc-hint" id="calcHint"></div>
+        <input type="number" id="rangoBajo" placeholder="0.001720" step="0.000001" oninput="calcularPorcentaje()">
       </div>
       <div class="field"><label>Capital USDT</label><input type="number" id="amountUsdt" placeholder="10"></div>
       <div class="field"><label>Stop Loss (%)</label><input type="number" id="stopZona" placeholder="3" step="1"></div>
@@ -311,13 +290,6 @@ function calcularPorcentaje() {
   } else { hint.textContent = ''; }
 }
 
-function actualizarRangoVisual() {
-  const rb = parseFloat(document.getElementById('rangoBajo').value);
-  const ra = parseFloat(document.getElementById('rangoAlto').value);
-  document.getElementById('visualRangoBajo').textContent = rb ? '$' + rb.toFixed(6) : '—';
-  document.getElementById('visualRangoAlto').textContent = ra ? '$' + ra.toFixed(6) : '—';
-}
-
 function switchLbPeriodo(periodo) {
   lbPeriodo = periodo;
   document.querySelectorAll('.tab3').forEach((t,i) => t.classList.toggle('active', ['hoy','mes','historico'][i]===periodo));
@@ -403,10 +375,7 @@ async function fetchPrecio() {
   try {
     const r = await fetch(BOT_URL + '/precio');
     const data = await r.json();
-    if (data.ok) {
-      document.getElementById('statPrecio').textContent = '$' + data.precio;
-      document.getElementById('visualPrecio').textContent = '$' + data.precio;
-    }
+    if (data.ok) document.getElementById('statPrecio').textContent = '$' + data.precio;
   } catch(e) {}
 }
 
@@ -493,8 +462,6 @@ function actualizarUI(data) {
   if (data.config && data.config.RANGO_BAJO) {
     const c = data.config;
     document.getElementById('configActiva').innerHTML = 'Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+'<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
-    document.getElementById('visualRangoBajo').textContent = '$' + c.RANGO_BAJO;
-    document.getElementById('visualRangoAlto').textContent = '$' + c.RANGO_ALTO;
   }
   document.getElementById('btnStart').disabled = data.activo;
   document.getElementById('btnStop').disabled = !data.activo;
