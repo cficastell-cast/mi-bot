@@ -281,7 +281,7 @@ function volverInicio() {
 
 function getMinRango() {
   const au = parseFloat(document.getElementById('amountUsdt').value) || 0;
-  return au < 10 ? 3 : 4;
+  return au <= 10 ? 3 : 4;
 }
 
 function calcularPorcentaje() {
@@ -496,7 +496,7 @@ async function startBot() {
   const sz = (parseFloat(document.getElementById('stopZona').value) || 3) / 100;
   if (!rb || !ra || !au) { showToast('Completa todos los campos','err'); return; }
   if (rb >= ra) { showToast('Rango bajo debe ser menor al alto','err'); return; }
-  const minRango = (au < 10 ? 3 : 4) / 100;
+  const minRango = (au <= 10 ? 3 : 4) / 100;
   const pct = (ra - rb) / rb;
   if (pct < minRango) {
     showToast('⚠ Margen demasiado pequeño para operar de forma segura','err');

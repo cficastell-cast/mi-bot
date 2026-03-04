@@ -251,14 +251,18 @@ def loop_bot(wallet, private_key, estado, stop_event):
             "gasPrice": gas_price, "chainId": 137
         })
         w3.eth.send_raw_transaction(account.sign_transaction(tx_usdt).raw_transaction)
-        time.sleep(15)
+        stop_event.wait(15)
+        if stop_event.is_set():
+            return
         log_estado(estado, "USDT aprobado!")
         tx_cnkt = cnkt_contract.functions.approve(KYBER_ROUTER, 10000000 * 10**18).build_transaction({
             "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
             "gasPrice": gas_price, "chainId": 137
         })
         w3.eth.send_raw_transaction(account.sign_transaction(tx_cnkt).raw_transaction)
-        time.sleep(15)
+        stop_event.wait(15)
+        if stop_event.is_set():
+            return
         log_estado(estado, "CNKT aprobado!")
 
     def comprar():
@@ -276,7 +280,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
         tx_hash = w3.eth.send_raw_transaction(account.sign_transaction(tx).raw_transaction)
         log_estado(estado, "COMPRA: https://polygonscan.com/tx/" + tx_hash.hex())
         registrar_swap(wallet, "COMPRA", AMOUNT_USDT)
-        time.sleep(15)
+        stop_event.wait(15)
         return float(route['data']['routeSummary']['amountOut']) / 10**18
 
     def vender(cantidad_cnkt):
@@ -294,7 +298,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
         tx_hash = w3.eth.send_raw_transaction(account.sign_transaction(tx).raw_transaction)
         log_estado(estado, "VENTA: https://polygonscan.com/tx/" + tx_hash.hex())
         registrar_swap(wallet, "VENTA", AMOUNT_USDT)
-        time.sleep(15)
+        stop_event.wait(15)
         return float(route['data']['routeSummary']['amountOut']) / 10**6
 
     log_estado(estado, "BOT INICIADO para " + wallet[:6] + "..." + wallet[-4:])
@@ -303,6 +307,12 @@ def loop_bot(wallet, private_key, estado, stop_event):
     log_estado(estado, "Capital:   $" + str(AMOUNT_USDT))
 
     aprobar_tokens()
+
+    if stop_event.is_set():
+        estado["activo"] = False
+        eliminar_bot_activo(wallet)
+        log_estado(estado, "Bot detenido durante aprobacion.")
+        return
 
     usdt_actual = get_balance_usdt()
     cnkt_actual = get_balance_cnkt()
@@ -327,7 +337,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
             precio = get_precio_actual()
             if precio < 0.000001:
                 log_estado(estado, "Esperando precio...")
-                time.sleep(5)
+                stop_event.wait(5)
                 continue
 
             usdt = get_balance_usdt()
@@ -359,6 +369,8 @@ def loop_bot(wallet, private_key, estado, stop_event):
                     hora_compra_actual = hora_cdmx()
                     precio_compra_actual = precio
                     estado["cnkt_comprados"] = comprar()
+                    if stop_event.is_set():
+                        break
                     cnkt_comprado_actual = estado["cnkt_comprados"]
                     log_estado(estado, "CNKT recibidos: " + str(round(estado["cnkt_comprados"], 2)))
                 else:
@@ -370,6 +382,8 @@ def loop_bot(wallet, private_key, estado, stop_event):
                     log_estado(estado, "Senal de VENTA!")
                     hora_venta = hora_cdmx()
                     usdt_recibido = vender(cnkt_comp)
+                    if stop_event.is_set():
+                        break
                     ganancia = usdt_recibido - AMOUNT_USDT
                     estado["ganancia_total"] += ganancia
                     estado["ciclos"] += 1
@@ -385,6 +399,8 @@ def loop_bot(wallet, private_key, estado, stop_event):
                     log_estado(estado, "Senal de VENTA! (CNKT previo)")
                     hora_venta = hora_cdmx()
                     usdt_recibido = vender(cnkt_necesario)
+                    if stop_event.is_set():
+                        break
                     ganancia = usdt_recibido - AMOUNT_USDT
                     estado["ganancia_total"] += ganancia
                     estado["ciclos"] += 1
@@ -397,13 +413,14 @@ def loop_bot(wallet, private_key, estado, stop_event):
             else:
                 log_estado(estado, "Esperando...")
 
-            time.sleep(INTERVALO)
+            stop_event.wait(INTERVALO)
 
         except Exception as e:
             log_estado(estado, "Error: " + str(e))
-            time.sleep(30)
+            stop_event.wait(30)
 
     estado["activo"] = False
+    eliminar_bot_activo(wallet)
     log_estado(estado, "Bot detenido.")
 
 def iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt, stop_zona):
@@ -763,7 +780,7 @@ def start(wallet):
         return jsonify({"ok": False, "msg": "Faltan parametros"})
 
     # Validacion de rango minimo
-    min_pct = 0.03 if amount_usdt < 10 else 0.04
+    min_pct = 0.03 if amount_usdt <= 10 else 0.04
     pct_rango = (rango_alto - rango_bajo) / rango_bajo
     if pct_rango < min_pct:
         return jsonify({"ok": False, "msg": "Margen demasiado pequeño para operar de forma segura (minimo " + str(int(min_pct * 100)) + "%)"})
