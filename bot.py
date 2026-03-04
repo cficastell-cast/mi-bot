@@ -34,12 +34,10 @@ TOKEN_ABI = [
 DATABASE_URL = os.environ.get("DATABASE_URL")
 CDMX = pytz.timezone('America/Mexico_City')
 
-# ── PRECIO GLOBAL COMPARTIDO ──────────────────────────────────────────────────
 precio_global = {"valor": 0, "actualizado": 0}
 precio_lock = threading.Lock()
 
 def loop_precio_global():
-    """Un solo hilo actualiza el precio cada 15s para todos los bots."""
     while True:
         try:
             params = {"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": 10 * 10**6}
@@ -59,7 +57,6 @@ def get_precio_actual():
     with precio_lock:
         return precio_global["valor"]
 
-# ── WEB3 COMPARTIDO ───────────────────────────────────────────────────────────
 _w3 = None
 _w3_lock = threading.Lock()
 
@@ -69,8 +66,6 @@ def get_w3():
         if _w3 is None:
             _w3 = Web3(Web3.HTTPProvider(os.environ.get("RPC_URL")))
         return _w3
-
-# ─────────────────────────────────────────────────────────────────────────────
 
 def hora_cdmx():
     return datetime.now(CDMX).strftime('%H:%M:%S')
@@ -88,11 +83,13 @@ def init_db():
             nombre VARCHAR(50) DEFAULT 'Anonimo',
             private_key_enc TEXT NOT NULL,
             password_hash VARCHAR(256),
+            ganancia_acumulada FLOAT DEFAULT 0,
             creado_en TIMESTAMP DEFAULT NOW()
         )
     """)
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nombre VARCHAR(50) DEFAULT 'Anonimo'")
     cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS password_hash VARCHAR(256)")
+    cur.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ganancia_acumulada FLOAT DEFAULT 0")
     cur.execute("""
         CREATE TABLE IF NOT EXISTS ciclos (
             id SERIAL PRIMARY KEY,
@@ -197,17 +194,34 @@ def guardar_ciclo(wallet, hora_compra, precio_compra, hora_venta, precio_venta, 
     try:
         conn = get_db()
         cur = conn.cursor()
+        hora_compra_final = hora_compra if hora_compra else "previo"
+        precio_compra_final = precio_compra if precio_compra else 0
         cur.execute("""
             INSERT INTO ciclos (wallet, hora_compra, precio_compra, hora_venta, precio_venta,
                                 cnkt_comprado, cnkt_vendido, ganancia_usdt, amount_usdt)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (wallet, hora_compra, precio_compra, hora_venta, precio_venta,
+        """, (wallet, hora_compra_final, precio_compra_final, hora_venta, precio_venta,
               cnkt_comprado, cnkt_vendido, ganancia_usdt, amount_usdt))
+        cur.execute("""
+            UPDATE usuarios SET ganancia_acumulada = ganancia_acumulada + %s WHERE wallet = %s
+        """, (ganancia_usdt, wallet))
         conn.commit()
         cur.close()
         conn.close()
     except Exception as e:
         print("Error guardando ciclo: " + str(e))
+
+def cargar_ganancia_acumulada(wallet):
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT ganancia_acumulada FROM usuarios WHERE wallet = %s", (wallet,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return float(row["ganancia_acumulada"]) if row else 0
+    except:
+        return 0
 
 def loop_bot(wallet, private_key, estado, stop_event):
     w3 = get_w3()
@@ -303,13 +317,14 @@ def loop_bot(wallet, private_key, estado, stop_event):
         eliminar_bot_activo(wallet)
         return
 
+    estado["ganancia_total"] = cargar_ganancia_acumulada(wallet)
+
     hora_compra_actual = None
     precio_compra_actual = None
     cnkt_comprado_actual = 0
 
     while not stop_event.is_set():
         try:
-            # Usa precio global compartido en lugar de llamar API
             precio = get_precio_actual()
 
             if precio < 0.000001:
@@ -369,7 +384,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
                     hora_compra_actual = None
                     precio_compra_actual = None
                 elif cnkt_comp == 0 and cnkt >= cnkt_necesario:
-                    log_estado(estado, "Senal de VENTA!")
+                    log_estado(estado, "Senal de VENTA! (CNKT previo)")
                     hora_venta = hora_cdmx()
                     usdt_recibido = vender(cnkt_necesario)
                     ganancia = usdt_recibido - AMOUNT_USDT
@@ -377,7 +392,8 @@ def loop_bot(wallet, private_key, estado, stop_event):
                     estado["ciclos"] += 1
                     log_estado(estado, "Ganancia ciclo: $" + str(round(ganancia, 4)))
                     log_estado(estado, "Ganancia total: $" + str(round(estado["ganancia_total"], 4)))
-                    guardar_ciclo(wallet, None, None, hora_venta, precio, 0, cnkt_necesario, ganancia, AMOUNT_USDT)
+                    guardar_ciclo(wallet, "previo", precio, hora_venta, precio,
+                                  0, cnkt_necesario, ganancia, AMOUNT_USDT)
                 else:
                     log_estado(estado, "Esperando CNKT suficiente...")
             else:
@@ -517,8 +533,9 @@ def status(wallet):
                            "AMOUNT_USDT": est["AMOUNT_USDT"], "STOP_ZONA": est["STOP_ZONA"]},
                 "wallet": wallet
             })
+    ganancia_db = cargar_ganancia_acumulada(wallet)
     return jsonify({"activo": False, "modo": "COMPRA", "precio": 0, "usdt": 0, "cnkt": 0,
-                    "ciclos": 0, "ganancia_total": 0, "ultimo_log": "", "wallet": wallet,
+                    "ciclos": 0, "ganancia_total": ganancia_db, "ultimo_log": "", "wallet": wallet,
                     "config": {"RANGO_BAJO": None, "RANGO_ALTO": None, "AMOUNT_USDT": None, "STOP_ZONA": None}})
 
 @app.route("/logs/<wallet>", methods=["GET"])
@@ -536,8 +553,15 @@ def historial(wallet):
         conn = get_db()
         cur = conn.cursor()
         cur.execute("""
-            SELECT fecha, hora_compra, precio_compra, hora_venta, precio_venta,
-                   cnkt_comprado, cnkt_vendido, ganancia_usdt
+            SELECT fecha,
+                   hora_compra,
+                   precio_compra,
+                   hora_venta,
+                   precio_venta,
+                   cnkt_comprado,
+                   cnkt_vendido,
+                   ganancia_usdt,
+                   to_char(creado_en AT TIME ZONE 'America/Mexico_City', 'HH24:MI:SS') as hora_registro
             FROM ciclos WHERE wallet = %s ORDER BY creado_en DESC LIMIT 50
         """, (wallet,))
         rows = cur.fetchall()
@@ -557,7 +581,7 @@ def leaderboard():
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
                    COUNT(c.id) as ciclos_total
             FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
-            GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 10
+            GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
         """)
         top_ganancias = [dict(r) for r in cur.fetchall()]
         cur.execute("""
@@ -565,7 +589,7 @@ def leaderboard():
                    COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
                    COUNT(c.id) as ciclos_total
             FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
-            GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 10
+            GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
         """)
         top_ciclos = [dict(r) for r in cur.fetchall()]
         cur.close()
@@ -614,7 +638,8 @@ def admin():
         """)
         usuarios = [dict(r) for r in cur.fetchall()]
         cur.execute("""
-            SELECT c.wallet, u.nombre, c.fecha, c.precio_compra, c.precio_venta, c.ganancia_usdt, c.creado_en
+            SELECT c.wallet, u.nombre, c.fecha, c.precio_compra, c.precio_venta, c.ganancia_usdt,
+                   to_char(c.creado_en AT TIME ZONE 'America/Mexico_City', 'HH24:MI:SS') as hora_registro
             FROM ciclos c JOIN usuarios u ON c.wallet = u.wallet
             ORDER BY c.creado_en DESC LIMIT 20
         """)
@@ -714,7 +739,6 @@ def icon():
 
 if __name__ == "__main__":
     init_db()
-    # Inicia hilo de precio global compartido
     t_precio = threading.Thread(target=loop_precio_global, daemon=True)
     t_precio.start()
     print("Precio global iniciado!")
