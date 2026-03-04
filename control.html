@@ -487,8 +487,24 @@ async function stopBot() {
   try {
     const r = await fetch(BOT_URL+'/stop/'+userWallet, {method:'POST'});
     const data = await r.json();
-    showToast(data.msg, data.ok?'ok':'err');
-    setTimeout(fetchStatus,2000);
+    if (!data.ok) { showToast(data.msg,'err'); return; }
+    showToast('Deteniendo bot...','ok');
+    document.getElementById('btnStop').disabled = true;
+    // Poll hasta confirmar que se detuvo
+    let intentos = 0;
+    const poll = setInterval(async () => {
+      intentos++;
+      try {
+        const s = await fetch(BOT_URL+'/status/'+userWallet);
+        const sd = await s.json();
+        if (!sd.activo) {
+          clearInterval(poll);
+          actualizarUI(sd);
+          showToast('Bot detenido!','ok');
+        }
+      } catch(e) {}
+      if (intentos >= 15) { clearInterval(poll); fetchStatus(); }
+    }, 2000);
   } catch(e) { showToast('Error: '+e.message,'err'); }
 }
 </script>
