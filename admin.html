@@ -85,6 +85,10 @@
   .senal-nav button:hover{border-color:var(--accent3);color:var(--accent3)}
   .senal-preview{font-size:11px;color:var(--muted);padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg)}
 
+  /* STOP BTN */
+  .btn-stop-user{background:transparent;border:1px solid var(--accent2);color:var(--accent2);padding:4px 10px;border-radius:6px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s}
+  .btn-stop-user:hover{background:var(--accent2);color:#0a0a0f}
+  .btn-stop-user:disabled{opacity:0.3;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -343,8 +347,8 @@ async function cargarMasterStatus() {
       document.getElementById('btnMasterStop').disabled = true;
       document.getElementById('masterConfigActiva').textContent = 'Sin config activa';
     }
-    document.getElementById('masterPadawans').textContent = (data.padawans_activos !== undefined) ? data.padawans_activos : 0;
-  } catch(e) { console.log('Error master status:', e); }
+    document.getElementById('masterPadawans').textContent = data.padawans_activos || 0;
+  } catch(e) {}
 }
 
 async function masterStart() {
@@ -383,6 +387,29 @@ async function masterStop() {
   } catch(e) { document.getElementById('masterMsg').textContent = 'Error: ' + e.message; }
 }
 
+// ── NUEVO: Detener bot individual desde admin ──
+async function adminStopBot(wallet) {
+  if (!confirm('¿Detener el bot de ' + wallet.slice(0,6) + '...' + wallet.slice(-4) + '?')) return;
+  const btn = document.getElementById('stopbtn-' + wallet);
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  try {
+    const r = await fetch(BOT_URL + '/stop/' + wallet, { method: 'POST' });
+    const data = await r.json();
+    if (data.ok) {
+      // Actualizar fila visualmente sin recargar todo
+      const badge = document.querySelector('#row-' + wallet + ' .badge');
+      if (badge) { badge.textContent = '○ DETENIDO'; badge.className = 'badge off'; }
+      if (btn) { btn.style.display = 'none'; }
+    } else {
+      if (btn) { btn.disabled = false; btn.textContent = '■ STOP'; }
+      alert('Error: ' + data.msg);
+    }
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = '■ STOP'; }
+    alert('Error: ' + e.message);
+  }
+}
+
 async function cargarDatos() {
   try {
     const r = await fetch(BOT_URL + '/admin?password=' + encodeURIComponent(pwd));
@@ -392,10 +419,8 @@ async function cargarDatos() {
     document.getElementById('mainApp').style.display = 'block';
     cargarMasterStatus();
     fetchMasterLogs();
-    if (!window._adminRefreshStarted) {
-      window._adminRefreshStarted = true;
-      setInterval(function() { cargarMasterStatus(); fetchMasterLogs(); }, 15000);
-    }
+    function autoRefreshAdmin() { cargarMasterStatus(); fetchMasterLogs(); }
+    setInterval(autoRefreshAdmin, 15000);
 
     document.getElementById('totalUsuarios').textContent = data.resumen.total_usuarios;
     document.getElementById('botsActivos').textContent = data.resumen.bots_activos;
@@ -409,8 +434,8 @@ async function cargarDatos() {
     if (!data.usuarios.length) {
       tu.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin usuarios aun</div>';
     } else {
-      tu.innerHTML = '<table><thead><tr><th>#</th><th>Nombre</th><th>Wallet</th><th>Bot</th><th>Ciclos</th><th>Ganancia</th><th>Registro</th></tr></thead><tbody>' +
-        data.usuarios.map((u,i) => `<tr>
+      tu.innerHTML = '<table><thead><tr><th>#</th><th>Nombre</th><th>Wallet</th><th>Bot</th><th>Ciclos</th><th>Ganancia</th><th>Registro</th><th>Acción</th></tr></thead><tbody>' +
+        data.usuarios.map((u,i) => `<tr id="row-${u.wallet}">
           <td style="color:var(--muted)">${i+1}</td>
           <td style="font-weight:700">${u.nombre}</td>
           <td style="color:var(--muted)">${u.wallet.slice(0,6)}...${u.wallet.slice(-4)}</td>
@@ -418,7 +443,10 @@ async function cargarDatos() {
           <td style="color:var(--accent3)">${u.ciclos_total}</td>
           <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td>
           <td style="color:var(--muted)">${new Date(u.creado_en).toLocaleDateString()}</td>
-
+          <td>${u.bot_activo
+            ? `<button id="stopbtn-${u.wallet}" class="btn-stop-user" onclick="adminStopBot('${u.wallet}')">■ STOP</button>`
+            : '<span style="color:var(--muted);font-size:11px;">—</span>'
+          }</td>
         </tr>`).join('') + '</tbody></table>';
     }
 
