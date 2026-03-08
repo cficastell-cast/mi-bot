@@ -343,8 +343,8 @@ async function cargarMasterStatus() {
       document.getElementById('btnMasterStop').disabled = true;
       document.getElementById('masterConfigActiva').textContent = 'Sin config activa';
     }
-    document.getElementById('masterPadawans').textContent = data.padawans_activos || 0;
-  } catch(e) {}
+    document.getElementById('masterPadawans').textContent = (data.padawans_activos !== undefined) ? data.padawans_activos : 0;
+  } catch(e) { console.log('Error master status:', e); }
 }
 
 async function masterStart() {
@@ -392,8 +392,10 @@ async function cargarDatos() {
     document.getElementById('mainApp').style.display = 'block';
     cargarMasterStatus();
     fetchMasterLogs();
-    function autoRefreshAdmin() { cargarMasterStatus(); fetchMasterLogs(); }
-    setInterval(autoRefreshAdmin, 15000);
+    if (!window._adminRefreshStarted) {
+      window._adminRefreshStarted = true;
+      setInterval(function() { cargarMasterStatus(); fetchMasterLogs(); }, 15000);
+    }
 
     document.getElementById('totalUsuarios').textContent = data.resumen.total_usuarios;
     document.getElementById('botsActivos').textContent = data.resumen.bots_activos;
