@@ -591,8 +591,8 @@ def master_start():
             if wallet_master not in bots_activos or not bots_activos[wallet_master]["estado"]["activo"]:
                 guardar_bot_activo(wallet_master, rango_bajo, rango_alto, amount_usdt, stop_zona)
                 iniciar_bot_thread(wallet_master, private_key_master, rango_bajo, rango_alto, amount_usdt, stop_zona)
-        for wallet in padawan_wallets:
-            _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt, stop_zona)
+        for i, wallet in enumerate(padawan_wallets):
+            threading.Timer(i * 5, _arrancar_padawan, args=[wallet, rango_bajo, rango_alto, amount_usdt, stop_zona]).start()
         return jsonify({"ok": True, "msg": "Modo master iniciado! " + str(len(padawan_wallets)) + " padawans arrancando."})
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)})
