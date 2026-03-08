@@ -274,33 +274,71 @@ def loop_bot(wallet, private_key, estado, stop_event):
 
     def aprobar_tokens():
         log_estado(estado, "Aprobando tokens...")
-        try:
-            gas_price = int(w3.eth.gas_price * 1.5)
-            tx_usdt = usdt_contract.functions.approve(KYBER_ROUTER, 1000 * 10**6).build_transaction({
-                "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
-                "gasPrice": gas_price, "chainId": 137
-            })
-            w3.eth.send_raw_transaction(account.sign_transaction(tx_usdt).raw_transaction)
-            log_estado(estado, "USDT aprobado!")
-        except Exception as e:
-            log_estado(estado, "Error aprobando USDT: " + str(e))
-            if stop_event.is_set():
-                return
+
+        # Aprobar USDT con retry
+        aprobado_usdt = False
+        for intento in range(3):
+            try:
+                gas_price = int(w3.eth.gas_price * 1.5)
+                tx_usdt = usdt_contract.functions.approve(KYBER_ROUTER, 1000 * 10**6).build_transaction({
+                    "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
+                    "gasPrice": gas_price, "chainId": 137
+                })
+                w3.eth.send_raw_transaction(account.sign_transaction(tx_usdt).raw_transaction)
+                log_estado(estado, "USDT aprobado!")
+                aprobado_usdt = True
+                break
+            except Exception as e:
+                if "429" in str(e):
+                    espera = (intento + 1) * 20
+                    log_estado(estado, "Rate limit RPC, reintentando en " + str(espera) + "s... (" + str(intento + 1) + "/3)")
+                    stop_event.wait(espera)
+                    if stop_event.is_set():
+                        return
+                else:
+                    log_estado(estado, "Error aprobando USDT: " + str(e))
+                    break
+
+        if not aprobado_usdt:
+            log_estado(estado, "No se pudo aprobar USDT, deteniendo bot.")
+            estado["activo"] = False
+            eliminar_bot_activo(wallet)
+            return
+
         stop_event.wait(15)
         if stop_event.is_set():
             return
-        try:
-            gas_price = int(w3.eth.gas_price * 1.5)
-            tx_cnkt = cnkt_contract.functions.approve(KYBER_ROUTER, 10000000 * 10**18).build_transaction({
-                "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
-                "gasPrice": gas_price, "chainId": 137
-            })
-            w3.eth.send_raw_transaction(account.sign_transaction(tx_cnkt).raw_transaction)
-            log_estado(estado, "CNKT aprobado!")
-        except Exception as e:
-            log_estado(estado, "Error aprobando CNKT: " + str(e))
-            if stop_event.is_set():
-                return
+
+        # Aprobar CNKT con retry
+        aprobado_cnkt = False
+        for intento in range(3):
+            try:
+                gas_price = int(w3.eth.gas_price * 1.5)
+                tx_cnkt = cnkt_contract.functions.approve(KYBER_ROUTER, 10000000 * 10**18).build_transaction({
+                    "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
+                    "gasPrice": gas_price, "chainId": 137
+                })
+                w3.eth.send_raw_transaction(account.sign_transaction(tx_cnkt).raw_transaction)
+                log_estado(estado, "CNKT aprobado!")
+                aprobado_cnkt = True
+                break
+            except Exception as e:
+                if "429" in str(e):
+                    espera = (intento + 1) * 20
+                    log_estado(estado, "Rate limit RPC, reintentando en " + str(espera) + "s... (" + str(intento + 1) + "/3)")
+                    stop_event.wait(espera)
+                    if stop_event.is_set():
+                        return
+                else:
+                    log_estado(estado, "Error aprobando CNKT: " + str(e))
+                    break
+
+        if not aprobado_cnkt:
+            log_estado(estado, "No se pudo aprobar CNKT, deteniendo bot.")
+            estado["activo"] = False
+            eliminar_bot_activo(wallet)
+            return
+
         stop_event.wait(15)
         if stop_event.is_set():
             return
@@ -352,6 +390,9 @@ def loop_bot(wallet, private_key, estado, stop_event):
         estado["activo"] = False
         eliminar_bot_activo(wallet)
         log_estado(estado, "Bot detenido durante aprobacion.")
+        return
+
+    if not estado["activo"]:
         return
 
     usdt_actual = get_balance_usdt()
@@ -953,7 +994,7 @@ def admin():
         """)
         usuarios = [dict(r) for r in cur.fetchall()]
         cur.execute("""
-            SELECT c.wallet, u.nombre, c.fecha, c.precio_compra, c.precio_venta, c.ganancia_usdt,
+            SELECT c.wallet, u.nombre, c.fecha, c.precio_compra, c.precio_venta, c.ganancia_usdt, c.amount_usdt,
                    to_char(c.creado_en AT TIME ZONE 'America/Mexico_City','HH24:MI:SS') as hora_registro
             FROM ciclos c JOIN usuarios u ON c.wallet=u.wallet ORDER BY c.creado_en DESC LIMIT 20
         """)
