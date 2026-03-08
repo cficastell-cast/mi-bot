@@ -284,6 +284,8 @@ def loop_bot(wallet, private_key, estado, stop_event):
             log_estado(estado, "USDT aprobado!")
         except Exception as e:
             log_estado(estado, "Error aprobando USDT: " + str(e))
+            if stop_event.is_set():
+                return
         stop_event.wait(15)
         if stop_event.is_set():
             return
@@ -297,6 +299,8 @@ def loop_bot(wallet, private_key, estado, stop_event):
             log_estado(estado, "CNKT aprobado!")
         except Exception as e:
             log_estado(estado, "Error aprobando CNKT: " + str(e))
+            if stop_event.is_set():
+                return
         stop_event.wait(15)
         if stop_event.is_set():
             return
@@ -480,11 +484,13 @@ def restaurar_bots():
         rows = cur.fetchall()
         cur.close()
         conn.close()
-        for row in rows:
+        for i, row in enumerate(rows):
             try:
                 private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
-                iniciar_bot_thread(row["wallet"], private_key, row["rango_bajo"],
-                                   row["rango_alto"], row["amount_usdt"], row["stop_zona"])
+                threading.Timer(i * 3, iniciar_bot_thread, args=[
+                    row["wallet"], private_key, row["rango_bajo"],
+                    row["rango_alto"], row["amount_usdt"], row["stop_zona"]
+                ]).start()
                 print("Bot restaurado: " + row["wallet"][:6] + "...")
             except Exception as e:
                 print("Error restaurando: " + str(e))
@@ -525,7 +531,6 @@ def master_start():
     try:
         conn = get_db()
         cur = conn.cursor()
-        # Verificar que la wallet master existe en DB
         cur.execute("SELECT private_key_enc FROM usuarios WHERE wallet=%s", (wallet_master,))
         master_row = cur.fetchone()
         if not master_row:
@@ -540,13 +545,11 @@ def master_start():
         conn.commit()
         cur.close()
         conn.close()
-        # Arrancar bot del master
         private_key_master = fernet.decrypt(master_row["private_key_enc"].encode()).decode()
         with bots_lock:
             if wallet_master not in bots_activos or not bots_activos[wallet_master]["estado"]["activo"]:
                 guardar_bot_activo(wallet_master, rango_bajo, rango_alto, amount_usdt, stop_zona)
                 iniciar_bot_thread(wallet_master, private_key_master, rango_bajo, rango_alto, amount_usdt, stop_zona)
-        # Arrancar padawans
         for wallet in padawan_wallets:
             _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt, stop_zona)
         return jsonify({"ok": True, "msg": "Modo master iniciado! " + str(len(padawan_wallets)) + " padawans arrancando."})
@@ -569,7 +572,6 @@ def master_stop():
         conn.commit()
         cur.close()
         conn.close()
-        # Detener bot del master y padawans
         detenidos = 0
         wallets_a_detener = padawan_wallets[:]
         if mc and mc["wallet_master"]:
@@ -591,7 +593,6 @@ def padawan_activar(wallet):
         conn = get_db()
         cur = conn.cursor()
         cur.execute("INSERT INTO padawans (wallet, activo) VALUES (%s, TRUE) ON CONFLICT (wallet) DO UPDATE SET activo=TRUE, actualizado_en=NOW()", (wallet,))
-        # Si el master ya está activo, arrancar inmediatamente
         cur.execute("SELECT * FROM master_config WHERE id=1 AND activo=TRUE")
         mc = cur.fetchone()
         conn.commit()
@@ -651,7 +652,6 @@ def _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt_master, stop_z
         conn.close()
         if not row:
             return
-        # Calcular capital del padawan
         w3 = get_w3()
         usdt_contract = w3.eth.contract(address=USDT_ADDRESS, abi=TOKEN_ABI)
         try:
@@ -659,7 +659,6 @@ def _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt_master, stop_z
             balance = usdt_contract.functions.balanceOf(W3.to_checksum_address(wallet)).call() / 10**6
         except:
             balance = 0
-        # Multiplo de 5 hacia abajo, tope = amount_usdt_master
         capital = min(int(balance // 5) * 5, amount_usdt_master)
         if capital < 5:
             print("Padawan " + wallet[:6] + " sin capital suficiente")
@@ -667,13 +666,12 @@ def _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt_master, stop_z
         private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
         with bots_lock:
             if wallet in bots_activos and bots_activos[wallet]["estado"]["activo"]:
-                return  # Ya está corriendo
+                return
         guardar_bot_activo(wallet, rango_bajo, rango_alto, capital, stop_zona)
         iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, capital, stop_zona)
         print("Padawan arrancado: " + wallet[:6] + " capital: $" + str(capital))
     except Exception as e:
         print("Error arrancando padawan " + wallet[:6] + ": " + str(e))
-
 
 @app.route("/precio", methods=["GET"])
 def precio_endpoint():
@@ -1022,6 +1020,7 @@ def stop(wallet):
         if wallet not in bots_activos or not bots_activos[wallet]["estado"]["activo"]:
             return jsonify({"ok": False, "msg": "Bot no esta corriendo"})
         bots_activos[wallet]["stop_event"].set()
+        bots_activos[wallet]["estado"]["activo"] = False
     eliminar_bot_activo(wallet)
     return jsonify({"ok": True, "msg": "Deteniendo bot..."})
 
@@ -1036,11 +1035,7 @@ def home():
 def admin_panel():
     try:
         content = open(os.path.join(BASE_DIR, "admin.html")).read()
-        headers = {
-            "Content-Type": "text/html",
-            "Content-Security-Policy": "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; connect-src 'self' https:;"
-        }
-        return content, 200, headers
+        return content, 200, {"Content-Type": "text/html"}
     except Exception as e:
         return "admin.html no encontrado: " + str(e), 404
 
