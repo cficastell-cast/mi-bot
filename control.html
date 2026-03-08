@@ -24,6 +24,18 @@
   .dot.on{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.5s infinite}
   .dot.off{background:var(--accent2)}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .senal-box{display:none;margin-bottom:20px;border-radius:10px;padding:14px 18px;border:1px solid var(--border);background:var(--surface)}
+  .senal-box.cat-rango{border-color:rgba(110,159,255,0.4);background:rgba(110,159,255,0.05)}
+  .senal-box.cat-mercado{border-color:rgba(245,197,24,0.4);background:rgba(245,197,24,0.05)}
+  .senal-box.cat-oportunidad{border-color:rgba(127,255,110,0.4);background:rgba(127,255,110,0.05)}
+  .senal-box.cat-riesgo{border-color:rgba(255,110,127,0.4);background:rgba(255,110,127,0.05)}
+  .senal-box.cat-general{border-color:rgba(232,232,240,0.2);background:rgba(232,232,240,0.03)}
+  .senal-inner{display:flex;align-items:center;gap:14px}
+  .senal-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0}
+  .senal-body{flex:1}
+  .senal-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:4px}
+  .senal-msg{font-size:12px;color:var(--text);line-height:1.6}
+  .senal-hora{font-size:10px;color:var(--muted);margin-top:4px}
   .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
   .card-label{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
@@ -95,6 +107,14 @@
   .nombre-bienvenida{font-size:12px;color:var(--accent);margin-right:8px}
   .logo-box{display:flex;align-items:center;justify-content:center;margin-bottom:16px}
   .logo-box img{width:72px;height:72px;border-radius:16px}
+
+  /* Config activa activa */
+  .config-activa-box{border-radius:8px;padding:10px 12px;border:1px solid var(--border);transition:all 0.4s}
+  .config-activa-box.activo{border-color:rgba(127,255,110,0.35);background:rgba(127,255,110,0.04)}
+  .config-activa-badge{display:none;font-size:9px;font-family:'Syne',sans-serif;font-weight:700;color:#0a0a0f;background:var(--accent);padding:2px 7px;border-radius:100px;margin-left:6px;vertical-align:middle;letter-spacing:1px}
+  .config-activa-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .config-activa-datos{font-size:12px;color:var(--muted);line-height:1.9;transition:color 0.3s}
+  .config-activa-datos.activo{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -163,6 +183,18 @@
     </div>
   </header>
 
+  <!-- SEÑAL ACTIVA -->
+  <div class="senal-box" id="senalBox">
+    <div class="senal-inner">
+      <img class="senal-avatar" id="senalAvatar" src="/icon.png" alt=""/>
+      <div class="senal-body">
+        <div class="senal-title" id="senalTitle"></div>
+        <div class="senal-msg" id="senalMsg"></div>
+        <div class="senal-hora" id="senalHora"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="cards">
     <div class="card"><div class="card-label">Precio CNKT</div><div class="card-value blue" id="statPrecio">—</div></div>
     <div class="card"><div class="card-label">USDT</div><div class="card-value" id="statUSDT">—</div></div>
@@ -198,6 +230,12 @@
         <button class="btn-start" id="btnStart" onclick="startBot()">▶ INICIAR</button>
         <button class="btn-stop" id="btnStop" onclick="stopBot()" disabled>■ DETENER</button>
       </div>
+      <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+        <button id="btnPadawan" onclick="togglePadawan()" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+          🎓 Activar Modo Padawan
+        </button>
+        <div id="padawanStatus" style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center;"></div>
+      </div>
     </div>
     <div class="panel">
       <h2>Estado</h2>
@@ -219,8 +257,13 @@
         </div>
       </div>
       <div class="field">
-        <label>Config activa</label>
-        <div style="font-size:12px;color:var(--muted);line-height:1.8;" id="configActiva">Sin datos</div>
+        <div class="config-activa-label">
+          Config activa
+          <span class="config-activa-badge" id="configActivaBadge">● EN USO</span>
+        </div>
+        <div class="config-activa-box" id="configActivaPanel">
+          <div class="config-activa-datos" id="configActiva">Sin datos</div>
+        </div>
       </div>
     </div>
   </div>
@@ -262,6 +305,56 @@ let userWallet = '';
 let lbPeriodo = 'hoy';
 let lbTipo = 'ganancias';
 let lbData = {};
+let ultimaSenalId = null;
+let botEstabaActivo = null;
+
+function pedirPermisoNotificaciones() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function tocarSonido(tipo) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (tipo === 'senal') {
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
+    } else {
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(330, ctx.currentTime + 0.15);
+    }
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch(e) {}
+}
+
+function vibrar(tipo) {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(tipo === 'senal' ? [100, 50, 100] : [200, 100, 200]);
+  }
+}
+
+function notificar(titulo, cuerpo) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(titulo, { body: cuerpo, icon: '/icon.png' });
+  }
+}
+
+const CAT_INFO = {
+  'Señal de Rango':    { cls: 'cat-rango',       icon: '📊' },
+  'Alerta de Mercado': { cls: 'cat-mercado',      icon: '⚠️' },
+  'Oportunidad':       { cls: 'cat-oportunidad',  icon: '🚀' },
+  'Alerta de Riesgo':  { cls: 'cat-riesgo',       icon: '🛑' },
+  'Mensaje General':   { cls: 'cat-general',      icon: '📢' },
+};
 
 function showToast(msg, tipo='ok') {
   const t = document.getElementById('toast');
@@ -308,6 +401,96 @@ function calcularPorcentaje() {
     hint.textContent = '🟢 ' + pct.toFixed(2) + '% — ¡Excelente EVOXcito! 🚀 Luz verde de mi parte';
     hint.style.color = 'var(--accent)';
     document.getElementById('btnStart').disabled = false;
+  }
+}
+
+let esPadawan = false;
+
+async function fetchPadawanStatus() {
+  if (!userWallet) return;
+  try {
+    const r = await fetch(BOT_URL + '/padawan/status/' + userWallet);
+    const data = await r.json();
+    if (!data.ok) return;
+    esPadawan = data.es_padawan;
+    const btn = document.getElementById('btnPadawan');
+    const statusEl = document.getElementById('padawanStatus');
+
+    if (data.es_wallet_master) {
+      document.getElementById('rangoAlto').disabled = true;
+      document.getElementById('rangoBajo').disabled = true;
+      document.getElementById('amountUsdt').disabled = true;
+      document.getElementById('stopZona').disabled = true;
+      document.getElementById('btnStart').disabled = true;
+      document.getElementById('btnStop').disabled = true;
+      btn.disabled = true;
+      btn.textContent = '⚔️ Wallet en uso como Master';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.color = 'var(--accent)';
+      statusEl.textContent = 'Operando en Modo Master desde el panel admin';
+      statusEl.style.color = 'var(--accent)';
+      return;
+    }
+
+    btn.disabled = false;
+    if (esPadawan) {
+      btn.textContent = '🎓 Desactivar Modo Padawan';
+      btn.style.borderColor = 'var(--accent2)';
+      btn.style.color = 'var(--accent2)';
+      if (data.master_activo) {
+        statusEl.textContent = '✅ Master activo — tu bot opera automáticamente';
+        statusEl.style.color = 'var(--accent)';
+      } else {
+        statusEl.textContent = '⏳ Esperando al master...';
+        statusEl.style.color = 'var(--muted)';
+      }
+      document.getElementById('rangoAlto').disabled = true;
+      document.getElementById('rangoBajo').disabled = true;
+      document.getElementById('amountUsdt').disabled = true;
+      document.getElementById('stopZona').disabled = true;
+      document.getElementById('btnStart').disabled = true;
+    } else {
+      if (!data.master_activo) {
+        btn.textContent = '🎓 Activar Modo Padawan';
+        btn.style.borderColor = 'var(--border)';
+        btn.style.color = 'var(--muted)';
+        btn.onclick = function() {
+          showToast('Rápidamente sientes un manotazo de la Sacerdotisa... ¡DEJE AHÍ CHAMACO!', 'err');
+        };
+        statusEl.textContent = 'El master no está activo';
+        statusEl.style.color = 'var(--muted)';
+      } else {
+        btn.textContent = '🎓 Activar Modo Padawan';
+        btn.style.borderColor = 'var(--accent3)';
+        btn.style.color = 'var(--accent3)';
+        btn.onclick = togglePadawan;
+        statusEl.textContent = '';
+      }
+      document.getElementById('rangoAlto').disabled = false;
+      document.getElementById('rangoBajo').disabled = false;
+      document.getElementById('amountUsdt').disabled = false;
+      document.getElementById('stopZona').disabled = false;
+    }
+  } catch(e) {}
+}
+
+async function togglePadawan() {
+  if (esPadawan) {
+    if (!confirm('¿Desactivar Modo Padawan? Recuperarás el control manual de tu bot.')) return;
+    try {
+      const r = await fetch(BOT_URL + '/padawan/desactivar/' + userWallet, {method:'POST'});
+      const data = await r.json();
+      showToast(data.msg, data.ok ? 'ok' : 'err');
+      fetchPadawanStatus(); fetchStatus();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
+  } else {
+    if (!confirm('¿Activar Modo Padawan? Tu bot seguirá al master automáticamente y perderás el control manual.')) return;
+    try {
+      const r = await fetch(BOT_URL + '/padawan/activar/' + userWallet, {method:'POST'});
+      const data = await r.json();
+      showToast(data.msg, data.ok ? 'ok' : 'err');
+      fetchPadawanStatus(); fetchStatus();
+    } catch(e) { showToast('Error: ' + e.message, 'err'); }
   }
 }
 
@@ -387,9 +570,10 @@ function entrarApp(nombre) {
   document.getElementById('mainApp').style.display = 'block';
   document.getElementById('walletBadge').textContent = userWallet.slice(0,6) + '...' + userWallet.slice(-4);
   document.getElementById('nombreBienvenida').textContent = nombre || '';
-  fetchPrecio(); fetchStatus(); fetchHistorial(); fetchLeaderboard(); fetchCiclosHoy();
+  pedirPermisoNotificaciones();
+  fetchPrecio(); fetchStatus(); fetchHistorial(); fetchLeaderboard(); fetchCiclosHoy(); fetchSenal(); fetchPadawanStatus();
   setInterval(fetchPrecio, 15000);
-  setInterval(() => { fetchStatus(); fetchLeaderboard(); fetchCiclosHoy(); }, 15000);
+  setInterval(() => { fetchStatus(); fetchLeaderboard(); fetchCiclosHoy(); fetchSenal(); fetchPadawanStatus(); }, 15000);
 }
 
 async function fetchPrecio() {
@@ -397,6 +581,30 @@ async function fetchPrecio() {
     const r = await fetch(BOT_URL + '/precio');
     const data = await r.json();
     if (data.ok) document.getElementById('statPrecio').textContent = '$' + data.precio;
+  } catch(e) {}
+}
+
+async function fetchSenal() {
+  try {
+    const r = await fetch(BOT_URL + '/senal');
+    const data = await r.json();
+    const box = document.getElementById('senalBox');
+    if (!data.ok || !data.senal) { box.style.display = 'none'; ultimaSenalId = null; return; }
+    const s = data.senal;
+    const info = CAT_INFO[s.categoria] || { cls: 'cat-general', icon: '📢' };
+    const senalKey = s.emisor + s.categoria + s.hora;
+    if (ultimaSenalId && ultimaSenalId !== senalKey) {
+      tocarSonido('senal');
+      vibrar('senal');
+      notificar('📡 Señales de ' + s.emisor, info.icon + ' ' + s.categoria + ': ' + s.mensaje);
+    }
+    ultimaSenalId = senalKey;
+    box.className = 'senal-box ' + info.cls;
+    box.style.display = 'block';
+    document.getElementById('senalAvatar').src = '/' + s.emisor.toLowerCase() + '.png';
+    document.getElementById('senalTitle').textContent = info.icon + ' Señales de ' + s.emisor + ' — ' + s.categoria;
+    document.getElementById('senalMsg').textContent = s.mensaje;
+    document.getElementById('senalHora').textContent = s.hora;
   } catch(e) {}
 }
 
@@ -473,17 +681,44 @@ async function fetchLeaderboard() {
 
 function actualizarUI(data) {
   const dot = document.getElementById('statusDot');
-  if (data.activo) { dot.className='dot on'; document.getElementById('statusText').textContent='Corriendo'; }
-  else { dot.className='dot off'; document.getElementById('statusText').textContent='Detenido'; }
+  if (data.activo) {
+    dot.className='dot on';
+    document.getElementById('statusText').textContent='Corriendo';
+    botEstabaActivo = true;
+  } else {
+    dot.className='dot off';
+    document.getElementById('statusText').textContent='Detenido';
+    if (botEstabaActivo === true) {
+      tocarSonido('stop');
+      vibrar('stop');
+      notificar('🛑 Bot Detenido', 'Tu bot EVOX se ha detenido. Revisa los logs.');
+    }
+    botEstabaActivo = false;
+  }
   document.getElementById('statUSDT').textContent = data.usdt ? '$'+data.usdt : '—';
   document.getElementById('statCNKT').textContent = data.cnkt !== undefined ? data.cnkt : '—';
   const modoEl = document.getElementById('modoActual');
   modoEl.textContent = data.modo || '—';
   modoEl.style.color = data.modo==='COMPRA' ? 'var(--accent)' : 'var(--accent2)';
+
+  // Config activa — verde si bot activo, gris si detenido
   if (data.config && data.config.RANGO_BAJO) {
     const c = data.config;
-    document.getElementById('configActiva').innerHTML = 'Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+'<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
+    const cfgEl = document.getElementById('configActiva');
+    const cfgPanel = document.getElementById('configActivaPanel');
+    const badge = document.getElementById('configActivaBadge');
+    cfgEl.innerHTML = 'Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+'<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
+    if (data.activo) {
+      cfgEl.classList.add('activo');
+      cfgPanel.classList.add('activo');
+      badge.style.display = 'inline-block';
+    } else {
+      cfgEl.classList.remove('activo');
+      cfgPanel.classList.remove('activo');
+      badge.style.display = 'none';
+    }
   }
+
   document.getElementById('btnStart').disabled = data.activo;
   document.getElementById('btnStop').disabled = !data.activo;
   fetchLogs();
@@ -498,10 +733,7 @@ async function startBot() {
   if (rb >= ra) { showToast('Rango bajo debe ser menor al alto','err'); return; }
   const minRango = (au <= 10 ? 3 : 4) / 100;
   const pct = (ra - rb) / rb;
-  if (pct < minRango) {
-    showToast('⚠ Margen demasiado pequeño para operar de forma segura','err');
-    return;
-  }
+  if (pct < minRango) { showToast('⚠ Margen demasiado pequeño para operar de forma segura','err'); return; }
   try {
     const r = await fetch(BOT_URL+'/start/'+userWallet, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({rango_bajo:rb, rango_alto:ra, amount_usdt:au, stop_zona:sz}) });
     const data = await r.json();
@@ -523,11 +755,7 @@ async function stopBot() {
       try {
         const s = await fetch(BOT_URL+'/status/'+userWallet);
         const sd = await s.json();
-        if (!sd.activo) {
-          clearInterval(poll);
-          actualizarUI(sd);
-          showToast('Bot detenido!','ok');
-        }
+        if (!sd.activo) { clearInterval(poll); actualizarUI(sd); showToast('Bot detenido!','ok'); }
       } catch(e) {}
       if (intentos >= 15) { clearInterval(poll); fetchStatus(); }
     }, 2000);

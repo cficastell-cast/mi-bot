@@ -126,6 +126,35 @@ def init_db():
             actualizado_en TIMESTAMP DEFAULT NOW()
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS senales (
+            id SERIAL PRIMARY KEY,
+            emisor VARCHAR(50) NOT NULL,
+            categoria VARCHAR(50) NOT NULL,
+            mensaje TEXT NOT NULL,
+            creado_en TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS master_config (
+            id INT PRIMARY KEY DEFAULT 1,
+            activo BOOLEAN DEFAULT FALSE,
+            wallet_master VARCHAR(42),
+            rango_bajo FLOAT,
+            rango_alto FLOAT,
+            amount_usdt FLOAT,
+            stop_zona FLOAT DEFAULT 0.03,
+            actualizado_en TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("INSERT INTO master_config (id, activo) VALUES (1, FALSE) ON CONFLICT (id) DO NOTHING")
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS padawans (
+            wallet VARCHAR(42) PRIMARY KEY,
+            activo BOOLEAN DEFAULT FALSE,
+            actualizado_en TIMESTAMP DEFAULT NOW()
+        )
+    """)
     conn.commit()
     cur.close()
     conn.close()
@@ -245,25 +274,32 @@ def loop_bot(wallet, private_key, estado, stop_event):
 
     def aprobar_tokens():
         log_estado(estado, "Aprobando tokens...")
-        gas_price = int(w3.eth.gas_price * 1.5)
-        tx_usdt = usdt_contract.functions.approve(KYBER_ROUTER, 1000 * 10**6).build_transaction({
-            "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
-            "gasPrice": gas_price, "chainId": 137
-        })
-        w3.eth.send_raw_transaction(account.sign_transaction(tx_usdt).raw_transaction)
+        try:
+            gas_price = int(w3.eth.gas_price * 1.5)
+            tx_usdt = usdt_contract.functions.approve(KYBER_ROUTER, 1000 * 10**6).build_transaction({
+                "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
+                "gasPrice": gas_price, "chainId": 137
+            })
+            w3.eth.send_raw_transaction(account.sign_transaction(tx_usdt).raw_transaction)
+            log_estado(estado, "USDT aprobado!")
+        except Exception as e:
+            log_estado(estado, "Error aprobando USDT: " + str(e))
         stop_event.wait(15)
         if stop_event.is_set():
             return
-        log_estado(estado, "USDT aprobado!")
-        tx_cnkt = cnkt_contract.functions.approve(KYBER_ROUTER, 10000000 * 10**18).build_transaction({
-            "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
-            "gasPrice": gas_price, "chainId": 137
-        })
-        w3.eth.send_raw_transaction(account.sign_transaction(tx_cnkt).raw_transaction)
+        try:
+            gas_price = int(w3.eth.gas_price * 1.5)
+            tx_cnkt = cnkt_contract.functions.approve(KYBER_ROUTER, 10000000 * 10**18).build_transaction({
+                "from": account.address, "nonce": w3.eth.get_transaction_count(account.address),
+                "gasPrice": gas_price, "chainId": 137
+            })
+            w3.eth.send_raw_transaction(account.sign_transaction(tx_cnkt).raw_transaction)
+            log_estado(estado, "CNKT aprobado!")
+        except Exception as e:
+            log_estado(estado, "Error aprobando CNKT: " + str(e))
         stop_event.wait(15)
         if stop_event.is_set():
             return
-        log_estado(estado, "CNKT aprobado!")
 
     def comprar():
         amount_in = int(AMOUNT_USDT * 10**6)
@@ -316,7 +352,6 @@ def loop_bot(wallet, private_key, estado, stop_event):
 
     usdt_actual = get_balance_usdt()
     cnkt_actual = get_balance_cnkt()
-
     log_estado(estado, "USDT: $" + str(round(usdt_actual, 2)))
     log_estado(estado, "CNKT: " + str(round(cnkt_actual, 2)))
 
@@ -327,7 +362,6 @@ def loop_bot(wallet, private_key, estado, stop_event):
         return
 
     estado["ganancia_total"] = cargar_ganancia_acumulada(wallet)
-
     hora_compra_actual = None
     precio_compra_actual = None
     cnkt_comprado_actual = 0
@@ -342,7 +376,6 @@ def loop_bot(wallet, private_key, estado, stop_event):
 
             usdt = get_balance_usdt()
             cnkt = get_balance_cnkt()
-
             estado["precio"] = precio
             estado["usdt"] = round(usdt, 2)
             estado["cnkt"] = round(cnkt, 2)
@@ -353,7 +386,6 @@ def loop_bot(wallet, private_key, estado, stop_event):
                 estado["modo"] = "VENTA"
 
             modo = estado["modo"]
-
             log_estado(estado, "$" + str(precio) + " | USDT: $" + str(round(usdt,2)) +
                        " | CNKT: " + str(round(cnkt,0)) + " | Modo: " + modo + " | Ciclos: " + str(estado["ciclos"]))
 
@@ -460,12 +492,240 @@ def restaurar_bots():
     except Exception as e:
         print("Error restaurando bots: " + str(e))
 
+@app.route("/master/status", methods=["GET"])
+def master_status():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM master_config WHERE id=1")
+        mc = cur.fetchone()
+        cur.execute("SELECT COUNT(*) as total FROM padawans WHERE activo=TRUE")
+        padawans_activos = cur.fetchone()["total"]
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "master": dict(mc), "padawans_activos": padawans_activos})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+@app.route("/master/start", methods=["POST"])
+def master_start():
+    data = request.json or {}
+    if data.get("password") != BOT_PASSWORD:
+        return jsonify({"ok": False, "msg": "No autorizado"}), 401
+    try:
+        rango_bajo    = float(data["rango_bajo"])
+        rango_alto    = float(data["rango_alto"])
+        amount_usdt   = float(data["amount_usdt"])
+        stop_zona     = float(data.get("stop_zona", 0.03))
+        wallet_master = data.get("wallet_master", "").lower()
+    except (KeyError, ValueError):
+        return jsonify({"ok": False, "msg": "Faltan parametros"})
+    if not wallet_master:
+        return jsonify({"ok": False, "msg": "Falta wallet del master"})
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        # Verificar que la wallet master existe en DB
+        cur.execute("SELECT private_key_enc FROM usuarios WHERE wallet=%s", (wallet_master,))
+        master_row = cur.fetchone()
+        if not master_row:
+            cur.close(); conn.close()
+            return jsonify({"ok": False, "msg": "Wallet master no registrada en el sistema"})
+        cur.execute("""
+            UPDATE master_config SET activo=TRUE, wallet_master=%s, rango_bajo=%s, rango_alto=%s,
+            amount_usdt=%s, stop_zona=%s, actualizado_en=NOW() WHERE id=1
+        """, (wallet_master, rango_bajo, rango_alto, amount_usdt, stop_zona))
+        cur.execute("SELECT wallet FROM padawans WHERE activo=TRUE")
+        padawan_wallets = [r["wallet"] for r in cur.fetchall()]
+        conn.commit()
+        cur.close()
+        conn.close()
+        # Arrancar bot del master
+        private_key_master = fernet.decrypt(master_row["private_key_enc"].encode()).decode()
+        with bots_lock:
+            if wallet_master not in bots_activos or not bots_activos[wallet_master]["estado"]["activo"]:
+                guardar_bot_activo(wallet_master, rango_bajo, rango_alto, amount_usdt, stop_zona)
+                iniciar_bot_thread(wallet_master, private_key_master, rango_bajo, rango_alto, amount_usdt, stop_zona)
+        # Arrancar padawans
+        for wallet in padawan_wallets:
+            _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt, stop_zona)
+        return jsonify({"ok": True, "msg": "Modo master iniciado! " + str(len(padawan_wallets)) + " padawans arrancando."})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
+
+@app.route("/master/stop", methods=["POST"])
+def master_stop():
+    data = request.json or {}
+    if data.get("password") != BOT_PASSWORD:
+        return jsonify({"ok": False, "msg": "No autorizado"}), 401
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE master_config SET activo=FALSE, actualizado_en=NOW() WHERE id=1")
+        cur.execute("SELECT wallet_master FROM master_config WHERE id=1")
+        mc = cur.fetchone()
+        cur.execute("SELECT wallet FROM padawans WHERE activo=TRUE")
+        padawan_wallets = [r["wallet"] for r in cur.fetchall()]
+        conn.commit()
+        cur.close()
+        conn.close()
+        # Detener bot del master y padawans
+        detenidos = 0
+        wallets_a_detener = padawan_wallets[:]
+        if mc and mc["wallet_master"]:
+            wallets_a_detener.append(mc["wallet_master"])
+        with bots_lock:
+            for wallet in wallets_a_detener:
+                if wallet in bots_activos and bots_activos[wallet]["estado"]["activo"]:
+                    bots_activos[wallet]["stop_event"].set()
+                    eliminar_bot_activo(wallet)
+                    detenidos += 1
+        return jsonify({"ok": True, "msg": "Modo master detenido. " + str(detenidos) + " padawans detenidos."})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
+
+@app.route("/padawan/activar/<wallet>", methods=["POST"])
+def padawan_activar(wallet):
+    wallet = wallet.lower()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO padawans (wallet, activo) VALUES (%s, TRUE) ON CONFLICT (wallet) DO UPDATE SET activo=TRUE, actualizado_en=NOW()", (wallet,))
+        # Si el master ya está activo, arrancar inmediatamente
+        cur.execute("SELECT * FROM master_config WHERE id=1 AND activo=TRUE")
+        mc = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+        if mc:
+            _arrancar_padawan(wallet, mc["rango_bajo"], mc["rango_alto"], mc["amount_usdt"], mc["stop_zona"])
+            return jsonify({"ok": True, "msg": "Modo padawan activado! Tu bot arrancara en breve."})
+        return jsonify({"ok": True, "msg": "Modo padawan activado! Esperando al master."})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
+
+@app.route("/padawan/desactivar/<wallet>", methods=["POST"])
+def padawan_desactivar(wallet):
+    wallet = wallet.lower()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE padawans SET activo=FALSE, actualizado_en=NOW() WHERE wallet=%s", (wallet,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        with bots_lock:
+            if wallet in bots_activos and bots_activos[wallet]["estado"]["activo"]:
+                bots_activos[wallet]["stop_event"].set()
+                eliminar_bot_activo(wallet)
+        return jsonify({"ok": True, "msg": "Modo padawan desactivado."})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
+
+@app.route("/padawan/status/<wallet>", methods=["GET"])
+def padawan_status(wallet):
+    wallet = wallet.lower()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT activo FROM padawans WHERE wallet=%s", (wallet,))
+        row = cur.fetchone()
+        cur.execute("SELECT activo, rango_bajo, rango_alto, amount_usdt, wallet_master FROM master_config WHERE id=1")
+        mc = cur.fetchone()
+        cur.close()
+        conn.close()
+        es_padawan = bool(row and row["activo"])
+        master_activo = bool(mc and mc["activo"])
+        es_wallet_master = bool(mc and mc["activo"] and mc["wallet_master"] and mc["wallet_master"].lower() == wallet)
+        return jsonify({"ok": True, "es_padawan": es_padawan, "master_activo": master_activo, "es_wallet_master": es_wallet_master, "master_config": dict(mc) if mc else {}})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+def _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt_master, stop_zona):
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT private_key_enc FROM usuarios WHERE wallet=%s", (wallet,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return
+        # Calcular capital del padawan
+        w3 = get_w3()
+        usdt_contract = w3.eth.contract(address=USDT_ADDRESS, abi=TOKEN_ABI)
+        try:
+            from web3 import Web3 as W3
+            balance = usdt_contract.functions.balanceOf(W3.to_checksum_address(wallet)).call() / 10**6
+        except:
+            balance = 0
+        # Multiplo de 5 hacia abajo, tope = amount_usdt_master
+        capital = min(int(balance // 5) * 5, amount_usdt_master)
+        if capital < 5:
+            print("Padawan " + wallet[:6] + " sin capital suficiente")
+            return
+        private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
+        with bots_lock:
+            if wallet in bots_activos and bots_activos[wallet]["estado"]["activo"]:
+                return  # Ya está corriendo
+        guardar_bot_activo(wallet, rango_bajo, rango_alto, capital, stop_zona)
+        iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, capital, stop_zona)
+        print("Padawan arrancado: " + wallet[:6] + " capital: $" + str(capital))
+    except Exception as e:
+        print("Error arrancando padawan " + wallet[:6] + ": " + str(e))
+
+
 @app.route("/precio", methods=["GET"])
 def precio_endpoint():
     precio = get_precio_actual()
     if precio > 0:
         return jsonify({"ok": True, "precio": precio})
     return jsonify({"ok": False, "precio": 0})
+
+@app.route("/senal", methods=["GET"])
+def get_senal():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT emisor, categoria, mensaje,
+                   to_char(creado_en AT TIME ZONE 'America/Mexico_City', 'HH24:MI DD/MM') as hora
+            FROM senales
+            WHERE creado_en >= NOW() - INTERVAL '24 hours'
+            ORDER BY creado_en DESC LIMIT 1
+        """)
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if row:
+            return jsonify({"ok": True, "senal": dict(row)})
+        return jsonify({"ok": False})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+@app.route("/senal", methods=["POST"])
+def post_senal():
+    data = request.json or {}
+    pwd = data.get("password", "")
+    if pwd != BOT_PASSWORD:
+        return jsonify({"ok": False, "msg": "No autorizado"}), 401
+    emisor    = data.get("emisor", "EVOX")
+    categoria = data.get("categoria", "General")
+    mensaje   = data.get("mensaje", "").strip()
+    if not mensaje:
+        return jsonify({"ok": False, "msg": "Mensaje vacio"})
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM senales")
+        cur.execute("INSERT INTO senales (emisor, categoria, mensaje) VALUES (%s, %s, %s)",
+                    (emisor, categoria, mensaje))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "msg": "Senal publicada!"})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
 
 @app.route("/ciclos_hoy/<wallet>", methods=["GET"])
 def ciclos_hoy(wallet):
@@ -474,8 +734,7 @@ def ciclos_hoy(wallet):
         conn = get_db()
         cur = conn.cursor()
         cur.execute("""
-            SELECT COUNT(*) as ciclos_hoy,
-                   COALESCE(SUM(ganancia_usdt), 0) as ganancia_hoy
+            SELECT COUNT(*) as ciclos_hoy, COALESCE(SUM(ganancia_usdt), 0) as ganancia_hoy
             FROM ciclos WHERE wallet = %s
             AND fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date
         """, (wallet,))
@@ -597,14 +856,8 @@ def historial(wallet):
         conn = get_db()
         cur = conn.cursor()
         cur.execute("""
-            SELECT fecha,
-                   hora_compra,
-                   precio_compra,
-                   hora_venta,
-                   precio_venta,
-                   cnkt_comprado,
-                   cnkt_vendido,
-                   ganancia_usdt,
+            SELECT fecha, hora_compra, precio_compra, hora_venta, precio_venta,
+                   cnkt_comprado, cnkt_vendido, ganancia_usdt,
                    to_char(creado_en AT TIME ZONE 'America/Mexico_City', 'HH24:MI:SS') as hora_registro
             FROM ciclos WHERE wallet = %s ORDER BY creado_en DESC LIMIT 50
         """, (wallet,))
@@ -621,55 +874,39 @@ def leaderboard():
         conn = get_db()
         cur = conn.cursor()
         cur.execute("""
-            SELECT u.nombre, u.wallet,
-                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
-                   COUNT(c.id) as ciclos_total
-            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
-            AND c.fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date
-            GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
+            SELECT u.nombre, u.wallet, COALESCE(SUM(c.ganancia_usdt),0) as ganancia_total, COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet=c.wallet AND c.fecha=(NOW() AT TIME ZONE 'America/Mexico_City')::date
+            GROUP BY u.nombre,u.wallet ORDER BY ganancia_total DESC LIMIT 25
         """)
         hoy_ganancias = [dict(r) for r in cur.fetchall()]
         cur.execute("""
-            SELECT u.nombre, u.wallet,
-                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
-                   COUNT(c.id) as ciclos_total
-            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
-            AND c.fecha = (NOW() AT TIME ZONE 'America/Mexico_City')::date
-            GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
+            SELECT u.nombre, u.wallet, COALESCE(SUM(c.ganancia_usdt),0) as ganancia_total, COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet=c.wallet AND c.fecha=(NOW() AT TIME ZONE 'America/Mexico_City')::date
+            GROUP BY u.nombre,u.wallet ORDER BY ciclos_total DESC LIMIT 25
         """)
         hoy_ciclos = [dict(r) for r in cur.fetchall()]
         cur.execute("""
-            SELECT u.nombre, u.wallet,
-                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
-                   COUNT(c.id) as ciclos_total
-            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
-            AND DATE_TRUNC('month', c.creado_en AT TIME ZONE 'America/Mexico_City') = DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Mexico_City')
-            GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
+            SELECT u.nombre, u.wallet, COALESCE(SUM(c.ganancia_usdt),0) as ganancia_total, COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet=c.wallet
+            AND DATE_TRUNC('month',c.creado_en AT TIME ZONE 'America/Mexico_City')=DATE_TRUNC('month',NOW() AT TIME ZONE 'America/Mexico_City')
+            GROUP BY u.nombre,u.wallet ORDER BY ganancia_total DESC LIMIT 25
         """)
         mes_ganancias = [dict(r) for r in cur.fetchall()]
         cur.execute("""
-            SELECT u.nombre, u.wallet,
-                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
-                   COUNT(c.id) as ciclos_total
-            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
-            AND DATE_TRUNC('month', c.creado_en AT TIME ZONE 'America/Mexico_City') = DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Mexico_City')
-            GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
+            SELECT u.nombre, u.wallet, COALESCE(SUM(c.ganancia_usdt),0) as ganancia_total, COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet=c.wallet
+            AND DATE_TRUNC('month',c.creado_en AT TIME ZONE 'America/Mexico_City')=DATE_TRUNC('month',NOW() AT TIME ZONE 'America/Mexico_City')
+            GROUP BY u.nombre,u.wallet ORDER BY ciclos_total DESC LIMIT 25
         """)
         mes_ciclos = [dict(r) for r in cur.fetchall()]
         cur.execute("""
-            SELECT u.nombre, u.wallet,
-                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
-                   COUNT(c.id) as ciclos_total
-            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
-            GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
+            SELECT u.nombre, u.wallet, COALESCE(SUM(c.ganancia_usdt),0) as ganancia_total, COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet=c.wallet GROUP BY u.nombre,u.wallet ORDER BY ganancia_total DESC LIMIT 25
         """)
         historico_ganancias = [dict(r) for r in cur.fetchall()]
         cur.execute("""
-            SELECT u.nombre, u.wallet,
-                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
-                   COUNT(c.id) as ciclos_total
-            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
-            GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
+            SELECT u.nombre, u.wallet, COALESCE(SUM(c.ganancia_usdt),0) as ganancia_total, COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet=c.wallet GROUP BY u.nombre,u.wallet ORDER BY ciclos_total DESC LIMIT 25
         """)
         historico_ciclos = [dict(r) for r in cur.fetchall()]
         cur.close()
@@ -680,12 +917,9 @@ def leaderboard():
                 u["wallet_short"] = w[:6] + "..." + w[-4:]
                 del u["wallet"]
         return jsonify({
-            "hoy_ganancias": hoy_ganancias,
-            "hoy_ciclos": hoy_ciclos,
-            "mes_ganancias": mes_ganancias,
-            "mes_ciclos": mes_ciclos,
-            "historico_ganancias": historico_ganancias,
-            "historico_ciclos": historico_ciclos,
+            "hoy_ganancias": hoy_ganancias, "hoy_ciclos": hoy_ciclos,
+            "mes_ganancias": mes_ganancias, "mes_ciclos": mes_ciclos,
+            "historico_ganancias": historico_ganancias, "historico_ciclos": historico_ciclos,
         })
     except Exception as e:
         return jsonify({"error": str(e)})
@@ -704,31 +938,26 @@ def admin():
             bots_en_memoria = sum(1 for b in bots_activos.values() if b["estado"]["activo"])
         cur.execute("SELECT COUNT(*) as ciclos FROM ciclos")
         ciclos_totales = cur.fetchone()["ciclos"]
-        cur.execute("SELECT COUNT(*) as total FROM swaps WHERE tipo = 'COMPRA'")
+        cur.execute("SELECT COUNT(*) as total FROM swaps WHERE tipo='COMPRA'")
         compras_totales = cur.fetchone()["total"]
-        cur.execute("SELECT COUNT(*) as total FROM swaps WHERE tipo = 'VENTA'")
+        cur.execute("SELECT COUNT(*) as total FROM swaps WHERE tipo='VENTA'")
         ventas_totales = cur.fetchone()["total"]
-        cur.execute("""
-            SELECT COALESCE(SUM(amount_usdt), 0) as volumen
-            FROM swaps WHERE creado_en >= NOW() - INTERVAL '24 hours'
-        """)
+        cur.execute("SELECT COALESCE(SUM(amount_usdt),0) as volumen FROM swaps WHERE creado_en >= NOW() - INTERVAL '24 hours'")
         volumen_24h = float(cur.fetchone()["volumen"])
-        cur.execute("SELECT COALESCE(SUM(amount_usdt), 0) as total FROM swaps")
+        cur.execute("SELECT COALESCE(SUM(amount_usdt),0) as total FROM swaps")
         total_swaps_usdt = float(cur.fetchone()["total"])
         comisiones_estimadas = total_swaps_usdt * 0.002
         cur.execute("""
             SELECT u.nombre, u.wallet, u.creado_en,
-                   COALESCE(SUM(c.ganancia_usdt), 0) as ganancia_total,
-                   COUNT(c.id) as ciclos_total
-            FROM usuarios u LEFT JOIN ciclos c ON u.wallet = c.wallet
-            GROUP BY u.nombre, u.wallet, u.creado_en ORDER BY ganancia_total DESC
+                   COALESCE(SUM(c.ganancia_usdt),0) as ganancia_total, COUNT(c.id) as ciclos_total
+            FROM usuarios u LEFT JOIN ciclos c ON u.wallet=c.wallet
+            GROUP BY u.nombre,u.wallet,u.creado_en ORDER BY ganancia_total DESC
         """)
         usuarios = [dict(r) for r in cur.fetchall()]
         cur.execute("""
             SELECT c.wallet, u.nombre, c.fecha, c.precio_compra, c.precio_venta, c.ganancia_usdt,
-                   to_char(c.creado_en AT TIME ZONE 'America/Mexico_City', 'HH24:MI:SS') as hora_registro
-            FROM ciclos c JOIN usuarios u ON c.wallet = u.wallet
-            ORDER BY c.creado_en DESC LIMIT 20
+                   to_char(c.creado_en AT TIME ZONE 'America/Mexico_City','HH24:MI:SS') as hora_registro
+            FROM ciclos c JOIN usuarios u ON c.wallet=u.wallet ORDER BY c.creado_en DESC LIMIT 20
         """)
         ultimos_ciclos = [dict(r) for r in cur.fetchall()]
         cur.close()
@@ -739,16 +968,12 @@ def admin():
                 u["bot_activo"] = w in bots_activos and bots_activos[w]["estado"]["activo"]
         return jsonify({
             "resumen": {
-                "total_usuarios": total_usuarios,
-                "bots_activos": bots_en_memoria,
-                "ciclos_totales": ciclos_totales,
-                "compras_totales": compras_totales,
-                "ventas_totales": ventas_totales,
-                "volumen_24h": volumen_24h,
+                "total_usuarios": total_usuarios, "bots_activos": bots_en_memoria,
+                "ciclos_totales": ciclos_totales, "compras_totales": compras_totales,
+                "ventas_totales": ventas_totales, "volumen_24h": volumen_24h,
                 "comisiones_estimadas": comisiones_estimadas,
             },
-            "usuarios": usuarios,
-            "ultimos_ciclos": ultimos_ciclos
+            "usuarios": usuarios, "ultimos_ciclos": ultimos_ciclos
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -778,13 +1003,10 @@ def start(wallet):
         stop_zona   = float(data.get("stop_zona", 0.03))
     except (KeyError, ValueError):
         return jsonify({"ok": False, "msg": "Faltan parametros"})
-
-    # Validacion de rango minimo
     min_pct = 0.03 if amount_usdt <= 10 else 0.04
     pct_rango = (rango_alto - rango_bajo) / rango_bajo
     if pct_rango < min_pct:
-        return jsonify({"ok": False, "msg": "Margen demasiado pequeño para operar de forma segura (minimo " + str(int(min_pct * 100)) + "%)"})
-
+        return jsonify({"ok": False, "msg": "Margen demasiado pequeño para operar de forma segura (minimo " + str(int(min_pct*100)) + "%)"})
     try:
         private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
     except:
@@ -813,7 +1035,12 @@ def home():
 @app.route("/admin-panel", methods=["GET"])
 def admin_panel():
     try:
-        return open(os.path.join(BASE_DIR, "admin.html")).read(), 200, {"Content-Type": "text/html"}
+        content = open(os.path.join(BASE_DIR, "admin.html")).read()
+        headers = {
+            "Content-Type": "text/html",
+            "Content-Security-Policy": "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; connect-src 'self' https:;"
+        }
+        return content, 200, headers
     except Exception as e:
         return "admin.html no encontrado: " + str(e), 404
 
@@ -821,15 +1048,18 @@ def admin_panel():
 def manifest():
     try:
         return open(os.path.join(BASE_DIR, "manifest.json")).read(), 200, {"Content-Type": "application/json"}
-    except Exception as e:
+    except:
         return "{}", 404
 
-@app.route("/icon.png", methods=["GET"])
-def icon():
-    try:
-        return open(os.path.join(BASE_DIR, "icon.png"), "rb").read(), 200, {"Content-Type": "image/png"}
-    except Exception as e:
-        return "", 404
+for img in ["icon", "evox", "charlie", "susan"]:
+    def make_route(name):
+        @app.route(f"/{name}.png", methods=["GET"], endpoint=f"img_{name}")
+        def img_route():
+            try:
+                return open(os.path.join(BASE_DIR, f"{name}.png"), "rb").read(), 200, {"Content-Type": "image/png"}
+            except:
+                return "", 404
+    make_route(img)
 
 if __name__ == "__main__":
     init_db()
