@@ -25,7 +25,7 @@ else:
 CONFIG_FILE = os.path.join(BASE_DIR, "evox_config.json")
 
 # ─── SERVIDOR CENTRAL (Railway) ───────────────────────────────────────────────
-CENTRAL_URL = os.environ.get("CENTRAL_URL", "https://TU-APP.railway.app")
+CENTRAL_URL = os.environ.get("CENTRAL_URL", "https://evoxbot.evoxverse.com")
 
 # ─── CONTRATOS POLYGON ────────────────────────────────────────────────────────
 USDT_ADDRESS  = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"

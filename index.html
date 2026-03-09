@@ -25,8 +25,6 @@ body {
   font-family: 'Space Mono', monospace;
   overflow-x: hidden;
 }
-
-/* ── GRID BG ── */
 .grid-bg {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background-image:
@@ -35,8 +33,6 @@ body {
   background-size: 40px 40px;
   pointer-events: none; z-index: 0;
 }
-
-/* ── NAV ── */
 nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
@@ -70,8 +66,6 @@ nav {
   background: transparent; color: var(--muted); transition: all 0.2s;
 }
 .lang-btn.active { background: var(--accent); color: #0a0a0f; }
-
-/* ── HERO ── */
 .hero {
   position: relative; z-index: 1;
   min-height: 100vh;
@@ -94,7 +88,6 @@ nav {
 }
 @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(127,255,110,0.4)} 50%{opacity:0.6;box-shadow:0 0 0 6px rgba(127,255,110,0)} }
 @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-
 .hero h1 {
   font-family: 'Syne', sans-serif;
   font-size: clamp(48px, 8vw, 96px);
@@ -129,8 +122,6 @@ nav {
   text-decoration: none; letter-spacing: 1px; transition: all 0.2s;
 }
 .btn-hero-secondary:hover { border-color: var(--accent3); color: var(--accent3); }
-
-/* ── STATS ── */
 .stats {
   display: flex; gap: 1px;
   background: var(--border); border: 1px solid var(--border);
@@ -146,8 +137,6 @@ nav {
   color: var(--accent); margin-bottom: 4px;
 }
 .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-
-/* ── SECTION ── */
 section { position: relative; z-index: 1; padding: 80px 24px; }
 .section-inner { max-width: 960px; margin: 0 auto; }
 .section-tag {
@@ -160,8 +149,6 @@ section { position: relative; z-index: 1; padding: 80px 24px; }
 }
 .section-title span { color: var(--accent); }
 .section-desc { font-size: 14px; color: var(--muted); line-height: 1.8; max-width: 560px; }
-
-/* ── STEPS ── */
 .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2px; margin-top: 48px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 .step-card { background: var(--surface); padding: 28px 24px; }
 .step-num {
@@ -172,8 +159,6 @@ section { position: relative; z-index: 1; padding: 80px 24px; }
 .step-desc { font-size: 12px; color: var(--muted); line-height: 1.8; }
 .step-card.highlight .step-num { color: rgba(127,255,110,0.2); }
 .step-card.highlight .step-title { color: var(--accent); }
-
-/* ── FEATURES ── */
 .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 48px; }
 .feature-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -184,8 +169,6 @@ section { position: relative; z-index: 1; padding: 80px 24px; }
 .feature-icon { font-size: 28px; margin-bottom: 16px; }
 .feature-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
 .feature-desc { font-size: 12px; color: var(--muted); line-height: 1.8; }
-
-/* ── DOWNLOAD ── */
 .dl-box {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 16px; padding: 48px;
@@ -214,8 +197,6 @@ section { position: relative; z-index: 1; padding: 80px 24px; }
 }
 .btn-dl-main:hover { filter: brightness(1.1); transform: translateY(-1px); }
 .dl-disclaimer { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; }
-
-/* ── LEADERBOARD ── */
 .lb-tabs { display: flex; gap: 0; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: fit-content; }
 .lb-tab { padding: 8px 20px; background: transparent; border: none; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
 .lb-tab.active { background: var(--accent); color: #0a0a0f; }
@@ -230,22 +211,6 @@ section { position: relative; z-index: 1; padding: 80px 24px; }
 .rank-1 { color: #FFD700; } .rank-2 { color: #C0C0C0; } .rank-3 { color: #CD7F32; }
 .ganancia-pos { color: var(--accent); font-weight: 700; }
 .ganancia-neg { color: var(--accent2); font-weight: 700; }
-
-/* ── CHANGELOG ── */
-.changelog { display: flex; flex-direction: column; gap: 16px; margin-top: 48px; }
-.changelog-item { display: flex; gap: 24px; align-items: flex-start; }
-.changelog-ver { flex-shrink: 0; width: 80px; }
-.changelog-ver-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; font-family: 'Syne', sans-serif; }
-.changelog-ver-badge.latest { background: rgba(127,255,110,0.1); color: var(--accent); border: 1px solid rgba(127,255,110,0.2); }
-.changelog-ver-badge.old { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
-.changelog-line { flex: 1; padding-top: 4px; border-top: 1px solid var(--border); }
-.changelog-date { font-size: 10px; color: var(--muted); margin-bottom: 8px; }
-.changelog-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
-.changelog-items { list-style: none; }
-.changelog-items li { font-size: 12px; color: var(--muted); padding: 3px 0; line-height: 1.6; }
-.changelog-items li::before { content: '→ '; color: var(--accent); }
-
-/* ── FOOTER ── */
 footer {
   position: relative; z-index: 1;
   border-top: 1px solid var(--border);
@@ -259,16 +224,12 @@ footer {
 .footer-links a { font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
 .footer-links a:hover { color: var(--text); }
 .footer-copy { font-size: 11px; color: var(--muted); }
-
-/* ── AVISO ── */
 .aviso-box {
   background: rgba(255,110,127,0.05); border: 1px solid rgba(255,110,127,0.2);
   border-radius: 10px; padding: 16px 20px;
   font-size: 12px; color: var(--accent2); line-height: 1.8;
   margin-top: 32px;
 }
-
-/* ── RESPONSIVE ── */
 @media(max-width: 768px) {
   nav { padding: 12px 20px; }
   .nav-links { display: none; }
@@ -276,8 +237,6 @@ footer {
   .dl-box { padding: 28px; flex-direction: column; }
   footer { padding: 24px 20px; flex-direction: column; text-align: center; }
 }
-
-/* ── LANG ── */
 .es, .en { display: none; }
 .es.active, .en.active { display: block; }
 span.es, span.en { display: none; }
@@ -287,7 +246,6 @@ span.es.active, span.en.active { display: inline; }
 <body>
 <div class="grid-bg"></div>
 
-<!-- NAV -->
 <nav>
   <a href="#" class="nav-logo">
     <img src="/icon.png" onerror="this.style.display='none'" alt="EVOX"/>
@@ -310,16 +268,13 @@ span.es.active, span.en.active { display: inline; }
   </div>
 </nav>
 
-<!-- HERO -->
 <div class="hero">
   <div class="hero-badge">
     <div class="dot-live"></div>
     <span class="es active">Bot activo en Polygon</span>
     <span class="en">Live on Polygon</span>
   </div>
-  <h1>
-    EVOX <span>Bot</span>
-  </h1>
+  <h1>EVOX <span>Bot</span></h1>
   <p class="es active">Trading automatizado de CNKT en rangos de precio. Corre en tu PC, usa tus recursos, tú tienes el control.</p>
   <p class="en">Automated CNKT range trading on Polygon. Runs on your PC, uses your resources, you stay in control.</p>
   <div class="hero-btns">
@@ -349,15 +304,14 @@ span.es.active, span.en.active { display: inline; }
   </div>
 </div>
 
-<!-- CÓMO FUNCIONA -->
 <section id="instrucciones">
   <div class="section-inner">
     <div class="section-tag">
       <span class="es active">Cómo funciona</span>
       <span class="en">How it works</span>
     </div>
-    <h2 class="section-title es active">En <span>4 pasos</span> tienes el bot corriendo</h2>
-    <h2 class="section-title en" style="display:none">Up and running in <span>4 steps</span></h2>
+    <h2 class="section-title es active">En <span>5 pasos</span> tienes el bot corriendo</h2>
+    <h2 class="section-title en" style="display:none">Up and running in <span>5 steps</span></h2>
     <p class="section-desc es active">No necesitas saber programar. Solo descarga, ejecuta y configura tu rango de precios.</p>
     <p class="section-desc en" style="display:none">No coding required. Just download, run, and set your price range.</p>
     <div class="steps">
@@ -365,15 +319,15 @@ span.es.active, span.en.active { display: inline; }
         <div class="step-num">01</div>
         <div class="step-title es active">Descarga el Bot</div>
         <div class="step-title en" style="display:none">Download the Bot</div>
-        <div class="step-desc es active">Descarga el archivo .zip, descomprímelo en cualquier carpeta de tu PC con Windows.</div>
-        <div class="step-desc en" style="display:none">Download the .zip file and extract it to any folder on your Windows PC.</div>
+        <div class="step-desc es active">Descarga el archivo .zip y descomprímelo en una carpeta nueva y dedicada en tu PC con Windows.</div>
+        <div class="step-desc en" style="display:none">Download the .zip file and extract it to a new dedicated folder on your Windows PC.</div>
       </div>
       <div class="step-card">
         <div class="step-num">02</div>
         <div class="step-title es active">Ejecuta EVOX_Bot.exe</div>
         <div class="step-title en" style="display:none">Run EVOX_Bot.exe</div>
-        <div class="step-desc es active">Doble click en EVOX_Bot.exe. Se abrirá automáticamente tu browser con la interfaz del bot.</div>
-        <div class="step-desc en" style="display:none">Double-click EVOX_Bot.exe. Your browser will open automatically with the bot interface.</div>
+        <div class="step-desc es active">Doble click en EVOX_Bot.exe dentro de esa carpeta. Se abrirá automáticamente tu browser con la interfaz del bot.</div>
+        <div class="step-desc en" style="display:none">Double-click EVOX_Bot.exe inside that folder. Your browser will open automatically with the bot interface.</div>
       </div>
       <div class="step-card">
         <div class="step-num">03</div>
@@ -389,6 +343,13 @@ span.es.active, span.en.active { display: inline; }
         <div class="step-desc es active">Pon tu rango de precios, capital en USDT y dale INICIAR. El bot opera automáticamente.</div>
         <div class="step-desc en" style="display:none">Set your price range, USDT capital and hit START. The bot trades automatically.</div>
       </div>
+      <div class="step-card highlight">
+        <div class="step-num">05</div>
+        <div class="step-title es active">Agrega a favoritos</div>
+        <div class="step-title en" style="display:none">Bookmark the page</div>
+        <div class="step-desc es active">Guarda <strong style="color:var(--accent)">localhost:5000</strong> en favoritos de tu browser. La próxima vez abre el .exe y ve a favoritos para entrar con tu wallet y contraseña. No necesitas registrarte de nuevo.</div>
+        <div class="step-desc en" style="display:none">Bookmark <strong style="color:var(--accent)">localhost:5000</strong> in your browser. Next time just open the .exe and go to your bookmarks to log in with your wallet and password. No need to register again.</div>
+      </div>
     </div>
     <div class="aviso-box">
       ⚠️ <span class="es active">USA UNA WALLET DEDICADA — Crea una wallet nueva en MetaMask solo para el bot. NUNCA uses tu wallet principal. EVOX no es responsable de pérdidas.</span>
@@ -397,7 +358,6 @@ span.es.active, span.en.active { display: inline; }
   </div>
 </section>
 
-<!-- FEATURES -->
 <section style="padding-top: 0;">
   <div class="section-inner">
     <div class="features">
@@ -447,7 +407,6 @@ span.es.active, span.en.active { display: inline; }
   </div>
 </section>
 
-<!-- DESCARGAR -->
 <section id="descargar">
   <div class="section-inner">
     <div class="section-tag">
@@ -458,8 +417,8 @@ span.es.active, span.en.active { display: inline; }
       <div class="dl-info">
         <div class="dl-version" id="dlVersion">v1.0.0 — Latest</div>
         <div class="dl-title">EVOX_Bot.exe</div>
-        <div class="dl-desc es active">Incluye todo lo necesario. Solo descomprime y ejecuta. Compatible con Windows 10/11.</div>
-        <div class="dl-desc en" style="display:none">Includes everything needed. Just extract and run. Compatible with Windows 10/11.</div>
+        <div class="dl-desc es active">Incluye todo lo necesario. Solo descomprime en una carpeta nueva y ejecuta. Compatible con Windows 10/11.</div>
+        <div class="dl-desc en" style="display:none">Includes everything needed. Just extract to a new folder and run. Compatible with Windows 10/11.</div>
         <div class="dl-meta">
           <div class="dl-meta-item"><span class="es active">Sistema</span><span class="en">System</span>: <span>Windows 10/11</span></div>
           <div class="dl-meta-item"><span class="es active">Red</span><span class="en">Network</span>: <span>Polygon</span></div>
@@ -481,7 +440,6 @@ span.es.active, span.en.active { display: inline; }
   </div>
 </section>
 
-<!-- LEADERBOARD -->
 <section id="leaderboard">
   <div class="section-inner">
     <div class="section-tag">Leaderboard</div>
@@ -515,7 +473,6 @@ span.es.active, span.en.active { display: inline; }
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
   <div class="footer-logo">EVOX <span>Bot</span></div>
   <div class="footer-links">
@@ -539,7 +496,6 @@ function setLang(l) {
   document.querySelectorAll('.es').forEach(el => el.classList.toggle('active', l === 'es'));
   document.querySelectorAll('.en').forEach(el => el.classList.toggle('active', l === 'en'));
   document.querySelectorAll('.lang-btn').forEach((btn, i) => btn.classList.toggle('active', ['es','en'][i] === l));
-  // Fix section titles que usan style:display
   document.querySelectorAll('.section-title.es, .section-title.en, .section-desc.es, .section-desc.en, .dl-desc.es, .dl-desc.en').forEach(el => {
     el.style.display = el.classList.contains(l) ? 'block' : 'none';
   });
@@ -591,7 +547,6 @@ async function cargarStats() {
     const data = await r.json();
     lbData     = data;
     renderLb();
-    // Stats hero
     const hist = data.historico_ganancias || [];
     document.getElementById('statUsuarios').textContent = hist.length || '—';
     const ciclos = (data.historico_ciclos || []).reduce((s, u) => s + parseInt(u.ciclos_total || 0), 0);
@@ -613,12 +568,8 @@ async function cargarPrecio() {
 }
 
 function descargar() {
-  // Apunta al zip del exe — actualiza esta URL cuando subas el zip
   window.location.href = CENTRAL_URL + '/download/EVOX_Bot.zip';
 }
-
-// Endpoint de descarga en server_central.py lo agregaremos después
-// Por ahora puedes hostear el zip en Google Drive o GitHub y cambiar la URL aquí
 
 cargarStats();
 cargarPrecio();
