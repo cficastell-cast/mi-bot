@@ -600,16 +600,18 @@ def padawan_activar(wallet):
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("INSERT INTO padawans (wallet, activo) VALUES (%s, TRUE) ON CONFLICT (wallet) DO UPDATE SET activo=TRUE, actualizado_en=NOW()", (wallet,))
         cur.execute("SELECT * FROM master_config WHERE id=1 AND activo=TRUE")
         mc = cur.fetchone()
+        if not mc:
+            cur.close()
+            conn.close()
+            return jsonify({"ok": False, "msg": "de pronto sientes un manotazo de la sacerdotisa..... deje ahi chamaco"})
+        cur.execute("INSERT INTO padawans (wallet, activo) VALUES (%s, TRUE) ON CONFLICT (wallet) DO UPDATE SET activo=TRUE, actualizado_en=NOW()", (wallet,))
         conn.commit()
         cur.close()
         conn.close()
-        if mc:
-            _arrancar_padawan(wallet, mc["rango_bajo"], mc["rango_alto"], mc["amount_usdt"], mc["stop_zona"])
-            return jsonify({"ok": True, "msg": "Modo padawan activado! Tu bot arrancara en breve."})
-        return jsonify({"ok": True, "msg": "Modo padawan activado! Esperando al master."})
+        _arrancar_padawan(wallet, mc["rango_bajo"], mc["rango_alto"], mc["amount_usdt"], mc["stop_zona"])
+        return jsonify({"ok": True, "msg": "Modo padawan activado! Tu bot arrancara en breve."})
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)})
 
