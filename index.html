@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVOX Bot — Trading Automatizado CNKT</title>
+<meta name="description" content="Bot de trading automatizado para CNKT en Polygon. Descarga gratuita.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --border: #1e1e2e;
+  --accent: #7fff6e;
+  --accent2: #ff6e7f;
+  --accent3: #6e9fff;
+  --text: #e8e8f0;
+  --muted: #5a5a7a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  overflow-x: hidden;
+}
+
+/* ── GRID BG ── */
+.grid-bg {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background-image:
+    linear-gradient(rgba(127,255,110,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127,255,110,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 40px;
+  background: rgba(10,10,15,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 12px;
+  font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+  text-decoration: none; color: var(--text);
+}
+.nav-logo img { width: 32px; height: 32px; border-radius: 8px; }
+.nav-logo span { color: var(--accent); }
+.nav-links { display: flex; gap: 24px; align-items: center; }
+.nav-links a {
+  font-size: 12px; color: var(--muted); text-decoration: none;
+  font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--accent); }
+.nav-lang {
+  display: flex; gap: 4px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden;
+}
+.lang-btn {
+  padding: 5px 10px; font-size: 11px; font-weight: 700;
+  font-family: 'Syne', sans-serif; cursor: pointer; border: none;
+  background: transparent; color: var(--muted); transition: all 0.2s;
+}
+.lang-btn.active { background: var(--accent); color: #0a0a0f; }
+
+/* ── HERO ── */
+.hero {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 24px 80px;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px; border-radius: 100px;
+  border: 1px solid rgba(127,255,110,0.3);
+  background: rgba(127,255,110,0.05);
+  font-size: 12px; color: var(--accent); margin-bottom: 32px;
+  animation: fadeUp 0.6s ease both;
+}
+.hero-badge .dot-live {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(127,255,110,0.4)} 50%{opacity:0.6;box-shadow:0 0 0 6px rgba(127,255,110,0)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+.hero h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(48px, 8vw, 96px);
+  font-weight: 800; line-height: 1; letter-spacing: -3px;
+  margin-bottom: 24px;
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+.hero h1 span { color: var(--accent); }
+.hero p {
+  font-size: clamp(14px, 2vw, 16px); color: var(--muted);
+  max-width: 480px; line-height: 1.8; margin-bottom: 40px;
+  animation: fadeUp 0.6s 0.2s ease both;
+}
+.hero-btns {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+  animation: fadeUp 0.6s 0.3s ease both;
+}
+.btn-hero-dl {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 28px; border-radius: 10px;
+  background: var(--accent); color: #0a0a0f;
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800;
+  text-decoration: none; letter-spacing: 1px;
+  transition: all 0.2s; border: none; cursor: pointer;
+}
+.btn-hero-dl:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(127,255,110,0.2); }
+.btn-hero-secondary {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 28px; border-radius: 10px;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+  text-decoration: none; letter-spacing: 1px; transition: all 0.2s;
+}
+.btn-hero-secondary:hover { border-color: var(--accent3); color: var(--accent3); }
+
+/* ── STATS ── */
+.stats {
+  display: flex; gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  margin-top: 64px; width: 100%; max-width: 600px;
+  animation: fadeUp 0.6s 0.4s ease both;
+}
+.stat {
+  flex: 1; padding: 20px; background: var(--surface); text-align: center;
+}
+.stat-val {
+  font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+  color: var(--accent); margin-bottom: 4px;
+}
+.stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* ── SECTION ── */
+section { position: relative; z-index: 1; padding: 80px 24px; }
+.section-inner { max-width: 960px; margin: 0 auto; }
+.section-tag {
+  font-size: 11px; color: var(--accent); text-transform: uppercase;
+  letter-spacing: 3px; font-weight: 700; margin-bottom: 16px;
+}
+.section-title {
+  font-family: 'Syne', sans-serif; font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800; letter-spacing: -1px; margin-bottom: 16px;
+}
+.section-title span { color: var(--accent); }
+.section-desc { font-size: 14px; color: var(--muted); line-height: 1.8; max-width: 560px; }
+
+/* ── STEPS ── */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2px; margin-top: 48px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.step-card { background: var(--surface); padding: 28px 24px; }
+.step-num {
+  font-family: 'Syne', sans-serif; font-size: 48px; font-weight: 800;
+  color: var(--border); line-height: 1; margin-bottom: 16px;
+}
+.step-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.step-desc { font-size: 12px; color: var(--muted); line-height: 1.8; }
+.step-card.highlight .step-num { color: rgba(127,255,110,0.2); }
+.step-card.highlight .step-title { color: var(--accent); }
+
+/* ── FEATURES ── */
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 48px; }
+.feature-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px;
+  transition: border-color 0.2s;
+}
+.feature-card:hover { border-color: rgba(127,255,110,0.2); }
+.feature-icon { font-size: 28px; margin-bottom: 16px; }
+.feature-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.feature-desc { font-size: 12px; color: var(--muted); line-height: 1.8; }
+
+/* ── DOWNLOAD ── */
+.dl-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 48px;
+  display: flex; align-items: center; gap: 40px;
+  flex-wrap: wrap;
+}
+.dl-info { flex: 1; min-width: 240px; }
+.dl-version {
+  display: inline-block; padding: 4px 12px; border-radius: 100px;
+  background: rgba(127,255,110,0.1); border: 1px solid rgba(127,255,110,0.2);
+  font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 16px;
+}
+.dl-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+.dl-desc { font-size: 13px; color: var(--muted); line-height: 1.8; margin-bottom: 24px; }
+.dl-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+.dl-meta-item { font-size: 11px; color: var(--muted); }
+.dl-meta-item span { color: var(--text); }
+.dl-actions { display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
+.btn-dl-main {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 14px 24px; border-radius: 10px;
+  background: var(--accent); color: #0a0a0f;
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800;
+  text-decoration: none; letter-spacing: 1px; transition: all 0.2s;
+  border: none; cursor: pointer;
+}
+.btn-dl-main:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.dl-disclaimer { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; }
+
+/* ── LEADERBOARD ── */
+.lb-tabs { display: flex; gap: 0; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: fit-content; }
+.lb-tab { padding: 8px 20px; background: transparent; border: none; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.lb-tab.active { background: var(--accent); color: #0a0a0f; }
+.lb-tabs2 { display: flex; gap: 0; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; width: fit-content; }
+.lb-tab2 { padding: 6px 16px; background: transparent; border: none; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.lb-tab2.active { background: var(--accent3); color: #0a0a0f; }
+.lb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lb-table th { text-align: left; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.lb-table td { padding: 12px; border-bottom: 1px solid var(--border); }
+.lb-table tr:last-child td { border-bottom: none; }
+.rank { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; }
+.rank-1 { color: #FFD700; } .rank-2 { color: #C0C0C0; } .rank-3 { color: #CD7F32; }
+.ganancia-pos { color: var(--accent); font-weight: 700; }
+.ganancia-neg { color: var(--accent2); font-weight: 700; }
+
+/* ── CHANGELOG ── */
+.changelog { display: flex; flex-direction: column; gap: 16px; margin-top: 48px; }
+.changelog-item { display: flex; gap: 24px; align-items: flex-start; }
+.changelog-ver { flex-shrink: 0; width: 80px; }
+.changelog-ver-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; font-family: 'Syne', sans-serif; }
+.changelog-ver-badge.latest { background: rgba(127,255,110,0.1); color: var(--accent); border: 1px solid rgba(127,255,110,0.2); }
+.changelog-ver-badge.old { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+.changelog-line { flex: 1; padding-top: 4px; border-top: 1px solid var(--border); }
+.changelog-date { font-size: 10px; color: var(--muted); margin-bottom: 8px; }
+.changelog-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.changelog-items { list-style: none; }
+.changelog-items li { font-size: 12px; color: var(--muted); padding: 3px 0; line-height: 1.6; }
+.changelog-items li::before { content: '→ '; color: var(--accent); }
+
+/* ── FOOTER ── */
+footer {
+  position: relative; z-index: 1;
+  border-top: 1px solid var(--border);
+  padding: 32px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+}
+.footer-logo { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; }
+.footer-logo span { color: var(--accent); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+.footer-links a:hover { color: var(--text); }
+.footer-copy { font-size: 11px; color: var(--muted); }
+
+/* ── AVISO ── */
+.aviso-box {
+  background: rgba(255,110,127,0.05); border: 1px solid rgba(255,110,127,0.2);
+  border-radius: 10px; padding: 16px 20px;
+  font-size: 12px; color: var(--accent2); line-height: 1.8;
+  margin-top: 32px;
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width: 768px) {
+  nav { padding: 12px 20px; }
+  .nav-links { display: none; }
+  section { padding: 60px 20px; }
+  .dl-box { padding: 28px; flex-direction: column; }
+  footer { padding: 24px 20px; flex-direction: column; text-align: center; }
+}
+
+/* ── LANG ── */
+.es, .en { display: none; }
+.es.active, .en.active { display: block; }
+span.es, span.en { display: none; }
+span.es.active, span.en.active { display: inline; }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <img src="/icon.png" onerror="this.style.display='none'" alt="EVOX"/>
+    EVOX <span>Bot</span>
+  </a>
+  <div class="nav-links">
+    <a href="#descargar" class="es active en active">
+      <span class="es active">Descargar</span>
+      <span class="en">Download</span>
+    </a>
+    <a href="#instrucciones">
+      <span class="es active">Cómo funciona</span>
+      <span class="en">How it works</span>
+    </a>
+    <a href="#leaderboard">Leaderboard</a>
+  </div>
+  <div class="nav-lang">
+    <button class="lang-btn active" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">
+    <div class="dot-live"></div>
+    <span class="es active">Bot activo en Polygon</span>
+    <span class="en">Live on Polygon</span>
+  </div>
+  <h1>
+    EVOX <span>Bot</span>
+  </h1>
+  <p class="es active">Trading automatizado de CNKT en rangos de precio. Corre en tu PC, usa tus recursos, tú tienes el control.</p>
+  <p class="en">Automated CNKT range trading on Polygon. Runs on your PC, uses your resources, you stay in control.</p>
+  <div class="hero-btns">
+    <a href="#descargar" class="btn-hero-dl">
+      ⬇ <span class="es active">Descargar gratis</span><span class="en">Free download</span>
+    </a>
+    <a href="#instrucciones" class="btn-hero-secondary">
+      <span class="es active">Ver instrucciones</span><span class="en">See instructions</span>
+    </a>
+  </div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val" id="statUsuarios">—</div>
+      <div class="stat-label es active">Usuarios</div>
+      <div class="stat-label en">Users</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statCiclos">—</div>
+      <div class="stat-label es active">Ciclos totales</div>
+      <div class="stat-label en">Total cycles</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statPrecio">—</div>
+      <div class="stat-label es active">Precio CNKT</div>
+      <div class="stat-label en">CNKT Price</div>
+    </div>
+  </div>
+</div>
+
+<!-- CÓMO FUNCIONA -->
+<section id="instrucciones">
+  <div class="section-inner">
+    <div class="section-tag">
+      <span class="es active">Cómo funciona</span>
+      <span class="en">How it works</span>
+    </div>
+    <h2 class="section-title es active">En <span>4 pasos</span> tienes el bot corriendo</h2>
+    <h2 class="section-title en" style="display:none">Up and running in <span>4 steps</span></h2>
+    <p class="section-desc es active">No necesitas saber programar. Solo descarga, ejecuta y configura tu rango de precios.</p>
+    <p class="section-desc en" style="display:none">No coding required. Just download, run, and set your price range.</p>
+    <div class="steps">
+      <div class="step-card highlight">
+        <div class="step-num">01</div>
+        <div class="step-title es active">Descarga el Bot</div>
+        <div class="step-title en" style="display:none">Download the Bot</div>
+        <div class="step-desc es active">Descarga el archivo .zip, descomprímelo en cualquier carpeta de tu PC con Windows.</div>
+        <div class="step-desc en" style="display:none">Download the .zip file and extract it to any folder on your Windows PC.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-title es active">Ejecuta EVOX_Bot.exe</div>
+        <div class="step-title en" style="display:none">Run EVOX_Bot.exe</div>
+        <div class="step-desc es active">Doble click en EVOX_Bot.exe. Se abrirá automáticamente tu browser con la interfaz del bot.</div>
+        <div class="step-desc en" style="display:none">Double-click EVOX_Bot.exe. Your browser will open automatically with the bot interface.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-title es active">Regístrate</div>
+        <div class="step-title en" style="display:none">Register</div>
+        <div class="step-desc es active">Ingresa tu wallet dedicada, nombre, contraseña y private key. Se guarda encriptado en tu PC.</div>
+        <div class="step-desc en" style="display:none">Enter your dedicated wallet, name, password and private key. Stored encrypted on your PC.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-title es active">Configura y arranca</div>
+        <div class="step-title en" style="display:none">Configure and start</div>
+        <div class="step-desc es active">Pon tu rango de precios, capital en USDT y dale INICIAR. El bot opera automáticamente.</div>
+        <div class="step-desc en" style="display:none">Set your price range, USDT capital and hit START. The bot trades automatically.</div>
+      </div>
+    </div>
+    <div class="aviso-box">
+      ⚠️ <span class="es active">USA UNA WALLET DEDICADA — Crea una wallet nueva en MetaMask solo para el bot. NUNCA uses tu wallet principal. EVOX no es responsable de pérdidas.</span>
+      <span class="en">USE A DEDICATED WALLET — Create a new MetaMask wallet just for the bot. NEVER use your main wallet. EVOX is not responsible for losses.</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section style="padding-top: 0;">
+  <div class="section-inner">
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">🖥️</div>
+        <div class="feature-title es active">Corre en tu PC</div>
+        <div class="feature-title en" style="display:none">Runs on your PC</div>
+        <div class="feature-desc es active">El bot usa tu propio internet y recursos. Sin servidores intermedios, sin cuellos de botella.</div>
+        <div class="feature-desc en" style="display:none">The bot uses your own internet and resources. No intermediate servers, no bottlenecks.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔌</div>
+        <div class="feature-title es active">RPC Configurable</div>
+        <div class="feature-title en" style="display:none">Configurable RPC</div>
+        <div class="feature-desc es active">Elige tu proveedor RPC. Si uno falla, cámbialo en segundos desde la interfaz sin reinstalar nada.</div>
+        <div class="feature-desc en" style="display:none">Choose your RPC provider. If one fails, switch in seconds from the interface without reinstalling.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title es active">Tu key, en tu PC</div>
+        <div class="feature-title en" style="display:none">Your key, on your PC</div>
+        <div class="feature-desc es active">La private key se encripta y guarda localmente. Nunca sale de tu computadora.</div>
+        <div class="feature-desc en" style="display:none">Your private key is encrypted and stored locally. It never leaves your computer.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏆</div>
+        <div class="feature-title es active">Leaderboard global</div>
+        <div class="feature-title en" style="display:none">Global leaderboard</div>
+        <div class="feature-desc es active">Compite con otros traders. Tu historial y ganancias se reportan al ranking global.</div>
+        <div class="feature-desc en" style="display:none">Compete with other traders. Your history and profits are reported to the global ranking.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📡</div>
+        <div class="feature-title es active">Señales en tiempo real</div>
+        <div class="feature-title en" style="display:none">Real-time signals</div>
+        <div class="feature-desc es active">Recibe alertas de mercado, rangos sugeridos y oportunidades directamente en la interfaz.</div>
+        <div class="feature-desc en" style="display:none">Receive market alerts, suggested ranges and opportunities directly in the interface.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎓</div>
+        <div class="feature-title es active">Modo Padawan</div>
+        <div class="feature-title en" style="display:none">Padawan Mode</div>
+        <div class="feature-desc es active">Activa el modo padawan y tu bot sigue automáticamente la configuración del master.</div>
+        <div class="feature-desc en" style="display:none">Activate padawan mode and your bot automatically follows the master's configuration.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DESCARGAR -->
+<section id="descargar">
+  <div class="section-inner">
+    <div class="section-tag">
+      <span class="es active">Descarga</span>
+      <span class="en">Download</span>
+    </div>
+    <div class="dl-box">
+      <div class="dl-info">
+        <div class="dl-version" id="dlVersion">v1.0.0 — Latest</div>
+        <div class="dl-title">EVOX_Bot.exe</div>
+        <div class="dl-desc es active">Incluye todo lo necesario. Solo descomprime y ejecuta. Compatible con Windows 10/11.</div>
+        <div class="dl-desc en" style="display:none">Includes everything needed. Just extract and run. Compatible with Windows 10/11.</div>
+        <div class="dl-meta">
+          <div class="dl-meta-item"><span class="es active">Sistema</span><span class="en">System</span>: <span>Windows 10/11</span></div>
+          <div class="dl-meta-item"><span class="es active">Red</span><span class="en">Network</span>: <span>Polygon</span></div>
+          <div class="dl-meta-item"><span class="es active">Precio</span><span class="en">Price</span>: <span class="es active">Gratis</span><span class="en">Free</span></div>
+        </div>
+      </div>
+      <div class="dl-actions">
+        <a href="#" id="btnDownload" class="btn-dl-main" onclick="descargar()">
+          ⬇ <span class="es active">Descargar .zip</span><span class="en">Download .zip</span>
+        </a>
+        <div class="dl-disclaimer es active">
+          Al descargar aceptas usar una wallet dedicada<br>y que EVOX no se responsabiliza por pérdidas.
+        </div>
+        <div class="dl-disclaimer en" style="display:none">
+          By downloading you agree to use a dedicated wallet<br>and that EVOX is not responsible for losses.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LEADERBOARD -->
+<section id="leaderboard">
+  <div class="section-inner">
+    <div class="section-tag">Leaderboard</div>
+    <h2 class="section-title"><span>Top</span> Traders</h2>
+    <div style="margin-top: 32px;">
+      <div class="lb-tabs">
+        <button class="lb-tab active" onclick="switchPeriodo('hoy')">
+          <span class="es active">Hoy</span><span class="en">Today</span>
+        </button>
+        <button class="lb-tab" onclick="switchPeriodo('mes')">
+          <span class="es active">Mes</span><span class="en">Month</span>
+        </button>
+        <button class="lb-tab" onclick="switchPeriodo('historico')">
+          <span class="es active">Histórico</span><span class="en">All time</span>
+        </button>
+      </div>
+      <div class="lb-tabs2">
+        <button class="lb-tab2 active" onclick="switchTipo('ganancias')">
+          <span class="es active">Ganancias</span><span class="en">Earnings</span>
+        </button>
+        <button class="lb-tab2" onclick="switchTipo('ciclos')">
+          <span class="es active">Ciclos</span><span class="en">Cycles</span>
+        </button>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <div id="lbContent" style="padding: 20px;">
+          <div style="color:var(--muted);font-size:12px;">Cargando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">EVOX <span>Bot</span></div>
+  <div class="footer-links">
+    <a href="#descargar" class="es active">Descargar</a>
+    <a href="#descargar" class="en">Download</a>
+    <a href="#leaderboard">Leaderboard</a>
+    <a href="/admin-panel" style="color:var(--border);">Admin</a>
+  </div>
+  <div class="footer-copy">© 2026 EVOX Bot. Polygon Network.</div>
+</footer>
+
+<script>
+const CENTRAL_URL = window.location.origin;
+let lbPeriodo = 'hoy';
+let lbTipo    = 'ganancias';
+let lbData    = {};
+let lang      = 'es';
+
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.es').forEach(el => el.classList.toggle('active', l === 'es'));
+  document.querySelectorAll('.en').forEach(el => el.classList.toggle('active', l === 'en'));
+  document.querySelectorAll('.lang-btn').forEach((btn, i) => btn.classList.toggle('active', ['es','en'][i] === l));
+  // Fix section titles que usan style:display
+  document.querySelectorAll('.section-title.es, .section-title.en, .section-desc.es, .section-desc.en, .dl-desc.es, .dl-desc.en').forEach(el => {
+    el.style.display = el.classList.contains(l) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.step-title.es, .step-title.en, .step-desc.es, .step-desc.en, .feature-title.es, .feature-title.en, .feature-desc.es, .feature-desc.en').forEach(el => {
+    el.style.display = el.classList.contains(l) ? 'block' : 'none';
+  });
+}
+
+function switchPeriodo(p) {
+  lbPeriodo = p;
+  document.querySelectorAll('.lb-tab').forEach((t,i) => t.classList.toggle('active', ['hoy','mes','historico'][i] === p));
+  renderLb();
+}
+function switchTipo(t) {
+  lbTipo = t;
+  document.querySelectorAll('.lb-tab2').forEach((btn,i) => btn.classList.toggle('active', ['ganancias','ciclos'][i] === t));
+  renderLb();
+}
+
+function renderLb() {
+  const key   = lbPeriodo + '_' + lbTipo;
+  const lista = lbData[key] || [];
+  const medals = ['🥇','🥈','🥉'];
+  const el    = document.getElementById('lbContent');
+  if (!lista.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;">Sin datos aún...</div>';
+    return;
+  }
+  if (lbTipo === 'ganancias') {
+    el.innerHTML = '<table class="lb-table"><thead><tr><th>#</th><th>' + (lang==='es'?'Nombre':'Name') + '</th><th>' + (lang==='es'?'Ganancia':'Earnings') + '</th></tr></thead><tbody>' +
+      lista.map((u,i) => `<tr>
+        <td><span class="rank ${i<3?'rank-'+(i+1):''}">${medals[i]||i+1}</span></td>
+        <td style="font-weight:700;font-family:'Syne',sans-serif">${u.nombre}</td>
+        <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td>
+      </tr>`).join('') + '</tbody></table>';
+  } else {
+    el.innerHTML = '<table class="lb-table"><thead><tr><th>#</th><th>' + (lang==='es'?'Nombre':'Name') + '</th><th>' + (lang==='es'?'Ciclos':'Cycles') + '</th></tr></thead><tbody>' +
+      lista.map((u,i) => `<tr>
+        <td><span class="rank ${i<3?'rank-'+(i+1):''}">${medals[i]||i+1}</span></td>
+        <td style="font-weight:700;font-family:'Syne',sans-serif">${u.nombre}</td>
+        <td style="color:var(--accent3);font-weight:700;font-family:'Syne',sans-serif">${u.ciclos_total}</td>
+      </tr>`).join('') + '</tbody></table>';
+  }
+}
+
+async function cargarStats() {
+  try {
+    const r    = await fetch(CENTRAL_URL + '/leaderboard');
+    const data = await r.json();
+    lbData     = data;
+    renderLb();
+    // Stats hero
+    const hist = data.historico_ganancias || [];
+    document.getElementById('statUsuarios').textContent = hist.length || '—';
+    const ciclos = (data.historico_ciclos || []).reduce((s, u) => s + parseInt(u.ciclos_total || 0), 0);
+    document.getElementById('statCiclos').textContent = ciclos || '—';
+  } catch(e) {}
+}
+
+async function cargarPrecio() {
+  try {
+    const r    = await fetch(CENTRAL_URL + '/precio');
+    const data = await r.json();
+    if (data.ok) document.getElementById('statPrecio').textContent = '$' + data.precio;
+  } catch(e) {}
+}
+
+function descargar() {
+  // Apunta al zip del exe — actualiza esta URL cuando subas el zip
+  window.location.href = CENTRAL_URL + '/download/EVOX_Bot.zip';
+}
+
+// Endpoint de descarga en server_central.py lo agregaremos después
+// Por ahora puedes hostear el zip en Google Drive o GitHub y cambiar la URL aquí
+
+cargarStats();
+cargarPrecio();
+setInterval(cargarPrecio, 30000);
+setInterval(cargarStats, 60000);
+</script>
+</body>
+</html>
