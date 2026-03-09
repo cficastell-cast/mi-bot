@@ -348,6 +348,22 @@ def download_exe():
         return send_file(zip_path, as_attachment=True, download_name="EVOX_Bot.zip")
     return jsonify({"error": "Archivo no disponible aún"}), 404
 
+@app.route("/reset_db", methods=["POST"])
+def reset_db():
+    data = request.json or {}
+    if data.get("password") != BOT_PASSWORD:
+        return jsonify({"error": "No autorizado"}), 401
+    try:
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute("TRUNCATE TABLE usuarios, ciclos, senales RESTART IDENTITY")
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "msg": "DB limpiada!"})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 for img in ["icon", "evox", "charlie", "susan"]:
     def make_route(name):
         @app.route(f"/{name}.png", methods=["GET"], endpoint=f"img_{name}")
@@ -358,6 +374,22 @@ for img in ["icon", "evox", "charlie", "susan"]:
             except:
                 return "", 404
     make_route(img)
+
+@app.route("/reset_db", methods=["POST"])
+def reset_db():
+    data = request.json or {}
+    if data.get("password") != BOT_PASSWORD:
+        return jsonify({"error": "No autorizado"}), 401
+    try:
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute("TRUNCATE TABLE usuarios, ciclos, senales RESTART IDENTITY")
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "msg": "DB limpiada!"})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
     init_db()
