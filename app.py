@@ -375,22 +375,6 @@ for img in ["icon", "evox", "charlie", "susan"]:
                 return "", 404
     make_route(img)
 
-@app.route("/reset_db", methods=["POST"])
-def reset_db():
-    data = request.json or {}
-    if data.get("password") != BOT_PASSWORD:
-        return jsonify({"error": "No autorizado"}), 401
-    try:
-        conn = get_db()
-        cur  = conn.cursor()
-        cur.execute("TRUNCATE TABLE usuarios, ciclos, senales RESTART IDENTITY")
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({"ok": True, "msg": "DB limpiada!"})
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5000))
