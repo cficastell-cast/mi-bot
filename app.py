@@ -348,6 +348,17 @@ def download_exe():
         return send_file(zip_path, as_attachment=True, download_name="EVOX_Bot.zip")
     return jsonify({"error": "Archivo no disponible aún"}), 404
 
+for img in ["icon", "evox", "charlie", "susan"]:
+    def make_route(name):
+        @app.route(f"/{name}.png", methods=["GET"], endpoint=f"img_{name}")
+        def img_route():
+            BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+            try:
+                return open(os.path.join(BASE_DIR, f"{name}.png"), "rb").read(), 200, {"Content-Type": "image/png"}
+            except:
+                return "", 404
+    make_route(img)
+
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5000))
