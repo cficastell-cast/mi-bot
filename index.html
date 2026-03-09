@@ -601,9 +601,14 @@ async function cargarStats() {
 
 async function cargarPrecio() {
   try {
-    const r    = await fetch(CENTRAL_URL + '/precio');
+    const USDT = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F";
+    const CNKT = "0x87bdfbe98ba55104701b2f2e999982a317905637";
+    const r    = await fetch(`https://aggregator-api.kyberswap.com/polygon/api/v1/routes?tokenIn=${USDT}&tokenOut=${CNKT}&amountIn=10000000`);
     const data = await r.json();
-    if (data.ok) document.getElementById('statPrecio').textContent = '$' + data.precio;
+    const amountOut = parseFloat(data.data.routeSummary.amountOut) / 1e18;
+    const amountInUsd = parseFloat(data.data.routeSummary.amountInUsd);
+    const precio = amountInUsd / amountOut;
+    document.getElementById('statPrecio').textContent = '$' + precio.toFixed(6);
   } catch(e) {}
 }
 
