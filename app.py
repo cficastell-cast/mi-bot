@@ -1090,6 +1090,18 @@ def stop(wallet):
     eliminar_bot_activo(wallet)
     return jsonify({"ok": True, "msg": "Deteniendo bot..."})
 
+@app.route("/download/<filename>", methods=["GET"])
+def download(filename):
+    try:
+        path = os.path.join(BASE_DIR, filename)
+        data = open(path, "rb").read()
+        return data, 200, {
+            "Content-Type": "application/octet-stream",
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    except:
+        return "Archivo no encontrado", 404
+
 @app.route("/", methods=["GET"])
 def home():
     try:
