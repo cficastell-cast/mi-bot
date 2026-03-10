@@ -19,19 +19,20 @@ app = Flask(__name__)
 CORS(app)
 
 # ─── INSTANCIA ÚNICA (lock file) ─────────────────────────────────────────────
-import fcntl as _fcntl
+import socket as _socket
 
-_LOCK_FILE = os.path.join(BASE_DIR if 'BASE_DIR' in dir() else os.path.dirname(os.path.abspath(__file__)), ".evox_lock")
+_lock_socket = None
 
 def _adquirir_lock():
-    """Evita que corran múltiples instancias del bot al mismo tiempo."""
+    """Evita múltiples instancias usando un socket en un puerto fijo."""
+    global _lock_socket
     try:
-        lf = open(_LOCK_FILE, "w")
-        _fcntl.flock(lf, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
-        return lf
-    except IOError:
+        _lock_socket = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        _lock_socket.bind(("127.0.0.1", 5099))
+        return _lock_socket
+    except OSError:
         print("=" * 50)
-        print("  EVOX Bot ya está corriendo!")
+        print("  EVOX Bot ya esta corriendo!")
         print("  Cierra la instancia anterior primero.")
         print("=" * 50)
         import sys; sys.exit(0)
