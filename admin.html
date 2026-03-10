@@ -39,8 +39,6 @@
   .ganancia-pos{color:var(--accent)}.ganancia-neg{color:var(--accent2)}
   .refresh-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
   .refresh-btn:hover{border-color:var(--accent3);color:var(--accent3)}
-
-  /* MASTER */
   .master-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
   .master-panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
   .master-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -61,8 +59,6 @@
   .master-status-badge{display:inline-block;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700;margin-bottom:10px}
   .master-status-badge.on{background:rgba(127,255,110,0.1);color:var(--accent);border:1px solid rgba(127,255,110,0.3)}
   .master-status-badge.off{background:rgba(90,90,122,0.1);color:var(--muted);border:1px solid var(--border)}
-
-  /* SEÑALES */
   .senal-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
   .senal-panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
   .senal-steps{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
@@ -84,7 +80,11 @@
   .senal-nav button{padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
   .senal-nav button:hover{border-color:var(--accent3);color:var(--accent3)}
   .senal-preview{font-size:11px;color:var(--muted);padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg)}
-
+  /* BOTS ONLINE */
+  .bots-online-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
+  .bots-online-panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
+  .bot-online-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse 1.5s infinite;margin-right:6px}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 </style>
 </head>
 <body>
@@ -101,59 +101,68 @@
 <div class="container" id="mainApp" style="display:none">
   <header>
     <h1>EVOX <span>Admin</span></h1>
-    <button class="refresh-btn" onclick="cargarDatos()">↻ Actualizar</button>
+    <button class="refresh-btn" onclick="cargarDatos()">&#8635; Actualizar</button>
   </header>
   <div class="cards">
-    <div class="card"><div class="card-label">Usuarios</div><div class="card-value blue" id="totalUsuarios">—</div></div>
-    <div class="card"><div class="card-label">Bots Activos</div><div class="card-value green" id="botsActivos">—</div></div>
-    <div class="card"><div class="card-label">Ciclos Totales</div><div class="card-value" id="ciclosTotales">—</div></div>
-    <div class="card"><div class="card-label">Comisiones EVOX</div><div class="card-value green" id="comisionesEvox">—</div></div>
+    <div class="card"><div class="card-label">Usuarios</div><div class="card-value blue" id="totalUsuarios">&#8212;</div></div>
+    <div class="card"><div class="card-label">Bots Activos</div><div class="card-value green" id="botsActivos">&#8212;</div></div>
+    <div class="card"><div class="card-label">Bots Online Ahora</div><div class="card-value green" id="botsOnlineAhora">&#8212;</div></div>
+    <div class="card"><div class="card-label">Comisiones EVOX</div><div class="card-value green" id="comisionesEvox">&#8212;</div></div>
   </div>
   <div class="cards2">
-    <div class="card"><div class="card-label">Compras Totales</div><div class="card-value blue" id="comprasTotales">—</div></div>
-    <div class="card"><div class="card-label">Ventas Totales</div><div class="card-value red" id="ventasTotales">—</div></div>
-    <div class="card"><div class="card-label">Volumen 24hrs</div><div class="card-value" id="volumen24h">—</div></div>
+    <div class="card"><div class="card-label">Ciclos Totales</div><div class="card-value" id="ciclosTotales">&#8212;</div></div>
+    <div class="card"><div class="card-label">Compras Totales</div><div class="card-value blue" id="comprasTotales">&#8212;</div></div>
+    <div class="card"><div class="card-label">Volumen 24hrs</div><div class="card-value" id="volumen24h">&#8212;</div></div>
+  </div>
+
+  <!-- BOTS ONLINE AHORA -->
+  <div class="bots-online-panel">
+    <h2>&#128997; Bots Online Ahora</h2>
+    <div id="tablaBotsonline">Cargando...</div>
   </div>
 
   <!-- PANEL MODO MASTER -->
   <div class="master-panel">
-    <h2>⚔️ Modo Master</h2>
+    <h2>&#9876;&#65039; Modo Master</h2>
     <div class="master-grid">
       <div>
-        <div id="masterStatusBadge" class="master-status-badge off">● INACTIVO</div>
+        <div id="masterStatusBadge" class="master-status-badge off">&#9679; INACTIVO</div>
         <div class="master-fields">
           <div class="master-field"><label>Wallet del Master (0x...)</label><input type="text" id="masterWallet" placeholder="0x...tu wallet"/></div>
           <div class="master-field"><label>Rango Alto (vende en $)</label><input type="number" id="masterRangoAlto" placeholder="0.001750" step="0.000001" oninput="calcMasterSemaforo()"/></div>
           <div class="master-field"><label>Rango Bajo (compra en $)</label><input type="number" id="masterRangoBajo" placeholder="0.001700" step="0.000001" oninput="calcMasterSemaforo()"/></div>
-          <div class="master-field"><label>Capital Máximo USDT</label><input type="number" id="masterCapital" placeholder="50" oninput="calcMasterSemaforo()"/></div>
+          <div class="master-field"><label>Capital M&#225;ximo USDT</label><input type="number" id="masterCapital" placeholder="50" oninput="calcMasterSemaforo()"/></div>
           <div class="master-field"><label>Stop Loss (%)</label><input type="number" id="masterStop" placeholder="3"/></div>
           <div id="masterSemaforo" style="font-size:12px;min-height:16px;margin-top:2px;"></div>
         </div>
         <div class="master-btns">
-          <button class="btn-master-start" id="btnMasterStart" onclick="masterStart()">▶ INICIAR MASTER</button>
-          <button class="btn-master-stop" id="btnMasterStop" onclick="masterStop()" disabled>■ DETENER</button>
+          <button class="btn-master-start" id="btnMasterStart" onclick="masterStart()">&#9654; INICIAR MASTER</button>
+          <button class="btn-master-stop" id="btnMasterStop" onclick="masterStop()" disabled>&#9632; DETENER</button>
         </div>
         <div id="masterMsg" style="font-size:12px;margin-top:10px;"></div>
       </div>
       <div>
         <div class="master-stat">
-          <div class="master-stat-label">Padawans Activos</div>
-          <div class="master-stat-val" id="masterPadawans">—</div>
+          <div class="master-stat-label">Padawans Activos (DB)</div>
+          <div class="master-stat-val" id="masterPadawans">&#8212;</div>
+        </div>
+        <div class="master-stat" style="margin-top:8px">
+          <div class="master-stat-label">Padawans Online Ahora</div>
+          <div class="master-stat-val" id="padawansOnline" style="color:var(--accent)">&#8212;</div>
         </div>
         <div style="font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:10px;" id="masterConfigActiva">Sin config activa</div>
         <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Logs Master</div>
         <div id="masterLogs" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;height:120px;overflow-y:auto;font-size:11px;line-height:1.8;color:var(--muted);">Sin logs aun...</div>
-        <button onclick="fetchMasterLogs()" style="margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">↻ Actualizar logs</button>
+        <button onclick="fetchMasterLogs()" style="margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">&#8635; Actualizar logs</button>
       </div>
     </div>
   </div>
 
   <!-- PANEL SEÑALES -->
   <div class="senal-panel">
-    <h2>📡 Publicar Señal</h2>
-    <!-- PASO 1: Emisor -->
+    <h2>&#128225; Publicar Se&#241;al</h2>
     <div class="senal-step active" id="step1">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">¿Quién envía la señal?</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">&#191;Qui&#233;n env&#237;a la se&#241;al?</div>
       <div class="senal-btn-group">
         <button class="senal-btn senal-emisor-btn" onclick="selEmisor('EVOX',this)">
           <img src="/evox.png" onerror="this.src='/icon.png'"/>
@@ -168,30 +177,28 @@
           <span>Susan</span>
         </button>
       </div>
-      <div class="senal-nav"><button onclick="irStep(2)" id="btnStep2" disabled>Siguiente →</button></div>
+      <div class="senal-nav"><button onclick="irStep(2)" id="btnStep2" disabled>Siguiente &#8594;</button></div>
     </div>
-    <!-- PASO 2: Categoría -->
     <div class="senal-step" id="step2">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">¿Tipo de señal?</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">&#191;Tipo de se&#241;al?</div>
       <div class="senal-btn-group">
-        <button class="senal-btn" onclick="selCategoria('Señal de Rango',this)">📊 Señal de Rango</button>
-        <button class="senal-btn" onclick="selCategoria('Alerta de Mercado',this)">⚠️ Alerta de Mercado</button>
-        <button class="senal-btn" onclick="selCategoria('Oportunidad',this)">🚀 Oportunidad</button>
-        <button class="senal-btn" onclick="selCategoria('Alerta de Riesgo',this)">🛑 Alerta de Riesgo</button>
-        <button class="senal-btn" onclick="selCategoria('Mensaje General',this)">📢 Mensaje General</button>
+        <button class="senal-btn" onclick="selCategoria('Se&#241;al de Rango',this)">&#128202; Se&#241;al de Rango</button>
+        <button class="senal-btn" onclick="selCategoria('Alerta de Mercado',this)">&#9888;&#65039; Alerta de Mercado</button>
+        <button class="senal-btn" onclick="selCategoria('Oportunidad',this)">&#128640; Oportunidad</button>
+        <button class="senal-btn" onclick="selCategoria('Alerta de Riesgo',this)">&#128721; Alerta de Riesgo</button>
+        <button class="senal-btn" onclick="selCategoria('Mensaje General',this)">&#128226; Mensaje General</button>
       </div>
       <div class="senal-nav">
-        <button onclick="irStep(1)">← Volver</button>
-        <button onclick="irStep(3)" id="btnStep3" disabled>Siguiente →</button>
+        <button onclick="irStep(1)">&#8592; Volver</button>
+        <button onclick="irStep(3)" id="btnStep3" disabled>Siguiente &#8594;</button>
       </div>
     </div>
-    <!-- PASO 3: Mensaje -->
     <div class="senal-step" id="step3">
       <div class="senal-preview" id="senalPreview"></div>
-      <textarea class="senal-textarea" id="senalMensaje" placeholder="Escribe tu mensaje aquí..." oninput="actualizarPreview()"></textarea>
+      <textarea class="senal-textarea" id="senalMensaje" placeholder="Escribe tu mensaje aqu&#237;..." oninput="actualizarPreview()"></textarea>
       <div style="display:flex;gap:10px;align-items:center;">
-        <button class="senal-nav" onclick="irStep(2)" style="margin:0"><button onclick="irStep(2)">← Volver</button></button>
-        <button class="btn-publicar" id="btnPublicar" onclick="publicarSenal()" disabled>📡 Publicar</button>
+        <div class="senal-nav"><button onclick="irStep(2)">&#8592; Volver</button></div>
+        <button class="btn-publicar" id="btnPublicar" onclick="publicarSenal()" disabled>&#128225; Publicar</button>
       </div>
     </div>
     <div id="senalResult" style="font-size:12px;margin-top:10px;"></div>
@@ -202,7 +209,7 @@
     <div id="tablaUsuarios">Cargando...</div>
   </div>
   <div class="panel">
-    <h2>Últimos Ciclos</h2>
+    <h2>&#218;ltimos Ciclos</h2>
     <div id="tablaUltimos">Cargando...</div>
   </div>
 </div>
@@ -347,6 +354,40 @@ async function cargarMasterStatus() {
   } catch(e) { console.log('Error master status:', e); }
 }
 
+async function cargarBotsOnline() {
+  try {
+    const r = await fetch(BOT_URL + '/bots_online');
+    const data = await r.json();
+    const el = document.getElementById('tablaBotsonline');
+    const countEl = document.getElementById('botsOnlineAhora');
+    const padawanEl = document.getElementById('padawansOnline');
+    if (!data.ok || !data.bots_online.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Ningún bot online ahora mismo</div>';
+      countEl.textContent = '0';
+      padawanEl.textContent = '0';
+      return;
+    }
+    countEl.textContent = data.total;
+    el.innerHTML = '<table><thead><tr><th>Nombre</th><th>Wallet</th><th>Versión</th><th>Estado</th><th>Última señal</th></tr></thead><tbody>' +
+      data.bots_online.map(b => `<tr>
+        <td style="font-weight:700">${b.nombre}</td>
+        <td style="color:var(--muted)">${b.wallet.slice(0,6)}...${b.wallet.slice(-4)}</td>
+        <td style="color:var(--accent3)">v${b.version||'—'}</td>
+        <td><span class="bot-online-dot"></span><span style="color:var(--accent);font-size:11px;font-weight:700">ONLINE</span></td>
+        <td style="color:var(--muted);font-size:11px;">${new Date(b.actualizado_en).toLocaleTimeString('es-MX')}</td>
+      </tr>`).join('') + '</tbody></table>';
+
+    // Contar cuántos padawans están online
+    const r2 = await fetch(BOT_URL + '/master/status');
+    const ms = await r2.json();
+    if (ms.ok && ms.master && ms.master.wallet_master) {
+      const masterWallet = ms.master.wallet_master.toLowerCase();
+      const padawansOnlineCount = data.bots_online.filter(b => b.wallet.toLowerCase() !== masterWallet).length;
+      padawanEl.textContent = padawansOnlineCount;
+    }
+  } catch(e) {}
+}
+
 async function masterStart() {
   const wallet = document.getElementById('masterWallet').value.trim().toLowerCase();
   const rb = parseFloat(document.getElementById('masterRangoBajo').value);
@@ -392,11 +433,11 @@ async function cargarDatos() {
     document.getElementById('mainApp').style.display = 'block';
     cargarMasterStatus();
     fetchMasterLogs();
+    cargarBotsOnline();
     if (!window._adminRefreshStarted) {
       window._adminRefreshStarted = true;
-      setInterval(function() { cargarMasterStatus(); fetchMasterLogs(); }, 15000);
+      setInterval(function() { cargarMasterStatus(); fetchMasterLogs(); cargarBotsOnline(); }, 15000);
     }
-
     document.getElementById('totalUsuarios').textContent = data.resumen.total_usuarios;
     document.getElementById('botsActivos').textContent = data.resumen.bots_activos;
     document.getElementById('ciclosTotales').textContent = data.resumen.ciclos_totales;
@@ -418,7 +459,6 @@ async function cargarDatos() {
           <td style="color:var(--accent3)">${u.ciclos_total}</td>
           <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td>
           <td style="color:var(--muted)">${new Date(u.creado_en).toLocaleDateString()}</td>
-
         </tr>`).join('') + '</tbody></table>';
     }
 

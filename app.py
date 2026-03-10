@@ -159,6 +159,15 @@ def init_db():
             actualizado_en TIMESTAMP DEFAULT NOW()
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS bot_estados (
+            wallet VARCHAR(42) PRIMARY KEY,
+            nombre VARCHAR(50) DEFAULT 'Anonimo',
+            evento VARCHAR(20) NOT NULL,
+            version VARCHAR(20) DEFAULT '1.0.0',
+            actualizado_en TIMESTAMP DEFAULT NOW()
+        )
+    """)
     conn.commit()
     cur.close()
     conn.close()
@@ -688,6 +697,60 @@ def _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt_master, stop_z
         print("Padawan arrancado: " + wallet[:6] + " capital: $" + str(capital))
     except Exception as e:
         print("Error arrancando padawan " + wallet[:6] + ": " + str(e))
+
+
+# ─── ESTADO DE BOTS LOCALES ───────────────────────────────────────────────────
+@app.route("/bot_estado", methods=["POST"])
+def bot_estado():
+    data   = request.json or {}
+    wallet = data.get("wallet", "").lower()
+    nombre = data.get("nombre", "Anonimo").strip() or "Anonimo"
+    evento = data.get("evento", "online")   # "online" | "offline"
+    version = data.get("version", "")
+    if not wallet:
+        return jsonify({"ok": False, "msg": "Falta wallet"})
+    try:
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute("""
+            INSERT INTO bot_estados (wallet, nombre, evento, version, actualizado_en)
+            VALUES (%s, %s, %s, %s, NOW())
+            ON CONFLICT (wallet) DO UPDATE SET
+                nombre=EXCLUDED.nombre, evento=EXCLUDED.evento,
+                version=EXCLUDED.version, actualizado_en=NOW()
+        """, (wallet, nombre, evento, version))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
+
+@app.route("/bots_online", methods=["GET"])
+def bots_online():
+    """Devuelve los bots que reportaron online en los últimos 5 minutos."""
+    try:
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute("""
+            SELECT wallet, nombre, evento, version, actualizado_en
+            FROM bot_estados
+            WHERE actualizado_en >= NOW() - INTERVAL '5 minutes'
+            AND evento = 'online'
+            ORDER BY actualizado_en DESC
+        """)
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.execute("""
+            SELECT COUNT(*) as total FROM bot_estados
+            WHERE actualizado_en >= NOW() - INTERVAL '5 minutes'
+            AND evento = 'online'
+        """)
+        total = cur.fetchone()["total"]
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "bots_online": rows, "total": total})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
 
 # ── SISTEMA DE VERSIONES ──────────────────────────────────────
 @app.route("/version", methods=["GET"])

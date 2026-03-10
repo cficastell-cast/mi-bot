@@ -18,6 +18,25 @@ from cryptography.fernet import Fernet
 app = Flask(__name__)
 CORS(app)
 
+# ─── INSTANCIA ÚNICA (lock file) ─────────────────────────────────────────────
+import fcntl as _fcntl
+
+_LOCK_FILE = os.path.join(BASE_DIR if 'BASE_DIR' in dir() else os.path.dirname(os.path.abspath(__file__)), ".evox_lock")
+
+def _adquirir_lock():
+    """Evita que corran múltiples instancias del bot al mismo tiempo."""
+    try:
+        lf = open(_LOCK_FILE, "w")
+        _fcntl.flock(lf, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
+        return lf
+    except IOError:
+        print("=" * 50)
+        print("  EVOX Bot ya está corriendo!")
+        print("  Cierra la instancia anterior primero.")
+        print("=" * 50)
+        import sys; sys.exit(0)
+
+
 if getattr(sys, 'frozen', False):
     BASE_DIR = os.path.dirname(sys.executable)
 else:
@@ -463,6 +482,19 @@ def iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt,
     with bots_lock:
         bots_activos[wallet] = {"thread": t, "stop_event": stop_event, "estado": estado}
 
+
+# ─── PING DE ESTADO AL SERVIDOR ──────────────────────────────────────────────
+def reportar_estado_central(wallet, nombre, evento):
+    """Avisa al servidor cuando el bot se prende o apaga. evento: 'online'|'offline'"""
+    try:
+        requests.post(
+            CENTRAL_URL + "/bot_estado",
+            json={"wallet": wallet, "nombre": nombre, "evento": evento, "version": VERSION_LOCAL},
+            timeout=5
+        )
+    except:
+        pass
+
 # ── SISTEMA DE VERSIONES ──────────────────────────────────────
 def chequear_version():
     """Consulta el servidor central y avisa si hay nueva version disponible."""
@@ -662,6 +694,9 @@ def stop(wallet):
             return jsonify({"ok": False, "msg": "Bot no esta corriendo"})
         bots_activos[wallet]["stop_event"].set()
         bots_activos[wallet]["estado"]["activo"] = False
+    usuario_local = cargar_usuario_local()
+    nombre = usuario_local.get("nombre", "Anonimo") if usuario_local else "Anonimo"
+    reportar_estado_central(wallet, nombre, "offline")
     return jsonify({"ok": True, "msg": "Deteniendo bot..."})
 
 # ─── SEÑALES (proxy al servidor central) ─────────────────────
@@ -711,9 +746,18 @@ for img in ["icon", "evox", "charlie", "susan"]:
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    _lock_handle = _adquirir_lock()
     t_precio = threading.Thread(target=loop_precio_global, daemon=True)
     t_precio.start()
     chequear_version()
+    # Reportar que el bot está online
+    usuario_local = cargar_usuario_local()
+    if usuario_local:
+        reportar_estado_central(
+            usuario_local.get("wallet",""),
+            usuario_local.get("nombre","Anonimo"),
+            "online"
+        )
     print("=" * 50)
     print("  EVOX Bot — corriendo localmente")
     print("  RPC: " + get_rpc_url())
