@@ -21,6 +21,10 @@ ENCRYPT_KEY = os.environ.get("ENCRYPT_KEY")
 BOT_PASSWORD = os.environ.get("BOT_PASSWORD", "cnkt1234")
 fernet = Fernet(ENCRYPT_KEY.encode() if isinstance(ENCRYPT_KEY, str) else ENCRYPT_KEY)
 
+# ── SISTEMA DE VERSIONES ──────────────────────────────────────
+VERSION_ACTUAL = "1.0.0"
+# ─────────────────────────────────────────────────────────────
+
 USDT_ADDRESS = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
 CNKT_ADDRESS = "0x87bdfbe98ba55104701b2f2e999982a317905637"
 KYBER_ROUTER = "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
@@ -466,6 +470,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
     eliminar_bot_activo(wallet)
     log_estado(estado, "Bot detenido.")
 
+
 def iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt, stop_zona):
     estado = nuevo_estado()
     estado["activo"] = True
@@ -683,6 +688,12 @@ def _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt_master, stop_z
         print("Padawan arrancado: " + wallet[:6] + " capital: $" + str(capital))
     except Exception as e:
         print("Error arrancando padawan " + wallet[:6] + ": " + str(e))
+
+# ── SISTEMA DE VERSIONES ──────────────────────────────────────
+@app.route("/version", methods=["GET"])
+def version():
+    return jsonify({"version": VERSION_ACTUAL})
+# ─────────────────────────────────────────────────────────────
 
 @app.route("/precio", methods=["GET"])
 def precio_endpoint():

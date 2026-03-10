@@ -23,7 +23,13 @@
   .dot.on{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.5s infinite}
   .dot.off{background:var(--accent2)}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-
+  /* ── BANNER DE NUEVA VERSION ─────────────────────────────────── */
+  .version-banner{display:none;position:fixed;top:0;left:0;width:100%;z-index:990;background:linear-gradient(90deg,#1a3d1a,#0d2b0d);border-bottom:2px solid var(--accent);padding:10px 20px;text-align:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--accent);letter-spacing:0.5px;animation:slideDown 0.4s ease}
+  .version-banner.visible{display:block}
+  @keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+  .version-banner a{color:var(--accent);text-decoration:underline;margin-left:8px;cursor:pointer}
+  .version-banner-close{float:right;cursor:pointer;opacity:0.7;font-size:18px;line-height:1;margin-left:16px}
+  .version-banner-close:hover{opacity:1}
   /* ── RPC Panel ── */
   .rpc-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap}
   .rpc-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
@@ -33,7 +39,6 @@
   .rpc-latency.bad{color:var(--accent2);border-color:rgba(255,110,127,0.3)}
   .btn-rpc{background:transparent;border:1px solid var(--accent3);color:var(--accent3);padding:6px 14px;border-radius:6px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
   .btn-rpc:hover{background:var(--accent3);color:#0a0a0f}
-
   /* ── Modal RPC ── */
   .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,15,0.85);display:none;align-items:center;justify-content:center;z-index:900;backdrop-filter:blur(4px)}
   .modal-overlay.open{display:flex}
@@ -56,8 +61,6 @@
   .btn-modal-cancel{flex:1;padding:11px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
   .btn-modal-cancel:hover{border-color:var(--accent2);color:var(--accent2)}
   .test-result{font-size:12px;min-height:18px;margin-top:4px;line-height:1.5}
-
-  /* ── Resto de estilos (igual que antes) ── */
   .senal-box{display:none;margin-bottom:20px;border-radius:10px;padding:14px 18px;border:1px solid var(--border);background:var(--surface)}
   .senal-box.cat-rango{border-color:rgba(110,159,255,0.4);background:rgba(110,159,255,0.05)}
   .senal-box.cat-mercado{border-color:rgba(245,197,24,0.4);background:rgba(245,197,24,0.05)}
@@ -152,6 +155,12 @@
 <body>
 <div class="grid-bg"></div>
 
+<!-- ── BANNER NUEVA VERSION ── -->
+<div class="version-banner" id="versionBanner">
+  <span class="version-banner-close" onclick="document.getElementById('versionBanner').classList.remove('visible')">&#10005;</span>
+  &#128640; <span id="versionBannerMsg">Nueva version disponible</span>
+  &mdash; <a href="https://evoxbot.evoxverse.com" target="_blank">Descargar ahora</a>
+</div>
 <!-- ── OVERLAYS LOGIN/REGISTRO (sin cambios) ── -->
 <div class="overlay" id="overlayInicio">
   <div class="box">
@@ -160,15 +169,15 @@
     <h2>EVOX <span style="color:var(--accent)">Bot</span></h2>
     <p>Conecta tu wallet o inicia sesion con tu cuenta.</p>
     <div class="disclaimer">
-      ⚠️ USA UNA WALLET DEDICADA<br>
-      • Crea una wallet nueva en MetaMask<br>
-      • NUNCA uses tu wallet principal<br>
-      • Transfiere solo lo que vas a operar<br>
-      • EVOX no es responsable de perdidas<br>
-      • Tu key se guarda encriptada en TU PC
+      &#9888; USA UNA WALLET DEDICADA<br>
+      &bull; Crea una wallet nueva en MetaMask<br>
+      &bull; NUNCA uses tu wallet principal<br>
+      &bull; Transfiere solo lo que vas a operar<br>
+      &bull; EVOX no es responsable de perdidas<br>
+      &bull; Tu key se guarda encriptada en TU PC
     </div>
-    <button class="btn-main" onclick="conectarMetamask()">🦊 Conectar MetaMask</button>
-    <button class="btn-outline" onclick="mostrarLogin()">🔑 Ya tengo cuenta</button>
+    <button class="btn-main" onclick="conectarMetamask()">&#129410; Conectar MetaMask</button>
+    <button class="btn-outline" onclick="mostrarLogin()">&#128273; Ya tengo cuenta</button>
     <div id="inicioError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
   </div>
 </div>
@@ -181,8 +190,8 @@
     <input type="text" id="loginWallet" placeholder="0x... tu wallet address"/>
     <input type="password" id="loginPassword" placeholder="Tu contrasena" onkeydown="if(event.key==='Enter') doLogin()"/>
     <button class="btn-main" onclick="doLogin()">ENTRAR</button>
-    <button class="btn-outline" onclick="mostrarRegistroManual()">📝 Registrarme por primera vez</button>
-    <button class="btn-outline" onclick="volverInicio()">← Volver</button>
+    <button class="btn-outline" onclick="mostrarRegistroManual()">&#128221; Registrarme por primera vez</button>
+    <button class="btn-outline" onclick="volverInicio()">&#8592; Volver</button>
     <div id="loginError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
   </div>
 </div>
@@ -220,9 +229,9 @@
 
   <!-- ── BARRA RPC ── -->
   <div class="rpc-bar">
-    <span class="rpc-label">🔌 RPC</span>
+    <span class="rpc-label">&#128299; RPC</span>
     <span class="rpc-current" id="rpcCurrent">Cargando...</span>
-    <span class="rpc-latency" id="rpcLatency">— ms</span>
+    <span class="rpc-latency" id="rpcLatency">&#8212; ms</span>
     <button class="btn-rpc" onclick="abrirModalRPC()">Cambiar RPC</button>
   </div>
 
@@ -239,14 +248,14 @@
   </div>
 
   <div class="cards">
-    <div class="card"><div class="card-label">Precio CNKT</div><div class="card-value blue" id="statPrecio">—</div></div>
-    <div class="card"><div class="card-label">USDT</div><div class="card-value" id="statUSDT">—</div></div>
-    <div class="card"><div class="card-label">CNKT</div><div class="card-value" id="statCNKT">—</div></div>
+    <div class="card"><div class="card-label">Precio CNKT</div><div class="card-value blue" id="statPrecio">&#8212;</div></div>
+    <div class="card"><div class="card-label">USDT</div><div class="card-value" id="statUSDT">&#8212;</div></div>
+    <div class="card"><div class="card-label">CNKT</div><div class="card-value" id="statCNKT">&#8212;</div></div>
     <div class="card">
       <div class="card-label">Ganancia</div>
       <div class="gan-row">
-        <div class="gan-hoy" id="statGananciaHoy">—</div>
-        <div class="gan-acum" id="statGananciaAcum">—</div>
+        <div class="gan-hoy" id="statGananciaHoy">&#8212;</div>
+        <div class="gan-acum" id="statGananciaAcum">&#8212;</div>
       </div>
       <div class="gan-labels"><span>Hoy</span><span>Acumulada</span></div>
     </div>
@@ -270,12 +279,12 @@
       </div>
       <div class="field"><label>Stop Loss (%)</label><input type="number" id="stopZona" placeholder="3" step="1"></div>
       <div class="btn-row">
-        <button class="btn-start" id="btnStart" onclick="startBot()">▶ INICIAR</button>
-        <button class="btn-stop" id="btnStop" onclick="stopBot()" disabled>■ DETENER</button>
+        <button class="btn-start" id="btnStart" onclick="startBot()">&#9654; INICIAR</button>
+        <button class="btn-stop" id="btnStop" onclick="stopBot()" disabled>&#9632; DETENER</button>
       </div>
       <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
         <button id="btnPadawan" onclick="togglePadawan()" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
-          🎓 Activar Modo Padawan
+          &#127891; Activar Modo Padawan
         </button>
         <div id="padawanStatus" style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center;"></div>
       </div>
@@ -284,17 +293,17 @@
       <h2>Estado</h2>
       <div class="field">
         <label>Modo actual</label>
-        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;" id="modoActual">—</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;" id="modoActual">&#8212;</div>
       </div>
       <div class="field">
         <label>Ciclos</label>
         <div class="stat-doble">
-          <div class="stat-doble-item"><div class="stat-doble-label">Hoy</div><div class="stat-doble-val" style="color:var(--accent3)" id="ciclosHoy">—</div></div>
-          <div class="stat-doble-item"><div class="stat-doble-label">Total</div><div class="stat-doble-val" style="color:var(--accent3)" id="ciclosTotal">—</div></div>
+          <div class="stat-doble-item"><div class="stat-doble-label">Hoy</div><div class="stat-doble-val" style="color:var(--accent3)" id="ciclosHoy">&#8212;</div></div>
+          <div class="stat-doble-item"><div class="stat-doble-label">Total</div><div class="stat-doble-val" style="color:var(--accent3)" id="ciclosTotal">&#8212;</div></div>
         </div>
       </div>
       <div class="field">
-        <div class="config-activa-label">Config activa<span class="config-activa-badge" id="configActivaBadge">● EN USO</span></div>
+        <div class="config-activa-label">Config activa<span class="config-activa-badge" id="configActivaBadge">&#9679; EN USO</span></div>
         <div class="config-activa-box" id="configActivaPanel">
           <div class="config-activa-datos" id="configActiva">Sin datos</div>
         </div>
@@ -305,7 +314,7 @@
   <div class="log-panel">
     <div class="log-header">
       <h2>Logs</h2>
-      <button class="btn-secondary" onclick="fetchLogs()">↻ Actualizar</button>
+      <button class="btn-secondary" onclick="fetchLogs()">&#8635; Actualizar</button>
     </div>
     <div class="log-box" id="logBox"><div class="log-line info">Inicia el bot para ver los logs...</div></div>
   </div>
@@ -316,7 +325,7 @@
       <div id="historialTabla"><div style="color:var(--muted);font-size:12px;">Sin ciclos aun...</div></div>
     </div>
     <div class="historial-panel">
-      <h2>🏆 Leaderboard</h2>
+      <h2>&#127942; Leaderboard</h2>
       <div class="tabs3">
         <button class="tab3 active" onclick="switchLbPeriodo('hoy')">Hoy</button>
         <button class="tab3" onclick="switchLbPeriodo('mes')">Mes</button>
@@ -334,20 +343,20 @@
 <!-- ── MODAL RPC ── -->
 <div class="modal-overlay" id="modalRPC">
   <div class="modal">
-    <h3>🔌 Configurar RPC</h3>
-    <p>El RPC es la conexión a la blockchain de Polygon. Si tu bot tiene errores 429 o timeouts, cambia el RPC aquí. Puedes probar la latencia antes de guardar.</p>
+    <h3>&#128299; Configurar RPC</h3>
+    <p>El RPC es la conexion a la blockchain de Polygon. Si tu bot tiene errores 429 o timeouts, cambia el RPC aqui. Puedes probar la latencia antes de guardar.</p>
     <div id="rpcPresetsList"></div>
     <div class="rpc-custom-section">
       <label>RPC personalizado</label>
       <input type="text" id="rpcCustomInput" placeholder="https://tu-rpc-personalizado.com/v2/API_KEY"/>
       <button onclick="testRPC(document.getElementById('rpcCustomInput').value)" style="width:100%;padding:9px;border-radius:6px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;flex:none;">
-        🔍 Probar RPC personalizado
+        &#128269; Probar RPC personalizado
       </button>
       <div class="test-result" id="testResultCustom"></div>
     </div>
     <div class="modal-btns">
       <button class="btn-modal-cancel" onclick="cerrarModalRPC()">Cancelar</button>
-      <button class="btn-modal-save" onclick="guardarRPC()">💾 Guardar RPC</button>
+      <button class="btn-modal-save" onclick="guardarRPC()">&#128190; Guardar RPC</button>
     </div>
     <div id="rpcSaveResult" style="font-size:12px;margin-top:10px;text-align:center;"></div>
   </div>
@@ -366,7 +375,6 @@ let botEstabaActivo = null;
 let rpcSeleccionado = '';
 let rpcPresets = [];
 
-// ── NOTIFICACIONES / SONIDO ───────────────────────────────────────────────────
 function pedirPermisoNotificaciones() {
   if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
 }
@@ -406,7 +414,24 @@ function mostrarRegistroManual(){
   document.getElementById('walletInput').value='';
 }
 
-// ── RPC ───────────────────────────────────────────────────────────────────────
+// ── SISTEMA DE VERSIONES ──────────────────────────────────────
+async function fetchVersionBanner() {
+  try {
+    const r = await fetch(BOT_URL + '/version');
+    const data = await r.json();
+    const versionLocal = data.version || '';
+    const rc = await fetch('https://evoxbot.evoxverse.com/version');
+    const dataC = await rc.json();
+    const versionServidor = dataC.version || '';
+    if (versionServidor && versionLocal && versionServidor !== versionLocal) {
+      document.getElementById('versionBannerMsg').textContent =
+        'Nueva version: v' + versionServidor + ' — Tu version: v' + versionLocal;
+      document.getElementById('versionBanner').classList.add('visible');
+    }
+  } catch(e) {}
+}
+// ─────────────────────────────────────────────────────────────
+
 async function fetchRPCInfo() {
   try {
     const r    = await fetch(BOT_URL + '/rpc/list');
@@ -414,7 +439,6 @@ async function fetchRPCInfo() {
     rpcPresets      = data.presets || [];
     rpcSeleccionado = data.rpc_actual || '';
     document.getElementById('rpcCurrent').textContent = rpcSeleccionado;
-    // Medir latencia del RPC actual en background
     testRPCLatencia(rpcSeleccionado);
   } catch(e){}
 }
@@ -454,9 +478,7 @@ function abrirModalRPC() {
   document.getElementById('modalRPC').classList.add('open');
 }
 
-function cerrarModalRPC() {
-  document.getElementById('modalRPC').classList.remove('open');
-}
+function cerrarModalRPC() { document.getElementById('modalRPC').classList.remove('open'); }
 
 function seleccionarPreset(url, idx) {
   rpcSeleccionado = url;
@@ -467,22 +489,13 @@ function seleccionarPreset(url, idx) {
 
 async function testPreset(idx, url) {
   const el = document.getElementById('ping_' + idx);
-  el.textContent = 'Probando...';
-  el.style.color = 'var(--muted)';
+  el.textContent = 'Probando...'; el.style.color = 'var(--muted)';
   try {
     const r    = await fetch(BOT_URL + '/rpc/test', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
     const data = await r.json();
-    if (data.ok) {
-      el.textContent = '✅ ' + data.latencia_ms + 'ms';
-      el.style.color = data.latencia_ms < 800 ? 'var(--accent)' : '#f5c518';
-    } else {
-      el.textContent = '❌ Falla';
-      el.style.color = 'var(--accent2)';
-    }
-  } catch(e) {
-    el.textContent = '❌ Error';
-    el.style.color = 'var(--accent2)';
-  }
+    if (data.ok) { el.textContent = '✅ ' + data.latencia_ms + 'ms'; el.style.color = data.latencia_ms < 800 ? 'var(--accent)' : '#f5c518'; }
+    else { el.textContent = '❌ Falla'; el.style.color = 'var(--accent2)'; }
+  } catch(e) { el.textContent = '❌ Error'; el.style.color = 'var(--accent2)'; }
 }
 
 async function testRPC(url) {
@@ -492,14 +505,8 @@ async function testRPC(url) {
   try {
     const r    = await fetch(BOT_URL + '/rpc/test', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
     const data = await r.json();
-    if (data.ok) {
-      el.textContent = '✅ ' + data.msg + ' — ' + data.latencia_ms + 'ms — Bloque #' + data.bloque;
-      el.style.color = 'var(--accent)';
-      rpcSeleccionado = url;
-    } else {
-      el.textContent = '❌ ' + data.msg;
-      el.style.color = 'var(--accent2)';
-    }
+    if (data.ok) { el.textContent = '✅ ' + data.msg + ' — ' + data.latencia_ms + 'ms — Bloque #' + data.bloque; el.style.color = 'var(--accent)'; rpcSeleccionado = url; }
+    else { el.textContent = '❌ ' + data.msg; el.style.color = 'var(--accent2)'; }
   } catch(e) { el.textContent = 'Error: ' + e.message; el.style.color = 'var(--accent2)'; }
 }
 
@@ -511,20 +518,11 @@ async function guardarRPC() {
     const r    = await fetch(BOT_URL + '/rpc/set', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
     const data = await r.json();
     const el   = document.getElementById('rpcSaveResult');
-    if (data.ok) {
-      el.style.color   = 'var(--accent)';
-      el.textContent   = '✅ RPC guardado!';
-      document.getElementById('rpcCurrent').textContent = url;
-      testRPCLatencia(url);
-      setTimeout(cerrarModalRPC, 1200);
-    } else {
-      el.style.color = 'var(--accent2)';
-      el.textContent = '❌ ' + data.msg;
-    }
+    if (data.ok) { el.style.color = 'var(--accent)'; el.textContent = '✅ RPC guardado!'; document.getElementById('rpcCurrent').textContent = url; testRPCLatencia(url); setTimeout(cerrarModalRPC, 1200); }
+    else { el.style.color = 'var(--accent2)'; el.textContent = '❌ ' + data.msg; }
   } catch(e) { showToast('Error: ' + e.message, 'err'); }
 }
 
-// ── LEADERBOARD ───────────────────────────────────────────────────────────────
 function switchLbPeriodo(periodo) {
   lbPeriodo = periodo;
   document.querySelectorAll('.tab3').forEach((t,i)=>t.classList.toggle('active',['hoy','mes','historico'][i]===periodo));
@@ -550,7 +548,6 @@ function renderLeaderboard() {
   }
 }
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
 function getMinRango(){const au=parseFloat(document.getElementById('amountUsdt').value)||0;return au<=10?3:4;}
 function calcularPorcentaje(){
   const rb=parseFloat(document.getElementById('rangoBajo').value);
@@ -654,10 +651,11 @@ function entrarApp(nombre){
   document.getElementById('walletBadge').textContent=userWallet.slice(0,6)+'...'+userWallet.slice(-4);
   document.getElementById('nombreBienvenida').textContent=nombre||'';
   pedirPermisoNotificaciones();
+  fetchVersionBanner();
   fetchRPCInfo();fetchPrecio();fetchStatus();fetchHistorial();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();
   setInterval(fetchPrecio,15000);
   setInterval(()=>{fetchStatus();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();},15000);
-  setInterval(fetchRPCInfo, 60000); // actualizar latencia cada minuto
+  setInterval(fetchRPCInfo, 60000);
 }
 
 async function fetchPrecio(){
@@ -762,7 +760,6 @@ function actualizarUI(data){
     cfgEl.innerHTML='Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+'<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
     if(data.activo){cfgEl.classList.add('activo');cfgPanel.classList.add('activo');badge.style.display='inline-block';}
     else{cfgEl.classList.remove('activo');cfgPanel.classList.remove('activo');badge.style.display='none';}
-    // Mostrar RPC activo en config
     if(data.rpc_url){cfgEl.innerHTML+='<br><span style="color:var(--accent3);font-size:10px;">RPC: '+data.rpc_url.replace('https://','').split('/')[0]+'</span>';}
   }
   document.getElementById('btnStart').disabled=data.activo;

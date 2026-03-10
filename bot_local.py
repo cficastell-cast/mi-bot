@@ -27,6 +27,10 @@ CONFIG_FILE = os.path.join(BASE_DIR, "evox_config.json")
 # ─── SERVIDOR CENTRAL (Railway) ───────────────────────────────────────────────
 CENTRAL_URL = os.environ.get("CENTRAL_URL", "https://evoxbot.evoxverse.com")
 
+# ── SISTEMA DE VERSIONES ──────────────────────────────────────
+VERSION_LOCAL = "1.0.0"
+# ─────────────────────────────────────────────────────────────
+
 # ─── CONTRATOS POLYGON ────────────────────────────────────────────────────────
 USDT_ADDRESS  = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
 CNKT_ADDRESS  = "0x87bdfbe98ba55104701b2f2e999982a317905637"
@@ -64,7 +68,6 @@ def cargar_config():
                 defaults.update(saved)
     except:
         pass
-    # Generar encrypt key si no existe
     if not defaults["encrypt_key"]:
         defaults["encrypt_key"] = Fernet.generate_key().decode()
         guardar_config(defaults)
@@ -165,14 +168,13 @@ def cargar_historial():
 def guardar_ciclo_local(ciclo):
     h = cargar_historial()
     h["ciclos"].insert(0, ciclo)
-    h["ciclos"] = h["ciclos"][:200]  # max 200 ciclos locales
+    h["ciclos"] = h["ciclos"][:200]
     h["ganancia_acumulada"] = h.get("ganancia_acumulada", 0) + ciclo["ganancia_usdt"]
     with open(HISTORIAL_FILE, "w") as f:
         json.dump(h, f, indent=2)
     return h["ganancia_acumulada"]
 
 def reportar_ciclo_central(wallet, nombre, ciclo):
-    """Reporta el ciclo al servidor central para leaderboard."""
     try:
         requests.post(
             CENTRAL_URL + "/reportar_ciclo",
@@ -180,7 +182,7 @@ def reportar_ciclo_central(wallet, nombre, ciclo):
             timeout=10
         )
     except:
-        pass  # Si el servidor no está disponible, no importa
+        pass
 
 # ─── BOT ──────────────────────────────────────────────────────────────────────
 bots_activos = {}
@@ -461,6 +463,25 @@ def iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt,
     with bots_lock:
         bots_activos[wallet] = {"thread": t, "stop_event": stop_event, "estado": estado}
 
+# ── SISTEMA DE VERSIONES ──────────────────────────────────────
+def chequear_version():
+    """Consulta el servidor central y avisa si hay nueva version disponible."""
+    try:
+        r = requests.get(CENTRAL_URL + "/version", timeout=8)
+        data = r.json()
+        version_servidor = data.get("version", "")
+        if version_servidor and version_servidor != VERSION_LOCAL:
+            print("=" * 50)
+            print("  !NUEVA VERSION DISPONIBLE: " + version_servidor + "!")
+            print("  Tu version: " + VERSION_LOCAL)
+            print("  Descarga en: evoxbot.evoxverse.com")
+            print("=" * 50)
+        else:
+            print("EVOX Bot v" + VERSION_LOCAL + " — version al dia.")
+    except Exception as e:
+        print("No se pudo verificar version: " + str(e))
+# ─────────────────────────────────────────────────────────────
+
 # ─── ENDPOINTS ────────────────────────────────────────────────────────────────
 
 @app.route("/precio", methods=["GET"])
@@ -468,9 +489,12 @@ def precio_endpoint():
     precio = get_precio_actual()
     return jsonify({"ok": precio > 0, "precio": precio})
 
+@app.route("/version", methods=["GET"])
+def version():
+    return jsonify({"version": VERSION_LOCAL})
+
 @app.route("/rpc/list", methods=["GET"])
 def rpc_list():
-    """Devuelve los presets de RPC disponibles y el RPC activo."""
     return jsonify({
         "ok": True,
         "rpc_actual": get_rpc_url(),
@@ -479,11 +503,10 @@ def rpc_list():
 
 @app.route("/rpc/test", methods=["POST"])
 def rpc_test():
-    """Prueba si un RPC funciona y devuelve latencia."""
     data = request.json or {}
     url  = data.get("url", "").strip()
     if not url:
-        return jsonify({"ok": False, "msg": "URL vacía"})
+        return jsonify({"ok": False, "msg": "URL vacia"})
     try:
         inicio = time.time()
         w3     = Web3(Web3.HTTPProvider(url, request_kwargs={"timeout": 8}))
@@ -495,14 +518,12 @@ def rpc_test():
 
 @app.route("/rpc/set", methods=["POST"])
 def rpc_set():
-    """Guarda el RPC seleccionado en la config local."""
     data = request.json or {}
     url  = data.get("url", "").strip()
     if not url:
-        return jsonify({"ok": False, "msg": "URL vacía"})
+        return jsonify({"ok": False, "msg": "URL vacia"})
     config["rpc_url"] = url
     guardar_config(config)
-    # Forzar recreación de w3
     global _w3, _w3_rpc
     with _w3_lock:
         _w3     = None
@@ -534,7 +555,6 @@ def registro():
     config["wallet"] = wallet
     config["nombre"] = nombre
     guardar_config(config)
-    # Registrar también en servidor central para leaderboard
     try:
         requests.post(CENTRAL_URL + "/registro_externo",
                       json={"wallet": wallet, "nombre": nombre}, timeout=8)
@@ -644,7 +664,7 @@ def stop(wallet):
         bots_activos[wallet]["estado"]["activo"] = False
     return jsonify({"ok": True, "msg": "Deteniendo bot..."})
 
-# ─── SEÑALES (proxy al servidor central) ─────────────────────────────────────
+# ─── SEÑALES (proxy al servidor central) ─────────────────────
 @app.route("/senal", methods=["GET"])
 def get_senal():
     try:
@@ -693,6 +713,7 @@ for img in ["icon", "evox", "charlie", "susan"]:
 if __name__ == "__main__":
     t_precio = threading.Thread(target=loop_precio_global, daemon=True)
     t_precio.start()
+    chequear_version()
     print("=" * 50)
     print("  EVOX Bot — corriendo localmente")
     print("  RPC: " + get_rpc_url())
