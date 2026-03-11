@@ -18,62 +18,57 @@
   header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border)}
   h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px}
   h1 span{color:var(--accent)}
-  .version-badge{font-family:'Space Mono',monospace;font-size:11px;font-weight:400;color:var(--muted);margin-left:8px;vertical-align:middle}
+  .version-badge{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-left:8px;vertical-align:middle}
   .status-pill{display:flex;align-items:center;gap:8px;padding:6px 16px;border-radius:100px;border:1px solid var(--border);font-size:13px}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background 0.3s}
   .dot.on{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.5s infinite}
   .dot.off{background:var(--accent2)}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-  /* ── BANNER DE NUEVA VERSION ─────────────────────────────────── */
+
+  /* ── OVERLAY ─────────────────────────────────────────────── */
+  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;overflow-y:auto;padding:24px}
+  .box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:40px;width:100%;max-width:420px;text-align:center;margin:auto}
+  .box h2{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:8px}
+  .box p{color:var(--muted);font-size:12px;margin-bottom:20px;line-height:1.7}
+  .logo-box{display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+  .logo-box img{width:72px;height:72px;border-radius:16px}
+  .field-group{text-align:left;margin-bottom:14px}
+  .field-group label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .field-group input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;padding:11px 14px;border-radius:8px;outline:none;transition:border-color 0.2s}
+  .field-group input:focus{border-color:var(--accent)}
+  .btn-main{width:100%;background:var(--accent);color:#0a0a0f;padding:13px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px;transition:filter 0.2s}
+  .btn-main:hover{filter:brightness(1.1)}
+  .btn-outline{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:11px;border-radius:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;transition:all 0.2s}
+  .btn-outline:hover{border-color:var(--accent3);color:var(--accent3)}
+  .divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+  .link-nuevo{font-size:12px;color:var(--muted);margin-top:8px;display:block}
+  .link-nuevo span{color:var(--accent3);cursor:pointer;text-decoration:underline}
+  .disclaimer{background:rgba(255,110,127,0.05);border:1px solid rgba(255,110,127,0.2);border-radius:8px;padding:14px;margin-bottom:16px;text-align:left;font-size:11px;color:var(--accent2);line-height:1.9}
+  .error-msg{color:var(--accent2);font-size:12px;margin-top:10px;min-height:18px;line-height:1.5}
+  .step-dots{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+  .step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background 0.3s}
+  .step-dot.active{background:var(--accent)}
+
+  /* ── BANNER VERSION ──────────────────────────────────────── */
   .version-banner{display:none;position:fixed;top:0;left:0;width:100%;z-index:990;background:linear-gradient(90deg,#1a3d1a,#0d2b0d);border-bottom:2px solid var(--accent);padding:10px 20px;text-align:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--accent);letter-spacing:0.5px;animation:slideDown 0.4s ease}
   .version-banner.visible{display:block}
   @keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
-  .version-banner a{color:var(--accent);text-decoration:underline;margin-left:8px;cursor:pointer}
+  .version-banner a{color:var(--accent);text-decoration:underline;margin-left:8px}
   .version-banner-close{float:right;cursor:pointer;opacity:0.7;font-size:18px;line-height:1;margin-left:16px}
-  .version-banner-close:hover{opacity:1}
-  /* ── RPC Panel ── */
-  .rpc-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap}
-  .rpc-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
-  .rpc-current{font-size:12px;color:var(--accent3);flex:1;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rpc-latency{font-size:11px;padding:3px 8px;border-radius:100px;border:1px solid var(--border);white-space:nowrap}
-  .rpc-latency.good{color:var(--accent);border-color:rgba(127,255,110,0.3)}
-  .rpc-latency.bad{color:var(--accent2);border-color:rgba(255,110,127,0.3)}
-  .btn-rpc{background:transparent;border:1px solid var(--accent3);color:var(--accent3);padding:6px 14px;border-radius:6px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
-  .btn-rpc:hover{background:var(--accent3);color:#0a0a0f}
-  /* ── Modal RPC ── */
-  .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,15,0.85);display:none;align-items:center;justify-content:center;z-index:900;backdrop-filter:blur(4px)}
-  .modal-overlay.open{display:flex}
-  .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
-  .modal h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:6px}
-  .modal p{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.7}
-  .rpc-preset{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:all 0.2s}
-  .rpc-preset:hover{border-color:var(--accent3)}
-  .rpc-preset.selected{border-color:var(--accent);background:rgba(127,255,110,0.04)}
-  .rpc-preset-name{font-size:12px;font-weight:700;margin-bottom:2px}
-  .rpc-preset-url{font-size:10px;color:var(--muted);word-break:break-all}
-  .rpc-preset-ping{font-size:11px;padding:2px 8px;border-radius:100px}
-  .rpc-custom-section{margin-top:16px}
-  .rpc-custom-section label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-  .rpc-custom-section input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;padding:10px 12px;border-radius:6px;outline:none;margin-bottom:8px}
-  .rpc-custom-section input:focus{border-color:var(--accent)}
-  .modal-btns{display:flex;gap:10px;margin-top:16px}
-  .btn-modal-save{flex:1;padding:11px;border-radius:8px;border:none;background:var(--accent);color:#0a0a0f;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
-  .btn-modal-save:hover{filter:brightness(1.1)}
-  .btn-modal-cancel{flex:1;padding:11px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
-  .btn-modal-cancel:hover{border-color:var(--accent2);color:var(--accent2)}
-  .test-result{font-size:12px;min-height:18px;margin-top:4px;line-height:1.5}
+
+  /* ── SEÑAL ───────────────────────────────────────────────── */
   .senal-box{display:none;margin-bottom:20px;border-radius:10px;padding:14px 18px;border:1px solid var(--border);background:var(--surface)}
   .senal-box.cat-rango{border-color:rgba(110,159,255,0.4);background:rgba(110,159,255,0.05)}
   .senal-box.cat-mercado{border-color:rgba(245,197,24,0.4);background:rgba(245,197,24,0.05)}
   .senal-box.cat-oportunidad{border-color:rgba(127,255,110,0.4);background:rgba(127,255,110,0.05)}
   .senal-box.cat-riesgo{border-color:rgba(255,110,127,0.4);background:rgba(255,110,127,0.05)}
-  .senal-box.cat-general{border-color:rgba(232,232,240,0.2);background:rgba(232,232,240,0.03)}
   .senal-inner{display:flex;align-items:center;gap:14px}
   .senal-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0}
-  .senal-body{flex:1}
   .senal-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:4px}
-  .senal-msg{font-size:12px;color:var(--text);line-height:1.6}
+  .senal-msg{font-size:12px;line-height:1.6}
   .senal-hora{font-size:10px;color:var(--muted);margin-top:4px}
+
+  /* ── CARDS ───────────────────────────────────────────────── */
   .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
   .card-label{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
@@ -83,6 +78,8 @@
   .gan-hoy{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
   .gan-acum{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted)}
   .gan-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+  /* ── PANELS ──────────────────────────────────────────────── */
   .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
   .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
   .panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
@@ -101,15 +98,27 @@
   .btn-stop:disabled{opacity:0.3;cursor:not-allowed}
   .btn-secondary{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;font-size:12px;flex:none}
   .btn-secondary:hover{border-color:var(--accent3);color:var(--accent3)}
+
+  /* ── ESTADO ──────────────────────────────────────────────── */
   .stat-doble{display:flex;gap:12px}
   .stat-doble-item{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center}
   .stat-doble-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
   .stat-doble-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}
+  .config-activa-box{border-radius:8px;padding:10px 12px;border:1px solid var(--border);transition:all 0.4s}
+  .config-activa-box.activo{border-color:rgba(127,255,110,0.35);background:rgba(127,255,110,0.04)}
+  .config-activa-badge{display:none;font-size:9px;font-family:'Syne',sans-serif;font-weight:700;color:#0a0a0f;background:var(--accent);padding:2px 7px;border-radius:100px;margin-left:6px;vertical-align:middle;letter-spacing:1px}
+  .config-activa-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .config-activa-datos{font-size:12px;color:var(--muted);line-height:1.9;transition:color 0.3s}
+  .config-activa-datos.activo{color:var(--accent)}
+
+  /* ── LOGS ────────────────────────────────────────────────── */
   .log-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
   .log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .log-header h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted)}
   .log-box{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;height:200px;overflow-y:auto;font-size:12px;line-height:1.8}
   .log-line{color:var(--muted)}.log-line.compra{color:var(--accent)}.log-line.venta{color:var(--accent2)}.log-line.error{color:var(--accent2)}.log-line.info{color:var(--accent3)}
+
+  /* ── BOTTOM PANELS ───────────────────────────────────────── */
   .bottom-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
   .historial-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px}
   .historial-panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
@@ -125,32 +134,21 @@
   .tabs3{display:flex;gap:0;margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
   .tab3{flex:1;padding:7px;background:transparent;border:none;color:var(--muted);font-family:'Syne',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s}
   .tab3.active{background:var(--accent3);color:#0a0a0f}
-  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;overflow-y:auto}
-  .box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;width:400px;text-align:center;margin:auto}
-  .box h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
-  .box p{color:var(--muted);font-size:12px;margin-bottom:20px;line-height:1.7}
-  .box input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;padding:12px;border-radius:8px;outline:none;margin-bottom:12px}
-  .box input:focus{border-color:var(--accent)}
-  .btn-main{width:100%;background:var(--accent);color:#0a0a0f;padding:12px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px}
-  .btn-main:hover{filter:brightness(1.1)}
-  .btn-outline{width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px;border-radius:8px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px}
-  .btn-outline:hover{border-color:var(--accent3);color:var(--accent3)}
-  .disclaimer{background:rgba(255,110,127,0.05);border:1px solid rgba(255,110,127,0.2);border-radius:8px;padding:14px;margin-bottom:16px;text-align:left;font-size:11px;color:var(--accent2);line-height:1.8}
+
+  /* ── PADAWAN ─────────────────────────────────────────────── */
+  .nombre-bienvenida{font-size:12px;color:var(--accent);margin-right:8px}
   .wallet-badge{font-size:11px;color:var(--muted)}
+
+  /* ── TOAST ───────────────────────────────────────────────── */
   .toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 20px;font-size:13px;z-index:1000;opacity:0;transform:translateY(10px);transition:all 0.3s;pointer-events:none}
   .toast.show{opacity:1;transform:translateY(0)}.toast.ok{border-color:var(--accent);color:var(--accent)}.toast.err{border-color:var(--accent2);color:var(--accent2)}
-  .step-indicator{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
-  .step{width:8px;height:8px;border-radius:50%;background:var(--border)}
-  .step.active{background:var(--accent)}
-  .nombre-bienvenida{font-size:12px;color:var(--accent);margin-right:8px}
-  .logo-box{display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-  .logo-box img{width:72px;height:72px;border-radius:16px}
-  .config-activa-box{border-radius:8px;padding:10px 12px;border:1px solid var(--border);transition:all 0.4s}
-  .config-activa-box.activo{border-color:rgba(127,255,110,0.35);background:rgba(127,255,110,0.04)}
-  .config-activa-badge{display:none;font-size:9px;font-family:'Syne',sans-serif;font-weight:700;color:#0a0a0f;background:var(--accent);padding:2px 7px;border-radius:100px;margin-left:6px;vertical-align:middle;letter-spacing:1px}
-  .config-activa-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-  .config-activa-datos{font-size:12px;color:var(--muted);line-height:1.9;transition:color 0.3s}
-  .config-activa-datos.activo{color:var(--accent)}
+
+  /* ── RESPONSIVE ──────────────────────────────────────────── */
+  @media(max-width:700px){
+    .cards{grid-template-columns:1fr 1fr}
+    .panels,.bottom-panels{grid-template-columns:1fr}
+    body{padding:16px}
+  }
 </style>
 </head>
 <body>
@@ -160,64 +158,86 @@
 <div class="version-banner" id="versionBanner">
   <span class="version-banner-close" onclick="document.getElementById('versionBanner').classList.remove('visible')">&#10005;</span>
   &#128640; <span id="versionBannerMsg">Nueva version disponible</span>
-  &mdash; <a href="https://evoxbot.evoxverse.com" target="_blank">Descargar ahora</a>
 </div>
-<!-- ── OVERLAYS LOGIN/REGISTRO (sin cambios) ── -->
-<div class="overlay" id="overlayInicio">
+
+<!-- ══════════════════════════════════════════════════════════
+     OVERLAY LOGIN (pantalla principal)
+══════════════════════════════════════════════════════════ -->
+<div class="overlay" id="overlayLogin">
   <div class="box">
     <div class="logo-box"><img src="/icon.png" alt="EVOX Bot"/></div>
-    <div class="step-indicator"><div class="step active"></div><div class="step"></div></div>
     <h2>EVOX <span style="color:var(--accent)">Bot</span></h2>
-    <p>Conecta tu wallet o inicia sesion con tu cuenta.</p>
-    <div class="disclaimer">
-      &#9888; USA UNA WALLET DEDICADA<br>
-      &bull; Crea una wallet nueva en MetaMask<br>
-      &bull; NUNCA uses tu wallet principal<br>
-      &bull; Transfiere solo lo que vas a operar<br>
-      &bull; EVOX no es responsable de perdidas<br>
-      &bull; Tu key se guarda encriptada en TU PC
+    <p>Ingresa tu wallet y contrasena para continuar.</p>
+    <div class="field-group">
+      <label>Wallet Address</label>
+      <input type="text" id="loginWallet" placeholder="0x...tu wallet address" autocomplete="off"/>
     </div>
-    <button class="btn-main" onclick="conectarMetamask()">&#129410; Conectar MetaMask</button>
-    <button class="btn-outline" onclick="mostrarLogin()">&#128273; Ya tengo cuenta</button>
-    <div id="inicioError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
-  </div>
-</div>
-
-<div class="overlay" id="overlayLogin" style="display:none">
-  <div class="box">
-    <div class="logo-box"><img src="/icon.png" alt="EVOX Bot"/></div>
-    <h2>Iniciar <span style="color:var(--accent)">Sesion</span></h2>
-    <p>Ingresa tu wallet address y contrasena.</p>
-    <input type="text" id="loginWallet" placeholder="0x... tu wallet address"/>
-    <input type="password" id="loginPassword" placeholder="Tu contrasena" onkeydown="if(event.key==='Enter') doLogin()"/>
+    <div class="field-group">
+      <label>Contrasena</label>
+      <input type="password" id="loginPassword" placeholder="Tu contrasena"
+             onkeydown="if(event.key==='Enter') doLogin()"/>
+    </div>
     <button class="btn-main" onclick="doLogin()">ENTRAR</button>
-    <button class="btn-outline" onclick="mostrarRegistroManual()">&#128221; Registrarme por primera vez</button>
-    <button class="btn-outline" onclick="volverInicio()">&#8592; Volver</button>
-    <div id="loginError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
+    <div id="loginError" class="error-msg"></div>
+    <hr class="divider"/>
+    <p class="link-nuevo">&#128290; Soy usuario nuevo &mdash;
+      <span onclick="mostrarRegistro()">Crear mi cuenta</span>
+    </p>
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════
+     OVERLAY REGISTRO
+══════════════════════════════════════════════════════════ -->
 <div class="overlay" id="overlayRegistro" style="display:none">
   <div class="box">
     <div class="logo-box"><img src="/icon.png" alt="EVOX Bot"/></div>
-    <div class="step-indicator"><div class="step"></div><div class="step active"></div></div>
-    <h2>Activa tu <span style="color:var(--accent)">Bot</span></h2>
-    <p id="walletDetectada" style="color:var(--accent);font-size:12px;margin-bottom:8px;"></p>
-    <p style="margin-bottom:16px;">Confirma tu wallet, elige nombre, crea contrasena y pega tu private key.</p>
-    <input type="text" id="walletInput" placeholder="0x... confirma tu wallet address"/>
-    <input type="text" id="botNombre" placeholder="Tu nombre (ej: El Mistico)" maxlength="50"/>
-    <input type="password" id="botPassword" placeholder="Crea una contrasena (min 6 caracteres)"/>
-    <input type="password" id="botPasswordConfirm" placeholder="Confirma tu contrasena"/>
-    <input type="password" id="botPrivateKey" placeholder="Private key de tu wallet"/>
-    <button class="btn-main" onclick="registrar()">ACTIVAR BOT</button>
-    <div id="registroError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
+    <div class="step-dots">
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
+    </div>
+    <h2>Crear <span style="color:var(--accent)">Cuenta</span></h2>
+    <p>Completa todos los campos para activar tu bot.<br>Usa una <strong style="color:var(--accent2)">wallet dedicada</strong>, nunca tu wallet principal.</p>
+    <div class="disclaimer">
+      &#9888; USA UNA WALLET NUEVA<br>
+      &bull; Crea una wallet exclusiva para el bot<br>
+      &bull; NUNCA uses tu wallet principal<br>
+      &bull; Transfiere solo lo que vas a operar<br>
+      &bull; Tu key se encripta en el servidor<br>
+      &bull; EVOX no es responsable de perdidas
+    </div>
+    <div class="field-group">
+      <label>Wallet Address</label>
+      <input type="text" id="regWallet" placeholder="0x...tu wallet address"/>
+    </div>
+    <div class="field-group">
+      <label>Nombre de tu Bot</label>
+      <input type="text" id="regNombre" placeholder="Ej: El Mistico" maxlength="50"/>
+    </div>
+    <div class="field-group">
+      <label>Contrasena (min. 6 caracteres)</label>
+      <input type="password" id="regPassword" placeholder="Crea tu contrasena"/>
+    </div>
+    <div class="field-group">
+      <label>Confirmar Contrasena</label>
+      <input type="password" id="regPasswordConfirm" placeholder="Repite tu contrasena"/>
+    </div>
+    <div class="field-group">
+      <label>Private Key</label>
+      <input type="password" id="regPrivateKey" placeholder="Tu private key (0x...)"/>
+    </div>
+    <button class="btn-main" onclick="registrar()">ACTIVAR MI BOT</button>
+    <button class="btn-outline" onclick="volverLogin()">&#8592; Ya tengo cuenta</button>
+    <div id="registroError" class="error-msg"></div>
   </div>
 </div>
 
-<!-- ── APP PRINCIPAL ── -->
+<!-- ══════════════════════════════════════════════════════════
+     APP PRINCIPAL
+══════════════════════════════════════════════════════════ -->
 <div class="container" id="mainApp" style="display:none">
   <header>
-    <h1>EVOX <span>Bot</span><span class="version-badge" id="versionBadge">v1.0.0</span></h1>
+    <h1>EVOX <span>Bot</span><span class="version-badge" id="versionBadge">v2.0.0</span></h1>
     <div style="display:flex;gap:12px;align-items:center;">
       <span class="nombre-bienvenida" id="nombreBienvenida"></span>
       <div class="wallet-badge" id="walletBadge"></div>
@@ -228,19 +248,11 @@
     </div>
   </header>
 
-  <!-- ── BARRA RPC ── -->
-  <div class="rpc-bar">
-    <span class="rpc-label">&#128299; RPC</span>
-    <span class="rpc-current" id="rpcCurrent">Cargando...</span>
-    <span class="rpc-latency" id="rpcLatency">&#8212; ms</span>
-    <button class="btn-rpc" onclick="abrirModalRPC()">Cambiar RPC</button>
-  </div>
-
-  <!-- ── SEÑAL ── -->
+  <!-- SEÑAL -->
   <div class="senal-box" id="senalBox">
     <div class="senal-inner">
       <img class="senal-avatar" id="senalAvatar" src="/icon.png" alt=""/>
-      <div class="senal-body">
+      <div>
         <div class="senal-title" id="senalTitle"></div>
         <div class="senal-msg" id="senalMsg"></div>
         <div class="senal-hora" id="senalHora"></div>
@@ -248,6 +260,7 @@
     </div>
   </div>
 
+  <!-- CARDS -->
   <div class="cards">
     <div class="card"><div class="card-label">Precio CNKT</div><div class="card-value blue" id="statPrecio">&#8212;</div></div>
     <div class="card"><div class="card-label">USDT</div><div class="card-value" id="statUSDT">&#8212;</div></div>
@@ -262,6 +275,7 @@
     </div>
   </div>
 
+  <!-- PANELS -->
   <div class="panels">
     <div class="panel">
       <h2>Configuracion</h2>
@@ -278,18 +292,23 @@
         <label>Capital USDT</label>
         <input type="number" id="amountUsdt" placeholder="10" oninput="calcularPorcentaje()">
       </div>
-      <div class="field"><label>Stop Loss (%)</label><input type="number" id="stopZona" placeholder="3" step="1"></div>
+      <div class="field">
+        <label>Stop Loss (%)</label>
+        <input type="number" id="stopZona" placeholder="3" step="1">
+      </div>
       <div class="btn-row">
         <button class="btn-start" id="btnStart" onclick="startBot()">&#9654; INICIAR</button>
-        <button class="btn-stop" id="btnStop" onclick="stopBot()" disabled>&#9632; DETENER</button>
+        <button class="btn-stop"  id="btnStop"  onclick="stopBot()" disabled>&#9632; DETENER</button>
       </div>
       <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
-        <button id="btnPadawan" onclick="togglePadawan()" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+        <button id="btnPadawan" onclick="togglePadawan()"
+          style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
           &#127891; Activar Modo Padawan
         </button>
         <div id="padawanStatus" style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center;"></div>
       </div>
     </div>
+
     <div class="panel">
       <h2>Estado</h2>
       <div class="field">
@@ -299,12 +318,21 @@
       <div class="field">
         <label>Ciclos</label>
         <div class="stat-doble">
-          <div class="stat-doble-item"><div class="stat-doble-label">Hoy</div><div class="stat-doble-val" style="color:var(--accent3)" id="ciclosHoy">&#8212;</div></div>
-          <div class="stat-doble-item"><div class="stat-doble-label">Total</div><div class="stat-doble-val" style="color:var(--accent3)" id="ciclosTotal">&#8212;</div></div>
+          <div class="stat-doble-item">
+            <div class="stat-doble-label">Hoy</div>
+            <div class="stat-doble-val" style="color:var(--accent3)" id="ciclosHoy">&#8212;</div>
+          </div>
+          <div class="stat-doble-item">
+            <div class="stat-doble-label">Total</div>
+            <div class="stat-doble-val" style="color:var(--accent3)" id="ciclosTotal">&#8212;</div>
+          </div>
         </div>
       </div>
       <div class="field">
-        <div class="config-activa-label">Config activa<span class="config-activa-badge" id="configActivaBadge">&#9679; EN USO</span></div>
+        <div class="config-activa-label">
+          Config activa
+          <span class="config-activa-badge" id="configActivaBadge">&#9679; EN USO</span>
+        </div>
         <div class="config-activa-box" id="configActivaPanel">
           <div class="config-activa-datos" id="configActiva">Sin datos</div>
         </div>
@@ -312,14 +340,18 @@
     </div>
   </div>
 
+  <!-- LOGS -->
   <div class="log-panel">
     <div class="log-header">
       <h2>Logs</h2>
       <button class="btn-secondary" onclick="fetchLogs()">&#8635; Actualizar</button>
     </div>
-    <div class="log-box" id="logBox"><div class="log-line info">Inicia el bot para ver los logs...</div></div>
+    <div class="log-box" id="logBox">
+      <div class="log-line info">Inicia el bot para ver los logs...</div>
+    </div>
   </div>
 
+  <!-- HISTORIAL + LEADERBOARD -->
   <div class="bottom-panels">
     <div class="historial-panel">
       <h2>Mi Historial</h2>
@@ -341,342 +373,159 @@
   </div>
 </div>
 
-<!-- ── MODAL RPC ── -->
-<div class="modal-overlay" id="modalRPC">
-  <div class="modal">
-    <h3>&#128299; Configurar RPC</h3>
-    <p>El RPC es la conexion a la blockchain de Polygon. Si tu bot tiene errores 429 o timeouts, cambia el RPC aqui. Puedes probar la latencia antes de guardar.</p>
-    <div id="rpcPresetsList"></div>
-    <div class="rpc-custom-section">
-      <label>RPC personalizado</label>
-      <input type="text" id="rpcCustomInput" placeholder="https://tu-rpc-personalizado.com/v2/API_KEY"/>
-      <button onclick="testRPC(document.getElementById('rpcCustomInput').value)" style="width:100%;padding:9px;border-radius:6px;border:1px solid var(--accent3);background:transparent;color:var(--accent3);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;flex:none;">
-        &#128269; Probar RPC personalizado
-      </button>
-      <div class="test-result" id="testResultCustom"></div>
-    </div>
-    <div class="modal-btns">
-      <button class="btn-modal-cancel" onclick="cerrarModalRPC()">Cancelar</button>
-      <button class="btn-modal-save" onclick="guardarRPC()">&#128190; Guardar RPC</button>
-    </div>
-    <div id="rpcSaveResult" style="font-size:12px;margin-top:10px;text-align:center;"></div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-const BOT_URL = 'http://localhost:5000';
+// ── CONFIGURACIÓN ────────────────────────────────────────────
+// En producción Railway, el frontend está en el mismo servidor
+// window.location.origin apunta directo al backend
+const BOT_URL = window.location.origin;
+
 let userWallet = '';
 let lbPeriodo  = 'hoy';
 let lbTipo     = 'ganancias';
 let lbData     = {};
-let ultimaSenalId = null;
+let ultimaSenalId   = null;
 let botEstabaActivo = null;
-let rpcSeleccionado = '';
-let rpcPresets = [];
-
-function pedirPermisoNotificaciones() {
-  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
-}
-function tocarSonido(tipo) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator(); const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    if (tipo==='senal'){osc.frequency.setValueAtTime(880,ctx.currentTime);osc.frequency.setValueAtTime(1100,ctx.currentTime+0.1);osc.frequency.setValueAtTime(880,ctx.currentTime+0.2);}
-    else{osc.frequency.setValueAtTime(440,ctx.currentTime);osc.frequency.setValueAtTime(330,ctx.currentTime+0.15);}
-    gain.gain.setValueAtTime(0.3,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
-    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.4);
-  } catch(e){}
-}
-function vibrar(tipo){if('vibrate' in navigator)navigator.vibrate(tipo==='senal'?[100,50,100]:[200,100,200]);}
-function notificar(titulo,cuerpo){if('Notification' in window&&Notification.permission==='granted')new Notification(titulo,{body:cuerpo,icon:'/icon.png'});}
+let esPadawan       = false;
 
 const CAT_INFO = {
-  'Señal de Rango':{cls:'cat-rango',icon:'📊'},
-  'Alerta de Mercado':{cls:'cat-mercado',icon:'⚠️'},
-  'Oportunidad':{cls:'cat-oportunidad',icon:'🚀'},
-  'Alerta de Riesgo':{cls:'cat-riesgo',icon:'🛑'},
-  'Mensaje General':{cls:'cat-general',icon:'📢'},
+  'Señal de Rango':   {cls:'cat-rango',    icon:'📊'},
+  'Alerta de Mercado':{cls:'cat-mercado',  icon:'⚠️'},
+  'Oportunidad':      {cls:'cat-oportunidad',icon:'🚀'},
+  'Alerta de Riesgo': {cls:'cat-riesgo',   icon:'🛑'},
+  'Mensaje General':  {cls:'cat-general',  icon:'📢'},
 };
 
-function showToast(msg, tipo='ok'){
+// ── NOTIFICACIONES Y SONIDO ───────────────────────────────────
+function pedirPermisoNotificaciones(){
+  if('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+}
+function tocarSonido(tipo){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();const gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    if(tipo==='senal'){osc.frequency.setValueAtTime(880,ctx.currentTime);osc.frequency.setValueAtTime(1100,ctx.currentTime+0.1);}
+    else{osc.frequency.setValueAtTime(440,ctx.currentTime);osc.frequency.setValueAtTime(330,ctx.currentTime+0.15);}
+    gain.gain.setValueAtTime(0.3,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.4);
+  }catch(e){}
+}
+function notificar(titulo,cuerpo){
+  if('Notification' in window&&Notification.permission==='granted')
+    new Notification(titulo,{body:cuerpo,icon:'/icon.png'});
+}
+function showToast(msg,tipo='ok'){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className='toast show '+tipo;
   setTimeout(()=>t.className='toast',3000);
 }
-function mostrarLogin(){document.getElementById('overlayInicio').style.display='none';document.getElementById('overlayLogin').style.display='flex';}
-function volverInicio(){document.getElementById('overlayLogin').style.display='none';document.getElementById('overlayInicio').style.display='flex';}
-function mostrarRegistroManual(){
+
+// ── NAVEGACIÓN ENTRE OVERLAYS ────────────────────────────────
+function mostrarRegistro(){
   document.getElementById('overlayLogin').style.display='none';
   document.getElementById('overlayRegistro').style.display='flex';
-  document.getElementById('walletDetectada').textContent='Registro manual';
-  document.getElementById('walletInput').value='';
+}
+function volverLogin(){
+  document.getElementById('overlayRegistro').style.display='none';
+  document.getElementById('overlayLogin').style.display='flex';
+  document.getElementById('registroError').textContent='';
 }
 
-// ── SISTEMA DE VERSIONES ──────────────────────────────────────
-async function fetchVersionBanner() {
-  // Mostrar version local en el header
-  try {
-    const r = await fetch(BOT_URL + '/version');
-    const data = await r.json();
-    if (data.version) document.getElementById('versionBadge').textContent = 'v' + data.version;
-  } catch(e) {}
-  try {
-    const r = await fetch(BOT_URL + '/version');
-    const data = await r.json();
-    const versionLocal = data.version || '';
-    const rc = await fetch('https://evoxbot.evoxverse.com/version');
-    const dataC = await rc.json();
-    const versionServidor = dataC.version || '';
-    if (versionServidor && versionLocal && versionServidor !== versionLocal) {
-      document.getElementById('versionBannerMsg').textContent =
-        'Nueva version: v' + versionServidor + ' — Tu version: v' + versionLocal;
-      document.getElementById('versionBanner').classList.add('visible');
-    }
-  } catch(e) {}
-}
-// ─────────────────────────────────────────────────────────────
-
-async function fetchRPCInfo() {
-  try {
-    const r    = await fetch(BOT_URL + '/rpc/list');
-    const data = await r.json();
-    rpcPresets      = data.presets || [];
-    rpcSeleccionado = data.rpc_actual || '';
-    document.getElementById('rpcCurrent').textContent = rpcSeleccionado;
-    testRPCLatencia(rpcSeleccionado);
-  } catch(e){}
-}
-
-async function testRPCLatencia(url) {
-  try {
-    const r    = await fetch(BOT_URL + '/rpc/test', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
-    const data = await r.json();
-    const el   = document.getElementById('rpcLatency');
-    if (data.ok) {
-      el.textContent  = data.latencia_ms + ' ms';
-      el.className    = 'rpc-latency ' + (data.latencia_ms < 800 ? 'good' : 'bad');
-    } else {
-      el.textContent = 'Sin respuesta';
-      el.className   = 'rpc-latency bad';
-    }
-  } catch(e){}
-}
-
-function abrirModalRPC() {
-  const lista = document.getElementById('rpcPresetsList');
-  lista.innerHTML = rpcPresets.map((p, i) => `
-    <div class="rpc-preset ${rpcSeleccionado === p.url ? 'selected' : ''}" onclick="seleccionarPreset('${p.url}', ${i})" id="preset_${i}">
-      <div>
-        <div class="rpc-preset-name">${p.nombre}</div>
-        <div class="rpc-preset-url">${p.url}</div>
-      </div>
-      <div>
-        <span class="rpc-preset-ping" id="ping_${i}" style="color:var(--muted)">...</span>
-        <button onclick="event.stopPropagation(); testPreset(${i}, '${p.url}')" style="display:block;margin-top:4px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:10px;font-weight:700;cursor:pointer;flex:none;">Probar</button>
-      </div>
-    </div>
-  `).join('');
-  document.getElementById('rpcCustomInput').value = '';
-  document.getElementById('testResultCustom').textContent = '';
-  document.getElementById('rpcSaveResult').textContent = '';
-  document.getElementById('modalRPC').classList.add('open');
-}
-
-function cerrarModalRPC() { document.getElementById('modalRPC').classList.remove('open'); }
-
-function seleccionarPreset(url, idx) {
-  rpcSeleccionado = url;
-  document.querySelectorAll('.rpc-preset').forEach(el => el.classList.remove('selected'));
-  document.getElementById('preset_' + idx).classList.add('selected');
-  document.getElementById('rpcCustomInput').value = '';
-}
-
-async function testPreset(idx, url) {
-  const el = document.getElementById('ping_' + idx);
-  el.textContent = 'Probando...'; el.style.color = 'var(--muted)';
-  try {
-    const r    = await fetch(BOT_URL + '/rpc/test', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
-    const data = await r.json();
-    if (data.ok) { el.textContent = '✅ ' + data.latencia_ms + 'ms'; el.style.color = data.latencia_ms < 800 ? 'var(--accent)' : '#f5c518'; }
-    else { el.textContent = '❌ Falla'; el.style.color = 'var(--accent2)'; }
-  } catch(e) { el.textContent = '❌ Error'; el.style.color = 'var(--accent2)'; }
-}
-
-async function testRPC(url) {
-  const el = document.getElementById('testResultCustom');
-  if (!url) { el.textContent = 'Ingresa una URL'; el.style.color = 'var(--accent2)'; return; }
-  el.textContent = 'Probando...'; el.style.color = 'var(--muted)';
-  try {
-    const r    = await fetch(BOT_URL + '/rpc/test', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
-    const data = await r.json();
-    if (data.ok) { el.textContent = '✅ ' + data.msg + ' — ' + data.latencia_ms + 'ms — Bloque #' + data.bloque; el.style.color = 'var(--accent)'; rpcSeleccionado = url; }
-    else { el.textContent = '❌ ' + data.msg; el.style.color = 'var(--accent2)'; }
-  } catch(e) { el.textContent = 'Error: ' + e.message; el.style.color = 'var(--accent2)'; }
-}
-
-async function guardarRPC() {
-  const custom = document.getElementById('rpcCustomInput').value.trim();
-  const url    = custom || rpcSeleccionado;
-  if (!url) { showToast('Selecciona o ingresa un RPC', 'err'); return; }
-  try {
-    const r    = await fetch(BOT_URL + '/rpc/set', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
-    const data = await r.json();
-    const el   = document.getElementById('rpcSaveResult');
-    if (data.ok) { el.style.color = 'var(--accent)'; el.textContent = '✅ RPC guardado!'; document.getElementById('rpcCurrent').textContent = url; testRPCLatencia(url); setTimeout(cerrarModalRPC, 1200); }
-    else { el.style.color = 'var(--accent2)'; el.textContent = '❌ ' + data.msg; }
-  } catch(e) { showToast('Error: ' + e.message, 'err'); }
-}
-
-function switchLbPeriodo(periodo) {
-  lbPeriodo = periodo;
-  document.querySelectorAll('.tab3').forEach((t,i)=>t.classList.toggle('active',['hoy','mes','historico'][i]===periodo));
-  renderLeaderboard();
-}
-function switchLbTipo(tipo) {
-  lbTipo = tipo;
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['ganancias','ciclos'][i]===tipo));
-  renderLeaderboard();
-}
-function renderLeaderboard() {
-  const key   = lbPeriodo + '_' + lbTipo;
-  const lista = lbData[key] || [];
-  const medals = ['🥇','🥈','🥉'];
-  const el    = document.getElementById('lbContent');
-  if (!lista.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Sin datos aun...</div>';return;}
-  if (lbTipo==='ganancias') {
-    el.innerHTML='<table><thead><tr><th>#</th><th>Nombre</th><th>Ganancia</th></tr></thead><tbody>'+
-      lista.map((u,i)=>`<tr><td><span class="rank rank-${i+1}">${medals[i]||i+1}</span></td><td style="font-weight:700">${u.nombre}</td><td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td></tr>`).join('')+'</tbody></table>';
-  } else {
-    el.innerHTML='<table><thead><tr><th>#</th><th>Nombre</th><th>Ciclos</th></tr></thead><tbody>'+
-      lista.map((u,i)=>`<tr><td><span class="rank rank-${i+1}">${medals[i]||i+1}</span></td><td style="font-weight:700">${u.nombre}</td><td style="color:var(--accent3);font-weight:700">${u.ciclos_total}</td></tr>`).join('')+'</tbody></table>';
-  }
-}
-
-function getMinRango(){const au=parseFloat(document.getElementById('amountUsdt').value)||0;return au<=10?3:4;}
-function calcularPorcentaje(){
-  const rb=parseFloat(document.getElementById('rangoBajo').value);
-  const ra=parseFloat(document.getElementById('rangoAlto').value);
-  const hint=document.getElementById('calcHint');
-  if(!rb||!ra){hint.textContent='';return;}
-  if(ra<=rb){hint.textContent='El rango alto debe ser mayor al bajo';hint.style.color='var(--accent2)';return;}
-  const pct=(ra-rb)/rb*100;const minRango=getMinRango();
-  if(pct<minRango){hint.textContent='🔴 Margen demasiado pequeño ('+pct.toFixed(2)+'%)';hint.style.color='var(--accent2)';document.getElementById('btnStart').disabled=true;}
-  else if(pct<minRango+2){hint.textContent='🟡 '+pct.toFixed(2)+'% — Margen ajustado';hint.style.color='#f5c518';document.getElementById('btnStart').disabled=false;}
-  else{hint.textContent='🟢 '+pct.toFixed(2)+'% — ¡Excelente EVOXcito! 🚀 Luz verde';hint.style.color='var(--accent)';document.getElementById('btnStart').disabled=false;}
-}
-
-let esPadawan = false;
-async function fetchPadawanStatus(){
-  if(!userWallet)return;
-  try{
-    const r=await fetch(BOT_URL+'/padawan/status/'+userWallet);
-    const data=await r.json();
-    if(!data.ok)return;
-    esPadawan=data.es_padawan;
-    const btn=document.getElementById('btnPadawan');
-    const statusEl=document.getElementById('padawanStatus');
-    if(data.es_wallet_master){
-      ['rangoAlto','rangoBajo','amountUsdt','stopZona'].forEach(id=>document.getElementById(id).disabled=true);
-      document.getElementById('btnStart').disabled=true;document.getElementById('btnStop').disabled=true;
-      btn.disabled=true;btn.textContent='⚔️ Wallet en uso como Master';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';
-      statusEl.textContent='Operando en Modo Master desde el panel admin';statusEl.style.color='var(--accent)';return;
-    }
-    btn.disabled=false;
-    if(esPadawan){
-      btn.textContent='🎓 Desactivar Modo Padawan';btn.style.borderColor='var(--accent2)';btn.style.color='var(--accent2)';
-      statusEl.textContent=data.master_activo?'✅ Master activo — tu bot opera automáticamente':'⏳ Esperando al master...';
-      statusEl.style.color=data.master_activo?'var(--accent)':'var(--muted)';
-      ['rangoAlto','rangoBajo','amountUsdt','stopZona'].forEach(id=>document.getElementById(id).disabled=true);
-      document.getElementById('btnStart').disabled=true;
-    } else {
-      btn.textContent='🎓 Activar Modo Padawan';btn.style.borderColor='var(--accent3)';btn.style.color='var(--accent3)';
-      statusEl.textContent=data.master_activo?'':'El master no está activo';statusEl.style.color='var(--muted)';
-      ['rangoAlto','rangoBajo','amountUsdt','stopZona'].forEach(id=>document.getElementById(id).disabled=false);
-    }
-  }catch(e){}
-}
-
-async function togglePadawan(){
-  if(esPadawan){
-    if(!confirm('¿Desactivar Modo Padawan?'))return;
-    const r=await fetch(BOT_URL+'/padawan/desactivar/'+userWallet,{method:'POST'});
-    const data=await r.json();showToast(data.msg,data.ok?'ok':'err');fetchPadawanStatus();fetchStatus();
-  } else {
-    if(!confirm('¿Activar Modo Padawan? Perderás el control manual.'))return;
-    const r=await fetch(BOT_URL+'/padawan/activar/'+userWallet,{method:'POST'});
-    const data=await r.json();showToast(data.msg,data.ok?'ok':'err');fetchPadawanStatus();fetchStatus();
-  }
-}
-
-async function conectarMetamask(){
-  if(!window.ethereum){document.getElementById('inicioError').textContent='MetaMask no detectado. Usa "Ya tengo cuenta".';return;}
-  try{
-    const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
-    userWallet=accounts[0].toLowerCase();
-    document.getElementById('overlayInicio').style.display='none';
-    document.getElementById('overlayRegistro').style.display='flex';
-    document.getElementById('walletDetectada').textContent='MetaMask conectado';
-    document.getElementById('walletInput').value=userWallet;
-  }catch(e){document.getElementById('inicioError').textContent='Error: '+e.message;}
-}
-
+// ── LOGIN ────────────────────────────────────────────────────
 async function doLogin(){
-  const wallet=document.getElementById('loginWallet').value.trim().toLowerCase();
-  const password=document.getElementById('loginPassword').value;
-  if(!wallet||!password){document.getElementById('loginError').textContent='Completa todos los campos';return;}
+  const wallet   = document.getElementById('loginWallet').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const errEl    = document.getElementById('loginError');
+  errEl.textContent='';
+  if(!wallet||!password){errEl.textContent='Completa todos los campos';return;}
   try{
-    const r=await fetch(BOT_URL+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet,password})});
-    const data=await r.json();
-    if(data.ok){userWallet=wallet;document.getElementById('overlayLogin').style.display='none';entrarApp(data.nombre);}
-    else{document.getElementById('loginError').textContent=data.msg;}
-  }catch(e){document.getElementById('loginError').textContent='Error: '+e.message;}
+    const r    = await fetch(BOT_URL+'/login',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wallet,password})});
+    const data = await r.json();
+    if(data.ok){
+      userWallet=wallet;
+      document.getElementById('overlayLogin').style.display='none';
+      entrarApp(data.nombre);
+    } else {
+      errEl.textContent=data.msg;
+    }
+  }catch(e){errEl.textContent='Error de conexion: '+e.message;}
 }
 
+// ── REGISTRO ─────────────────────────────────────────────────
 async function registrar(){
-  const walletFinal=document.getElementById('walletInput').value.trim().toLowerCase();
-  const pk=document.getElementById('botPrivateKey').value.trim();
-  const nombre=document.getElementById('botNombre').value.trim()||'Anonimo';
-  const password=document.getElementById('botPassword').value;
-  const passwordConfirm=document.getElementById('botPasswordConfirm').value;
-  if(!walletFinal||!pk||!password){document.getElementById('registroError').textContent='Completa todos los campos';return;}
-  if(password.length<6){document.getElementById('registroError').textContent='La contrasena debe tener al menos 6 caracteres';return;}
-  if(password!==passwordConfirm){document.getElementById('registroError').textContent='Las contrasenas no coinciden';return;}
-  userWallet=walletFinal;
+  const wallet      = document.getElementById('regWallet').value.trim().toLowerCase();
+  const nombre      = document.getElementById('regNombre').value.trim()||'Anonimo';
+  const password    = document.getElementById('regPassword').value;
+  const passwordCon = document.getElementById('regPasswordConfirm').value;
+  const privateKey  = document.getElementById('regPrivateKey').value.trim();
+  const errEl       = document.getElementById('registroError');
+  errEl.textContent='';
+  if(!wallet||!nombre||!password||!privateKey){errEl.textContent='Completa todos los campos';return;}
+  if(password.length<6){errEl.textContent='La contrasena debe tener al menos 6 caracteres';return;}
+  if(password!==passwordCon){errEl.textContent='Las contrasenas no coinciden';return;}
   try{
-    const r=await fetch(BOT_URL+'/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet:walletFinal,private_key:pk,nombre,password})});
-    const data=await r.json();
-    if(data.ok){showToast('Bot activado!','ok');document.getElementById('overlayRegistro').style.display='none';entrarApp(nombre);}
-    else{document.getElementById('registroError').textContent=data.msg;}
-  }catch(e){document.getElementById('registroError').textContent='Error: '+e.message;}
+    const r    = await fetch(BOT_URL+'/registro',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wallet,nombre,password,private_key:privateKey})});
+    const data = await r.json();
+    if(data.ok){
+      userWallet=wallet;
+      document.getElementById('overlayRegistro').style.display='none';
+      showToast('Cuenta creada exitosamente!','ok');
+      entrarApp(nombre);
+    } else {
+      errEl.textContent=data.msg;
+    }
+  }catch(e){errEl.textContent='Error de conexion: '+e.message;}
 }
 
+// ── ENTRAR A LA APP ──────────────────────────────────────────
 function entrarApp(nombre){
   document.getElementById('mainApp').style.display='block';
   document.getElementById('walletBadge').textContent=userWallet.slice(0,6)+'...'+userWallet.slice(-4);
   document.getElementById('nombreBienvenida').textContent=nombre||'';
   pedirPermisoNotificaciones();
   fetchVersionBanner();
-  fetchRPCInfo();fetchPrecio();fetchStatus();fetchHistorial();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();
+  fetchPrecio();fetchStatus();fetchHistorial();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();
   setInterval(fetchPrecio,15000);
   setInterval(()=>{fetchStatus();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();},15000);
-  setInterval(fetchRPCInfo, 60000);
 }
 
+// ── VERSION ──────────────────────────────────────────────────
+async function fetchVersionBanner(){
+  try{
+    const r=await fetch(BOT_URL+'/version');
+    const data=await r.json();
+    if(data.version) document.getElementById('versionBadge').textContent='v'+data.version;
+  }catch(e){}
+}
+
+// ── PRECIO ───────────────────────────────────────────────────
 async function fetchPrecio(){
-  try{const r=await fetch(BOT_URL+'/precio');const data=await r.json();if(data.ok)document.getElementById('statPrecio').textContent='$'+data.precio;}catch(e){}
+  try{
+    const r=await fetch(BOT_URL+'/precio');
+    const data=await r.json();
+    if(data.ok) document.getElementById('statPrecio').textContent='$'+data.precio;
+  }catch(e){}
 }
 
+// ── SEÑAL ────────────────────────────────────────────────────
 async function fetchSenal(){
   try{
     const r=await fetch(BOT_URL+'/senal');const data=await r.json();
     const box=document.getElementById('senalBox');
-    if(!data.ok||!data.senal){box.style.display='none';ultimaSenalId=null;return;}
+    if(!data.ok||!data.senal){box.style.display='none';return;}
     const s=data.senal;const info=CAT_INFO[s.categoria]||{cls:'cat-general',icon:'📢'};
     const senalKey=s.emisor+s.categoria+s.hora;
-    if(ultimaSenalId&&ultimaSenalId!==senalKey){tocarSonido('senal');vibrar('senal');notificar('📡 Señales de '+s.emisor,info.icon+' '+s.categoria+': '+s.mensaje);}
+    if(ultimaSenalId&&ultimaSenalId!==senalKey){
+      tocarSonido('senal');
+      notificar('📡 Señal de '+s.emisor,info.icon+' '+s.mensaje);
+    }
     ultimaSenalId=senalKey;
     box.className='senal-box '+info.cls;box.style.display='block';
     document.getElementById('senalAvatar').src='/'+s.emisor.toLowerCase()+'.png';
@@ -686,15 +535,61 @@ async function fetchSenal(){
   }catch(e){}
 }
 
+// ── STATUS DEL BOT ───────────────────────────────────────────
 async function fetchStatus(){
   if(!userWallet)return;
-  try{const r=await fetch(BOT_URL+'/status/'+userWallet);actualizarUI(await r.json());}catch(e){}
+  try{
+    const r=await fetch(BOT_URL+'/status/'+userWallet);
+    actualizarUI(await r.json());
+  }catch(e){}
 }
 
+function actualizarUI(data){
+  const dot=document.getElementById('statusDot');
+  if(data.activo){
+    dot.className='dot on';
+    document.getElementById('statusText').textContent='Corriendo';
+    botEstabaActivo=true;
+  } else {
+    dot.className='dot off';
+    document.getElementById('statusText').textContent='Detenido';
+    if(botEstabaActivo===true){
+      tocarSonido('stop');
+      notificar('🛑 Bot Detenido','Tu bot EVOX se ha detenido. Revisa los logs.');
+    }
+    botEstabaActivo=false;
+  }
+  document.getElementById('statUSDT').textContent=data.usdt?'$'+data.usdt:'—';
+  document.getElementById('statCNKT').textContent=data.cnkt!==undefined?data.cnkt:'—';
+  const modoEl=document.getElementById('modoActual');
+  modoEl.textContent=data.modo||'—';
+  modoEl.style.color=data.modo==='COMPRA'?'var(--accent)':'var(--accent2)';
+  if(data.config&&data.config.RANGO_BAJO){
+    const c=data.config;
+    const cfgEl=document.getElementById('configActiva');
+    const cfgPanel=document.getElementById('configActivaPanel');
+    const badge=document.getElementById('configActivaBadge');
+    cfgEl.innerHTML='Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+
+                    '<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
+    if(data.activo){
+      cfgEl.classList.add('activo');cfgPanel.classList.add('activo');
+      badge.style.display='inline-block';
+    } else {
+      cfgEl.classList.remove('activo');cfgPanel.classList.remove('activo');
+      badge.style.display='none';
+    }
+  }
+  document.getElementById('btnStart').disabled=data.activo;
+  document.getElementById('btnStop').disabled=!data.activo;
+  fetchLogs();
+}
+
+// ── LOGS ─────────────────────────────────────────────────────
 async function fetchLogs(){
   if(!userWallet)return;
   try{
-    const r=await fetch(BOT_URL+'/logs/'+userWallet);const data=await r.json();
+    const r=await fetch(BOT_URL+'/logs/'+userWallet);
+    const data=await r.json();
     const box=document.getElementById('logBox');
     if(!data.logs.length){box.innerHTML='<div class="log-line info">Sin logs aun...</div>';return;}
     box.innerHTML=data.logs.slice().reverse().map(line=>{
@@ -702,16 +597,18 @@ async function fetchLogs(){
       if(line.includes('COMPRA'))cls+=' compra';
       else if(line.includes('VENTA'))cls+=' venta';
       else if(line.includes('Error')||line.includes('ERROR'))cls+=' error';
-      else if(line.includes('BOT')||line.includes('aprobado')||line.includes('RPC'))cls+=' info';
+      else if(line.includes('BOT')||line.includes('aprobado'))cls+=' info';
       return'<div class="'+cls+'">'+line+'</div>';
     }).join('');
   }catch(e){}
 }
 
+// ── HISTORIAL ────────────────────────────────────────────────
 async function fetchHistorial(){
   if(!userWallet)return;
   try{
-    const r=await fetch(BOT_URL+'/historial/'+userWallet);const data=await r.json();
+    const r=await fetch(BOT_URL+'/historial/'+userWallet);
+    const data=await r.json();
     const el=document.getElementById('historialTabla');
     if(!data.historial.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Sin ciclos aun...</div>';return;}
     el.innerHTML='<table><thead><tr><th>Fecha</th><th>Hora</th><th>Compra</th><th>Venta</th><th>Gan.</th></tr></thead><tbody>'+
@@ -725,10 +622,12 @@ async function fetchHistorial(){
   }catch(e){}
 }
 
+// ── CICLOS HOY ───────────────────────────────────────────────
 async function fetchCiclosHoy(){
   if(!userWallet)return;
   try{
-    const r=await fetch(BOT_URL+'/ciclos_hoy/'+userWallet);const data=await r.json();
+    const r=await fetch(BOT_URL+'/ciclos_hoy/'+userWallet);
+    const data=await r.json();
     if(data.ok){
       document.getElementById('ciclosHoy').textContent=data.ciclos_hoy;
       document.getElementById('ciclosTotal').textContent=data.ciclos_total;
@@ -742,38 +641,118 @@ async function fetchCiclosHoy(){
   }catch(e){}
 }
 
+// ── LEADERBOARD ──────────────────────────────────────────────
 async function fetchLeaderboard(){
-  try{const r=await fetch(BOT_URL+'/leaderboard');const data=await r.json();lbData=data;renderLeaderboard();}catch(e){}
+  try{
+    const r=await fetch(BOT_URL+'/leaderboard');
+    const data=await r.json();lbData=data;renderLeaderboard();
+  }catch(e){}
+}
+function switchLbPeriodo(periodo){
+  lbPeriodo=periodo;
+  document.querySelectorAll('.tab3').forEach((t,i)=>t.classList.toggle('active',['hoy','mes','historico'][i]===periodo));
+  renderLeaderboard();
+}
+function switchLbTipo(tipo){
+  lbTipo=tipo;
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['ganancias','ciclos'][i]===tipo));
+  renderLeaderboard();
+}
+function renderLeaderboard(){
+  const key=lbPeriodo+'_'+lbTipo;
+  const lista=lbData[key]||[];
+  const medals=['🥇','🥈','🥉'];
+  const el=document.getElementById('lbContent');
+  if(!lista.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Sin datos aun...</div>';return;}
+  if(lbTipo==='ganancias'){
+    el.innerHTML='<table><thead><tr><th>#</th><th>Nombre</th><th>Ganancia</th></tr></thead><tbody>'+
+      lista.map((u,i)=>`<tr><td><span class="rank rank-${i+1}">${medals[i]||i+1}</span></td>
+        <td style="font-weight:700">${u.nombre}</td>
+        <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td></tr>`
+      ).join('')+'</tbody></table>';
+  } else {
+    el.innerHTML='<table><thead><tr><th>#</th><th>Nombre</th><th>Ciclos</th></tr></thead><tbody>'+
+      lista.map((u,i)=>`<tr><td><span class="rank rank-${i+1}">${medals[i]||i+1}</span></td>
+        <td style="font-weight:700">${u.nombre}</td>
+        <td style="color:var(--accent3);font-weight:700">${u.ciclos_total}</td></tr>`
+      ).join('')+'</tbody></table>';
+  }
 }
 
-function actualizarUI(data){
-  const dot=document.getElementById('statusDot');
-  if(data.activo){dot.className='dot on';document.getElementById('statusText').textContent='Corriendo';botEstabaActivo=true;}
-  else{
-    dot.className='dot off';document.getElementById('statusText').textContent='Detenido';
-    if(botEstabaActivo===true){tocarSonido('stop');vibrar('stop');notificar('🛑 Bot Detenido','Tu bot EVOX se ha detenido. Revisa los logs.');}
-    botEstabaActivo=false;
+// ── CALC PORCENTAJE ──────────────────────────────────────────
+function calcularPorcentaje(){
+  const rb=parseFloat(document.getElementById('rangoBajo').value);
+  const ra=parseFloat(document.getElementById('rangoAlto').value);
+  const au=parseFloat(document.getElementById('amountUsdt').value)||0;
+  const hint=document.getElementById('calcHint');
+  if(!rb||!ra){hint.textContent='';return;}
+  if(ra<=rb){hint.textContent='El rango alto debe ser mayor al bajo';hint.style.color='var(--accent2)';return;}
+  const pct=(ra-rb)/rb*100;const minRango=au<=10?3:4;
+  if(pct<minRango){
+    hint.textContent='🔴 Margen demasiado pequeño ('+pct.toFixed(2)+'%)';
+    hint.style.color='var(--accent2)';
+    document.getElementById('btnStart').disabled=true;
+  } else if(pct<minRango+2){
+    hint.textContent='🟡 '+pct.toFixed(2)+'% — Margen ajustado';
+    hint.style.color='#f5c518';
+    document.getElementById('btnStart').disabled=false;
+  } else {
+    hint.textContent='🟢 '+pct.toFixed(2)+'% — Rango optimo 🚀';
+    hint.style.color='var(--accent)';
+    document.getElementById('btnStart').disabled=false;
   }
-  document.getElementById('statUSDT').textContent=data.usdt?'$'+data.usdt:'—';
-  document.getElementById('statCNKT').textContent=data.cnkt!==undefined?data.cnkt:'—';
-  const modoEl=document.getElementById('modoActual');
-  modoEl.textContent=data.modo||'—';
-  modoEl.style.color=data.modo==='COMPRA'?'var(--accent)':'var(--accent2)';
-  if(data.config&&data.config.RANGO_BAJO){
-    const c=data.config;
-    const cfgEl=document.getElementById('configActiva');
-    const cfgPanel=document.getElementById('configActivaPanel');
-    const badge=document.getElementById('configActivaBadge');
-    cfgEl.innerHTML='Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+'<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
-    if(data.activo){cfgEl.classList.add('activo');cfgPanel.classList.add('activo');badge.style.display='inline-block';}
-    else{cfgEl.classList.remove('activo');cfgPanel.classList.remove('activo');badge.style.display='none';}
-    if(data.rpc_url){cfgEl.innerHTML+='<br><span style="color:var(--accent3);font-size:10px;">RPC: '+data.rpc_url.replace('https://','').split('/')[0]+'</span>';}
-  }
-  document.getElementById('btnStart').disabled=data.activo;
-  document.getElementById('btnStop').disabled=!data.activo;
-  fetchLogs();
 }
 
+// ── PADAWAN ──────────────────────────────────────────────────
+async function fetchPadawanStatus(){
+  if(!userWallet)return;
+  try{
+    const r=await fetch(BOT_URL+'/padawan/status/'+userWallet);
+    const data=await r.json();
+    if(!data.ok)return;
+    esPadawan=data.es_padawan;
+    const btn=document.getElementById('btnPadawan');
+    const statusEl=document.getElementById('padawanStatus');
+    if(data.es_wallet_master){
+      ['rangoAlto','rangoBajo','amountUsdt','stopZona'].forEach(id=>document.getElementById(id).disabled=true);
+      document.getElementById('btnStart').disabled=true;document.getElementById('btnStop').disabled=true;
+      btn.disabled=true;btn.textContent='⚔️ Wallet en uso como Master';
+      btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';
+      statusEl.textContent='Operando en Modo Master';statusEl.style.color='var(--accent)';
+      return;
+    }
+    btn.disabled=false;
+    if(esPadawan){
+      btn.textContent='🎓 Desactivar Modo Padawan';
+      btn.style.borderColor='var(--accent2)';btn.style.color='var(--accent2)';
+      statusEl.textContent=data.master_activo?'✅ Master activo — bot opera automaticamente':'⏳ Esperando al master...';
+      statusEl.style.color=data.master_activo?'var(--accent)':'var(--muted)';
+      ['rangoAlto','rangoBajo','amountUsdt','stopZona'].forEach(id=>document.getElementById(id).disabled=true);
+      document.getElementById('btnStart').disabled=true;
+    } else {
+      btn.textContent='🎓 Activar Modo Padawan';
+      btn.style.borderColor='var(--accent3)';btn.style.color='var(--accent3)';
+      statusEl.textContent='';
+      ['rangoAlto','rangoBajo','amountUsdt','stopZona'].forEach(id=>document.getElementById(id).disabled=false);
+    }
+  }catch(e){}
+}
+
+async function togglePadawan(){
+  if(esPadawan){
+    if(!confirm('¿Desactivar Modo Padawan?'))return;
+    const r=await fetch(BOT_URL+'/padawan/desactivar/'+userWallet,{method:'POST'});
+    const data=await r.json();showToast(data.msg,data.ok?'ok':'err');
+    fetchPadawanStatus();fetchStatus();
+  } else {
+    if(!confirm('¿Activar Modo Padawan? Perderas el control manual.'))return;
+    const r=await fetch(BOT_URL+'/padawan/activar/'+userWallet,{method:'POST'});
+    const data=await r.json();showToast(data.msg,data.ok?'ok':'err');
+    fetchPadawanStatus();fetchStatus();
+  }
+}
+
+// ── START / STOP BOT ─────────────────────────────────────────
 async function startBot(){
   const rb=parseFloat(document.getElementById('rangoBajo').value);
   const ra=parseFloat(document.getElementById('rangoAlto').value);
@@ -782,9 +761,11 @@ async function startBot(){
   if(!rb||!ra||!au){showToast('Completa todos los campos','err');return;}
   if(rb>=ra){showToast('Rango bajo debe ser menor al alto','err');return;}
   const minRango=(au<=10?3:4)/100;
-  if((ra-rb)/rb<minRango){showToast('⚠ Margen demasiado pequeño','err');return;}
+  if((ra-rb)/rb<minRango){showToast('Margen demasiado pequeno','err');return;}
   try{
-    const r=await fetch(BOT_URL+'/start/'+userWallet,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rango_bajo:rb,rango_alto:ra,amount_usdt:au,stop_zona:sz})});
+    const r=await fetch(BOT_URL+'/start/'+userWallet,{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rango_bajo:rb,rango_alto:ra,amount_usdt:au,stop_zona:sz})});
     const data=await r.json();
     if(data.ok){showToast('Bot iniciado!','ok');setTimeout(fetchStatus,2000);}
     else{showToast(data.msg,'err');}
@@ -801,7 +782,11 @@ async function stopBot(){
     let intentos=0;
     const poll=setInterval(async()=>{
       intentos++;
-      try{const s=await fetch(BOT_URL+'/status/'+userWallet);const sd=await s.json();if(!sd.activo){clearInterval(poll);actualizarUI(sd);showToast('Bot detenido!','ok');}}catch(e){}
+      try{
+        const s=await fetch(BOT_URL+'/status/'+userWallet);
+        const sd=await s.json();
+        if(!sd.activo){clearInterval(poll);actualizarUI(sd);showToast('Bot detenido!','ok');}
+      }catch(e){}
       if(intentos>=15){clearInterval(poll);fetchStatus();}
     },2000);
   }catch(e){showToast('Error: '+e.message,'err');}

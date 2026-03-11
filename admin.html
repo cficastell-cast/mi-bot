@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EVOX Admin</title>
+<title>EVOX Admin 2.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;--accent:#7fff6e;--accent2:#ff6e7f;--accent3:#6e9fff;--text:#e8e8f0;--muted:#5a5a7a}
@@ -15,7 +15,7 @@
   h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px}
   h1 span{color:var(--accent)}
   .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-  .cards2{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+  .cards2{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
   .card-label{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
   .card-value{font-family:'Syne',sans-serif;font-size:22px;font-weight:700}
@@ -39,6 +39,7 @@
   .ganancia-pos{color:var(--accent)}.ganancia-neg{color:var(--accent2)}
   .refresh-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
   .refresh-btn:hover{border-color:var(--accent3);color:var(--accent3)}
+  /* MASTER */
   .master-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
   .master-panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
   .master-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -48,7 +49,6 @@
   .master-field input:focus{border-color:var(--accent)}
   .master-btns{display:flex;gap:10px;margin-top:12px}
   .btn-master-start{flex:1;padding:11px;border-radius:8px;border:none;background:var(--accent);color:#0a0a0f;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
-  .btn-master-start:hover{filter:brightness(1.1)}
   .btn-master-start:disabled{opacity:0.3;cursor:not-allowed}
   .btn-master-stop{flex:1;padding:11px;border-radius:8px;border:1px solid var(--accent2);background:transparent;color:var(--accent2);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
   .btn-master-stop:hover{background:var(--accent2);color:#0a0a0f}
@@ -59,13 +59,13 @@
   .master-status-badge{display:inline-block;padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700;margin-bottom:10px}
   .master-status-badge.on{background:rgba(127,255,110,0.1);color:var(--accent);border:1px solid rgba(127,255,110,0.3)}
   .master-status-badge.off{background:rgba(90,90,122,0.1);color:var(--muted);border:1px solid var(--border)}
+  /* SEÑALES */
   .senal-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
   .senal-panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
-  .senal-steps{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
   .senal-step{display:none;flex-direction:column;gap:8px;flex:1;min-width:200px}
   .senal-step.active{display:flex}
   .senal-btn-group{display:flex;gap:8px;flex-wrap:wrap}
-  .senal-btn{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;text-align:left}
+  .senal-btn{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s}
   .senal-btn:hover{border-color:var(--accent3);color:var(--accent3)}
   .senal-btn.selected{border-color:var(--accent);color:var(--accent);background:rgba(127,255,110,0.05)}
   .senal-emisor-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 16px}
@@ -74,115 +74,127 @@
   .senal-textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;padding:12px;border-radius:8px;outline:none;resize:vertical;min-height:80px}
   .senal-textarea:focus{border-color:var(--accent)}
   .btn-publicar{background:var(--accent);color:#0a0a0f;padding:10px 24px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
-  .btn-publicar:hover{filter:brightness(1.1)}
   .btn-publicar:disabled{opacity:0.4;cursor:not-allowed}
   .senal-nav{display:flex;gap:8px;margin-top:8px}
   .senal-nav button{padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
   .senal-nav button:hover{border-color:var(--accent3);color:var(--accent3)}
   .senal-preview{font-size:11px;color:var(--muted);padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg)}
   /* BOTS ONLINE */
-  .bots-online-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
-  .bots-online-panel h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
   .bot-online-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse 1.5s infinite;margin-right:6px}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  /* RPC STATUS */
+  .rpc-status-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .rpc-chip{padding:4px 10px;border-radius:100px;font-size:11px;border:1px solid var(--border);color:var(--muted)}
+  .rpc-chip.ok{border-color:rgba(127,255,110,0.3);color:var(--accent)}
+  .rpc-chip.warn{border-color:rgba(245,197,24,0.3);color:#f5c518}
+  .rpc-chip.bad{border-color:rgba(255,110,127,0.3);color:var(--accent2)}
 </style>
 </head>
 <body>
 <div class="grid-bg"></div>
+
 <div class="overlay" id="loginOverlay">
   <div class="box">
     <h2>EVOX <span style="color:var(--accent)">Admin</span></h2>
-    <p>Acceso restringido</p>
+    <p>Acceso restringido — v2.0.0</p>
     <input type="password" id="pwdInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()"/>
     <button class="btn-main" onclick="doLogin()">ENTRAR</button>
     <div id="loginError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
   </div>
 </div>
+
 <div class="container" id="mainApp" style="display:none">
   <header>
-    <h1>EVOX <span>Admin</span></h1>
+    <h1>EVOX <span>Admin</span> <span style="font-size:13px;color:var(--muted);font-family:'Space Mono'">v2.0.0</span></h1>
     <button class="refresh-btn" onclick="cargarDatos()">&#8635; Actualizar</button>
   </header>
+
+  <!-- CARDS RESUMEN -->
   <div class="cards">
     <div class="card"><div class="card-label">Usuarios</div><div class="card-value blue" id="totalUsuarios">&#8212;</div></div>
     <div class="card"><div class="card-label">Bots Activos</div><div class="card-value green" id="botsActivos">&#8212;</div></div>
-    <div class="card"><div class="card-label">Bots Online Ahora</div><div class="card-value green" id="botsOnlineAhora">&#8212;</div></div>
+    <div class="card"><div class="card-label">Bots Online</div><div class="card-value green" id="botsOnlineAhora">&#8212;</div></div>
     <div class="card"><div class="card-label">Comisiones EVOX</div><div class="card-value green" id="comisionesEvox">&#8212;</div></div>
   </div>
   <div class="cards2">
     <div class="card"><div class="card-label">Ciclos Totales</div><div class="card-value" id="ciclosTotales">&#8212;</div></div>
-    <div class="card"><div class="card-label">Compras Totales</div><div class="card-value blue" id="comprasTotales">&#8212;</div></div>
-    <div class="card"><div class="card-label">Volumen 24hrs</div><div class="card-value" id="volumen24h">&#8212;</div></div>
+    <div class="card"><div class="card-label">Compras</div><div class="card-value blue" id="comprasTotales">&#8212;</div></div>
+    <div class="card"><div class="card-label">Volumen 24h</div><div class="card-value" id="volumen24h">&#8212;</div></div>
+    <div class="card"><div class="card-label">Pool RPCs</div><div class="card-value green" id="poolRpcs">&#8212;</div></div>
   </div>
 
-  <!-- BOTS ONLINE AHORA -->
-  <div class="bots-online-panel">
+  <!-- RPC STATUS -->
+  <div class="panel">
+    <h2>&#128299; Estado del Pool de RPCs</h2>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">RPC activo: <span id="rpcActual" style="color:var(--accent3)">—</span></div>
+    <div class="rpc-status-bar" id="rpcFallos"></div>
+  </div>
+
+  <!-- BOTS ONLINE -->
+  <div class="panel">
     <h2>&#128997; Bots Online Ahora</h2>
     <div id="tablaBotsonline">Cargando...</div>
   </div>
 
-  <!-- PANEL MODO MASTER -->
+  <!-- MODO MASTER -->
   <div class="master-panel">
     <h2>&#9876;&#65039; Modo Master</h2>
     <div class="master-grid">
       <div>
         <div id="masterStatusBadge" class="master-status-badge off">&#9679; INACTIVO</div>
         <div class="master-fields">
-          <div class="master-field"><label>Wallet del Master (0x...)</label><input type="text" id="masterWallet" placeholder="0x...tu wallet"/></div>
-          <div class="master-field"><label>Rango Alto (vende en $)</label><input type="number" id="masterRangoAlto" placeholder="0.001750" step="0.000001" oninput="calcMasterSemaforo()"/></div>
-          <div class="master-field"><label>Rango Bajo (compra en $)</label><input type="number" id="masterRangoBajo" placeholder="0.001700" step="0.000001" oninput="calcMasterSemaforo()"/></div>
-          <div class="master-field"><label>Capital M&#225;ximo USDT</label><input type="number" id="masterCapital" placeholder="50" oninput="calcMasterSemaforo()"/></div>
+          <div class="master-field"><label>Wallet del Master</label><input type="text" id="masterWallet" placeholder="0x..."/></div>
+          <div class="master-field"><label>Rango Alto ($)</label><input type="number" id="masterRangoAlto" placeholder="0.001750" step="0.000001" oninput="calcMasterSemaforo()"/></div>
+          <div class="master-field"><label>Rango Bajo ($)</label><input type="number" id="masterRangoBajo" placeholder="0.001700" step="0.000001" oninput="calcMasterSemaforo()"/></div>
+          <div class="master-field"><label>Capital Maximo USDT</label><input type="number" id="masterCapital" placeholder="50" oninput="calcMasterSemaforo()"/></div>
           <div class="master-field"><label>Stop Loss (%)</label><input type="number" id="masterStop" placeholder="3"/></div>
           <div id="masterSemaforo" style="font-size:12px;min-height:16px;margin-top:2px;"></div>
         </div>
         <div class="master-btns">
           <button class="btn-master-start" id="btnMasterStart" onclick="masterStart()">&#9654; INICIAR MASTER</button>
-          <button class="btn-master-stop" id="btnMasterStop" onclick="masterStop()" disabled>&#9632; DETENER</button>
+          <button class="btn-master-stop"  id="btnMasterStop"  onclick="masterStop()" disabled>&#9632; DETENER</button>
         </div>
         <div id="masterMsg" style="font-size:12px;margin-top:10px;"></div>
       </div>
       <div>
         <div class="master-stat">
-          <div class="master-stat-label">Padawans Activos (DB)</div>
+          <div class="master-stat-label">Padawans en DB</div>
           <div class="master-stat-val" id="masterPadawans">&#8212;</div>
         </div>
-        <div class="master-stat" style="margin-top:8px">
-          <div class="master-stat-label">Padawans Online Ahora</div>
+        <div class="master-stat">
+          <div class="master-stat-label">Padawans Online</div>
           <div class="master-stat-val" id="padawansOnline" style="color:var(--accent)">&#8212;</div>
         </div>
         <div style="font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:10px;" id="masterConfigActiva">Sin config activa</div>
         <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Logs Master</div>
         <div id="masterLogs" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;height:120px;overflow-y:auto;font-size:11px;line-height:1.8;color:var(--muted);">Sin logs aun...</div>
-        <button onclick="fetchMasterLogs()" style="margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">&#8635; Actualizar logs</button>
+        <button onclick="fetchMasterLogs()" style="margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;font-family:'Syne',sans-serif;font-size:11px;cursor:pointer;">&#8635; Actualizar logs</button>
       </div>
     </div>
   </div>
 
-  <!-- PANEL SEÑALES -->
+  <!-- SEÑALES -->
   <div class="senal-panel">
-    <h2>&#128225; Publicar Se&#241;al</h2>
+    <h2>&#128225; Publicar Senal</h2>
     <div class="senal-step active" id="step1">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">&#191;Qui&#233;n env&#237;a la se&#241;al?</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">&#191;Quien envia la senal?</div>
       <div class="senal-btn-group">
         <button class="senal-btn senal-emisor-btn" onclick="selEmisor('EVOX',this)">
-          <img src="/evox.png" onerror="this.src='/icon.png'"/>
-          <span>EVOX</span>
+          <img src="/evox.png" onerror="this.src='/icon.png'"/><span>EVOX</span>
         </button>
         <button class="senal-btn senal-emisor-btn" onclick="selEmisor('Charlie',this)">
-          <img src="/charlie.png" onerror="this.src='/icon.png'"/>
-          <span>Charlie</span>
+          <img src="/charlie.png" onerror="this.src='/icon.png'"/><span>Charlie</span>
         </button>
         <button class="senal-btn senal-emisor-btn" onclick="selEmisor('Susan',this)">
-          <img src="/susan.png" onerror="this.src='/icon.png'"/>
-          <span>Susan</span>
+          <img src="/susan.png" onerror="this.src='/icon.png'"/><span>Susan</span>
         </button>
       </div>
       <div class="senal-nav"><button onclick="irStep(2)" id="btnStep2" disabled>Siguiente &#8594;</button></div>
     </div>
     <div class="senal-step" id="step2">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">&#191;Tipo de se&#241;al?</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">&#191;Tipo de senal?</div>
       <div class="senal-btn-group">
-        <button class="senal-btn" onclick="selCategoria('Se&#241;al de Rango',this)">&#128202; Se&#241;al de Rango</button>
+        <button class="senal-btn" onclick="selCategoria('Señal de Rango',this)">&#128202; Senal de Rango</button>
         <button class="senal-btn" onclick="selCategoria('Alerta de Mercado',this)">&#9888;&#65039; Alerta de Mercado</button>
         <button class="senal-btn" onclick="selCategoria('Oportunidad',this)">&#128640; Oportunidad</button>
         <button class="senal-btn" onclick="selCategoria('Alerta de Riesgo',this)">&#128721; Alerta de Riesgo</button>
@@ -195,7 +207,7 @@
     </div>
     <div class="senal-step" id="step3">
       <div class="senal-preview" id="senalPreview"></div>
-      <textarea class="senal-textarea" id="senalMensaje" placeholder="Escribe tu mensaje aqu&#237;..." oninput="actualizarPreview()"></textarea>
+      <textarea class="senal-textarea" id="senalMensaje" placeholder="Escribe tu mensaje aqui..." oninput="actualizarPreview()"></textarea>
       <div style="display:flex;gap:10px;align-items:center;">
         <div class="senal-nav"><button onclick="irStep(2)">&#8592; Volver</button></div>
         <button class="btn-publicar" id="btnPublicar" onclick="publicarSenal()" disabled>&#128225; Publicar</button>
@@ -204,254 +216,246 @@
     <div id="senalResult" style="font-size:12px;margin-top:10px;"></div>
   </div>
 
+  <!-- USUARIOS -->
   <div class="panel">
     <h2>Usuarios</h2>
     <div id="tablaUsuarios">Cargando...</div>
   </div>
+
+  <!-- ULTIMOS CICLOS -->
   <div class="panel">
     <h2>&#218;ltimos Ciclos</h2>
     <div id="tablaUltimos">Cargando...</div>
   </div>
 </div>
+
 <script>
 const BOT_URL = window.location.origin;
 let pwd = '';
 let senalEmisor = '';
 let senalCategoria = '';
 
-function doLogin() {
+function doLogin(){
   pwd = document.getElementById('pwdInput').value;
-  if (!pwd) return;
+  if(!pwd) return;
   cargarDatos();
 }
 
-function irStep(n) {
-  document.querySelectorAll('.senal-step').forEach(s => s.classList.remove('active'));
-  document.getElementById('step' + n).classList.add('active');
-  if (n === 3) actualizarPreview();
+// ── SEÑALES ──────────────────────────────────────────────────
+function irStep(n){
+  document.querySelectorAll('.senal-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step'+n).classList.add('active');
+  if(n===3) actualizarPreview();
 }
-
-function selEmisor(nombre, btn) {
-  senalEmisor = nombre;
-  document.querySelectorAll('#step1 .senal-btn').forEach(b => b.classList.remove('selected'));
+function selEmisor(nombre,btn){
+  senalEmisor=nombre;
+  document.querySelectorAll('#step1 .senal-btn').forEach(b=>b.classList.remove('selected'));
   btn.classList.add('selected');
-  document.getElementById('btnStep2').disabled = false;
+  document.getElementById('btnStep2').disabled=false;
 }
-
-function selCategoria(cat, btn) {
-  senalCategoria = cat;
-  document.querySelectorAll('#step2 .senal-btn').forEach(b => b.classList.remove('selected'));
+function selCategoria(cat,btn){
+  senalCategoria=cat;
+  document.querySelectorAll('#step2 .senal-btn').forEach(b=>b.classList.remove('selected'));
   btn.classList.add('selected');
-  document.getElementById('btnStep3').disabled = false;
+  document.getElementById('btnStep3').disabled=false;
 }
-
-function actualizarPreview() {
-  const msg = document.getElementById('senalMensaje').value.trim();
-  const icons = {'Señal de Rango':'📊','Alerta de Mercado':'⚠️','Oportunidad':'🚀','Alerta de Riesgo':'🛑','Mensaje General':'📢'};
-  document.getElementById('senalPreview').textContent =
-    'Señales de ' + senalEmisor + ' — ' + (icons[senalCategoria]||'') + ' ' + senalCategoria;
-  document.getElementById('btnPublicar').disabled = !msg;
+function actualizarPreview(){
+  const msg=document.getElementById('senalMensaje').value.trim();
+  const icons={'Señal de Rango':'📊','Alerta de Mercado':'⚠️','Oportunidad':'🚀','Alerta de Riesgo':'🛑','Mensaje General':'📢'};
+  document.getElementById('senalPreview').textContent=
+    'Señales de '+senalEmisor+' — '+(icons[senalCategoria]||'')+' '+senalCategoria;
+  document.getElementById('btnPublicar').disabled=!msg;
 }
-
-async function publicarSenal() {
-  const mensaje = document.getElementById('senalMensaje').value.trim();
-  if (!mensaje || !senalEmisor || !senalCategoria) return;
-  try {
-    const r = await fetch(BOT_URL + '/senal', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ password: pwd, emisor: senalEmisor, categoria: senalCategoria, mensaje })
-    });
-    const data = await r.json();
-    const el = document.getElementById('senalResult');
-    if (data.ok) {
-      el.style.color = 'var(--accent)';
-      el.textContent = '✅ Señal publicada! Todos los usuarios la verán ahora.';
-      document.getElementById('senalMensaje').value = '';
-      irStep(1);
-      senalEmisor = ''; senalCategoria = '';
-      document.querySelectorAll('.senal-btn').forEach(b => b.classList.remove('selected'));
-      document.getElementById('btnStep2').disabled = true;
-      document.getElementById('btnStep3').disabled = true;
+async function publicarSenal(){
+  const mensaje=document.getElementById('senalMensaje').value.trim();
+  if(!mensaje||!senalEmisor||!senalCategoria) return;
+  try{
+    const r=await fetch(BOT_URL+'/senal',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pwd,emisor:senalEmisor,categoria:senalCategoria,mensaje})});
+    const data=await r.json();
+    const el=document.getElementById('senalResult');
+    if(data.ok){
+      el.style.color='var(--accent)';el.textContent='✅ Señal publicada!';
+      document.getElementById('senalMensaje').value='';
+      irStep(1);senalEmisor='';senalCategoria='';
+      document.querySelectorAll('.senal-btn').forEach(b=>b.classList.remove('selected'));
+      document.getElementById('btnStep2').disabled=true;
+      document.getElementById('btnStep3').disabled=true;
     } else {
-      el.style.color = 'var(--accent2)';
-      el.textContent = '❌ ' + data.msg;
+      el.style.color='var(--accent2)';el.textContent='❌ '+data.msg;
     }
-  } catch(e) {
-    document.getElementById('senalResult').textContent = 'Error: ' + e.message;
-  }
+  }catch(e){document.getElementById('senalResult').textContent='Error: '+e.message;}
 }
 
-function calcMasterSemaforo() {
-  const rb = parseFloat(document.getElementById('masterRangoBajo').value);
-  const ra = parseFloat(document.getElementById('masterRangoAlto').value);
-  const au = parseFloat(document.getElementById('masterCapital').value) || 0;
-  const el = document.getElementById('masterSemaforo');
-  if (!rb || !ra) { el.textContent = ''; return; }
-  if (ra <= rb) { el.style.color='var(--accent2)'; el.textContent='El rango alto debe ser mayor al bajo'; return; }
-  const pct = (ra - rb) / rb * 100;
-  const minRango = au <= 10 ? 3 : 4;
-  if (pct < minRango) {
-    el.style.color = 'var(--accent2)';
-    el.textContent = '🔴 Margen demasiado pequeño (' + pct.toFixed(2) + '%)';
-    document.getElementById('btnMasterStart').disabled = true;
-  } else if (pct < minRango + 2) {
-    el.style.color = '#f5c518';
-    el.textContent = '🟡 ' + pct.toFixed(2) + '% — Margen ajustado';
-    document.getElementById('btnMasterStart').disabled = false;
-  } else {
-    el.style.color = 'var(--accent)';
-    el.textContent = '🟢 ' + pct.toFixed(2) + '% — Rango óptimo';
-    document.getElementById('btnMasterStart').disabled = false;
-  }
+// ── MASTER ───────────────────────────────────────────────────
+function calcMasterSemaforo(){
+  const rb=parseFloat(document.getElementById('masterRangoBajo').value);
+  const ra=parseFloat(document.getElementById('masterRangoAlto').value);
+  const au=parseFloat(document.getElementById('masterCapital').value)||0;
+  const el=document.getElementById('masterSemaforo');
+  if(!rb||!ra){el.textContent='';return;}
+  if(ra<=rb){el.style.color='var(--accent2)';el.textContent='El rango alto debe ser mayor al bajo';return;}
+  const pct=(ra-rb)/rb*100;const minRango=au<=10?3:4;
+  if(pct<minRango){el.style.color='var(--accent2)';el.textContent='🔴 Margen muy pequeno ('+pct.toFixed(2)+'%)';document.getElementById('btnMasterStart').disabled=true;}
+  else if(pct<minRango+2){el.style.color='#f5c518';el.textContent='🟡 '+pct.toFixed(2)+'% — Ajustado';document.getElementById('btnMasterStart').disabled=false;}
+  else{el.style.color='var(--accent)';el.textContent='🟢 '+pct.toFixed(2)+'% — Optimo';document.getElementById('btnMasterStart').disabled=false;}
 }
 
-async function fetchMasterLogs() {
-  try {
-    const mc = await fetch(BOT_URL + '/master/status');
-    const data = await mc.json();
-    if (!data.ok || !data.master || !data.master.wallet_master) {
-      document.getElementById('masterLogs').textContent = 'Sin wallet master configurada';
-      return;
+async function fetchMasterLogs(){
+  try{
+    const mc=await fetch(BOT_URL+'/master/status');
+    const data=await mc.json();
+    if(!data.ok||!data.master||!data.master.wallet_master){
+      document.getElementById('masterLogs').textContent='Sin wallet master configurada';return;
     }
-    const wallet = data.master.wallet_master;
-    const r = await fetch(BOT_URL + '/logs/' + wallet);
-    const logs = await r.json();
-    const el = document.getElementById('masterLogs');
-    if (!logs.logs || !logs.logs.length) { el.textContent = 'Sin logs aun...'; return; }
-    el.innerHTML = logs.logs.slice().reverse().map(line => {
-      let color = 'var(--muted)';
-      if (line.includes('COMPRA')) color = 'var(--accent)';
-      else if (line.includes('VENTA')) color = 'var(--accent2)';
-      else if (line.includes('Error')||line.includes('ERROR')) color = 'var(--accent2)';
-      else if (line.includes('BOT')||line.includes('aprobado')) color = 'var(--accent3)';
-      return '<div style="color:' + color + '">' + line + '</div>';
+    const r=await fetch(BOT_URL+'/logs/'+data.master.wallet_master);
+    const logs=await r.json();
+    const el=document.getElementById('masterLogs');
+    if(!logs.logs||!logs.logs.length){el.textContent='Sin logs aun...';return;}
+    el.innerHTML=logs.logs.slice().reverse().map(line=>{
+      let color='var(--muted)';
+      if(line.includes('COMPRA'))color='var(--accent)';
+      else if(line.includes('VENTA'))color='var(--accent2)';
+      else if(line.includes('Error')||line.includes('ERROR'))color='var(--accent2)';
+      else if(line.includes('BOT')||line.includes('aprobado'))color='var(--accent3)';
+      return'<div style="color:'+color+'">'+line+'</div>';
     }).join('');
-  } catch(e) {}
+  }catch(e){}
 }
 
-async function cargarMasterStatus() {
-  try {
-    const r = await fetch(BOT_URL + '/master/status');
-    const data = await r.json();
-    const mc = data.master;
-    const badge = document.getElementById('masterStatusBadge');
-    if (mc && mc.activo) {
-      badge.textContent = '● ACTIVO'; badge.className = 'master-status-badge on';
-      document.getElementById('btnMasterStart').disabled = true;
-      document.getElementById('btnMasterStop').disabled = false;
-      document.getElementById('masterConfigActiva').innerHTML =
-        'Master: ' + mc.wallet_master.slice(0,6) + '...' + mc.wallet_master.slice(-4) + '<br>' +
-        'Compra: $' + mc.rango_bajo + '<br>Vende: $' + mc.rango_alto +
-        '<br>Capital máx: $' + mc.amount_usdt + '<br>Stop: ' + (mc.stop_zona*100) + '%';
+async function cargarMasterStatus(){
+  try{
+    const r=await fetch(BOT_URL+'/master/status');
+    const data=await r.json();
+    const mc=data.master;
+    const badge=document.getElementById('masterStatusBadge');
+    if(mc&&mc.activo){
+      badge.textContent='● ACTIVO';badge.className='master-status-badge on';
+      document.getElementById('btnMasterStart').disabled=true;
+      document.getElementById('btnMasterStop').disabled=false;
+      document.getElementById('masterConfigActiva').innerHTML=
+        'Master: '+mc.wallet_master.slice(0,6)+'...'+mc.wallet_master.slice(-4)+'<br>'+
+        'Compra: $'+mc.rango_bajo+'<br>Vende: $'+mc.rango_alto+
+        '<br>Capital: $'+mc.amount_usdt+'<br>Stop: '+(mc.stop_zona*100)+'%';
     } else {
-      badge.textContent = '● INACTIVO'; badge.className = 'master-status-badge off';
-      document.getElementById('btnMasterStart').disabled = false;
-      document.getElementById('btnMasterStop').disabled = true;
-      document.getElementById('masterConfigActiva').textContent = 'Sin config activa';
+      badge.textContent='● INACTIVO';badge.className='master-status-badge off';
+      document.getElementById('btnMasterStart').disabled=false;
+      document.getElementById('btnMasterStop').disabled=true;
+      document.getElementById('masterConfigActiva').textContent='Sin config activa';
     }
-    document.getElementById('masterPadawans').textContent = (data.padawans_activos !== undefined) ? data.padawans_activos : 0;
-  } catch(e) { console.log('Error master status:', e); }
+    document.getElementById('masterPadawans').textContent=data.padawans_activos||0;
+  }catch(e){}
 }
 
-async function cargarBotsOnline() {
-  try {
-    const r = await fetch(BOT_URL + '/bots_online');
-    const data = await r.json();
-    const el = document.getElementById('tablaBotsonline');
-    const countEl = document.getElementById('botsOnlineAhora');
-    const padawanEl = document.getElementById('padawansOnline');
-    if (!data.ok || !data.bots_online.length) {
-      el.innerHTML = '<div style="color:var(--muted);font-size:12px;">Ningún bot online ahora mismo</div>';
-      countEl.textContent = '0';
-      padawanEl.textContent = '0';
-      return;
+async function cargarBotsOnline(){
+  try{
+    const r=await fetch(BOT_URL+'/bots_online');
+    const data=await r.json();
+    const el=document.getElementById('tablaBotsonline');
+    const countEl=document.getElementById('botsOnlineAhora');
+    const padawanEl=document.getElementById('padawansOnline');
+    if(!data.ok||!data.bots_online.length){
+      el.innerHTML='<div style="color:var(--muted);font-size:12px;">Ningun bot online ahora mismo</div>';
+      countEl.textContent='0';padawanEl.textContent='0';return;
     }
-    countEl.textContent = data.total;
-    el.innerHTML = '<table><thead><tr><th>Nombre</th><th>Wallet</th><th>Versión</th><th>Estado</th><th>Última señal</th></tr></thead><tbody>' +
-      data.bots_online.map(b => `<tr>
+    countEl.textContent=data.total;
+    el.innerHTML='<table><thead><tr><th>Nombre</th><th>Wallet</th><th>Version</th><th>Estado</th><th>Ultima senal</th></tr></thead><tbody>'+
+      data.bots_online.map(b=>`<tr>
         <td style="font-weight:700">${b.nombre}</td>
         <td style="color:var(--muted)">${b.wallet.slice(0,6)}...${b.wallet.slice(-4)}</td>
         <td style="color:var(--accent3)">v${b.version||'—'}</td>
         <td><span class="bot-online-dot"></span><span style="color:var(--accent);font-size:11px;font-weight:700">ONLINE</span></td>
         <td style="color:var(--muted);font-size:11px;">${new Date(b.actualizado_en).toLocaleTimeString('es-MX')}</td>
-      </tr>`).join('') + '</tbody></table>';
-
-    // Contar cuántos padawans están online
-    const r2 = await fetch(BOT_URL + '/master/status');
-    const ms = await r2.json();
-    if (ms.ok && ms.master && ms.master.wallet_master) {
-      const masterWallet = ms.master.wallet_master.toLowerCase();
-      const padawansOnlineCount = data.bots_online.filter(b => b.wallet.toLowerCase() !== masterWallet).length;
-      padawanEl.textContent = padawansOnlineCount;
+      </tr>`).join('')+'</tbody></table>';
+    const mc=await fetch(BOT_URL+'/master/status');
+    const ms=await mc.json();
+    if(ms.ok&&ms.master&&ms.master.wallet_master){
+      const masterWallet=ms.master.wallet_master.toLowerCase();
+      padawanEl.textContent=data.bots_online.filter(b=>b.wallet.toLowerCase()!==masterWallet).length;
     }
-  } catch(e) {}
+  }catch(e){}
 }
 
-async function masterStart() {
-  const wallet = document.getElementById('masterWallet').value.trim().toLowerCase();
-  const rb = parseFloat(document.getElementById('masterRangoBajo').value);
-  const ra = parseFloat(document.getElementById('masterRangoAlto').value);
-  const capital = parseFloat(document.getElementById('masterCapital').value);
-  const stop = (parseFloat(document.getElementById('masterStop').value) || 3) / 100;
-  if (!wallet || !rb || !ra || !capital) { document.getElementById('masterMsg').textContent = 'Completa todos los campos'; return; }
-  if (rb >= ra) { document.getElementById('masterMsg').textContent = 'Rango bajo debe ser menor al alto'; return; }
-  try {
-    const r = await fetch(BOT_URL + '/master/start', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({password: pwd, wallet_master: wallet, rango_bajo: rb, rango_alto: ra, amount_usdt: capital, stop_zona: stop})
-    });
-    const data = await r.json();
-    const el = document.getElementById('masterMsg');
-    el.style.color = data.ok ? 'var(--accent)' : 'var(--accent2)';
-    el.textContent = data.ok ? '✅ ' + data.msg : '❌ ' + data.msg;
-    if (data.ok) cargarMasterStatus();
-  } catch(e) { document.getElementById('masterMsg').textContent = 'Error: ' + e.message; }
+async function cargarRpcStatus(rpcInfo){
+  if(!rpcInfo) return;
+  document.getElementById('poolRpcs').textContent=rpcInfo.pool_size;
+  document.getElementById('rpcActual').textContent=rpcInfo.rpc_actual||'—';
+  const fallosEl=document.getElementById('rpcFallos');
+  const fallos=rpcInfo.fallos||{};
+  const entries=Object.entries(fallos);
+  if(!entries.length){
+    fallosEl.innerHTML='<span class="rpc-chip ok">✅ Sin fallos registrados</span>';
+  } else {
+    fallosEl.innerHTML=entries.map(([rpc,n])=>`
+      <span class="rpc-chip ${n===0?'ok':n<3?'warn':'bad'}">${rpc}: ${n} fallos</span>
+    `).join('');
+  }
 }
 
-async function masterStop() {
-  if (!confirm('¿Detener el Modo Master? Todos los padawans se detendrán.')) return;
-  try {
-    const r = await fetch(BOT_URL + '/master/stop', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({password: pwd})
-    });
-    const data = await r.json();
-    const el = document.getElementById('masterMsg');
-    el.style.color = data.ok ? 'var(--accent)' : 'var(--accent2)';
-    el.textContent = data.ok ? '✅ ' + data.msg : '❌ ' + data.msg;
-    if (data.ok) cargarMasterStatus();
-  } catch(e) { document.getElementById('masterMsg').textContent = 'Error: ' + e.message; }
+async function masterStart(){
+  const wallet=document.getElementById('masterWallet').value.trim().toLowerCase();
+  const rb=parseFloat(document.getElementById('masterRangoBajo').value);
+  const ra=parseFloat(document.getElementById('masterRangoAlto').value);
+  const capital=parseFloat(document.getElementById('masterCapital').value);
+  const stop=(parseFloat(document.getElementById('masterStop').value)||3)/100;
+  if(!wallet||!rb||!ra||!capital){document.getElementById('masterMsg').textContent='Completa todos los campos';return;}
+  if(rb>=ra){document.getElementById('masterMsg').textContent='Rango bajo debe ser menor al alto';return;}
+  try{
+    const r=await fetch(BOT_URL+'/master/start',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pwd,wallet_master:wallet,rango_bajo:rb,rango_alto:ra,amount_usdt:capital,stop_zona:stop})});
+    const data=await r.json();
+    const el=document.getElementById('masterMsg');
+    el.style.color=data.ok?'var(--accent)':'var(--accent2)';
+    el.textContent=data.ok?'✅ '+data.msg:'❌ '+data.msg;
+    if(data.ok) cargarMasterStatus();
+  }catch(e){document.getElementById('masterMsg').textContent='Error: '+e.message;}
 }
 
-async function cargarDatos() {
-  try {
-    const r = await fetch(BOT_URL + '/admin?password=' + encodeURIComponent(pwd));
-    if (r.status === 401) { document.getElementById('loginError').textContent = 'Contrasena incorrecta'; return; }
-    const data = await r.json();
-    document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-    cargarMasterStatus();
-    fetchMasterLogs();
-    cargarBotsOnline();
-    if (!window._adminRefreshStarted) {
-      window._adminRefreshStarted = true;
-      setInterval(function() { cargarMasterStatus(); fetchMasterLogs(); cargarBotsOnline(); }, 15000);
+async function masterStop(){
+  if(!confirm('¿Detener el Modo Master? Todos los padawans se detendrán.'))return;
+  try{
+    const r=await fetch(BOT_URL+'/master/stop',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pwd})});
+    const data=await r.json();
+    const el=document.getElementById('masterMsg');
+    el.style.color=data.ok?'var(--accent)':'var(--accent2)';
+    el.textContent=data.ok?'✅ '+data.msg:'❌ '+data.msg;
+    if(data.ok) cargarMasterStatus();
+  }catch(e){document.getElementById('masterMsg').textContent='Error: '+e.message;}
+}
+
+// ── CARGA PRINCIPAL ──────────────────────────────────────────
+async function cargarDatos(){
+  try{
+    const r=await fetch(BOT_URL+'/admin?password='+encodeURIComponent(pwd));
+    if(r.status===401){document.getElementById('loginError').textContent='Contrasena incorrecta';return;}
+    const data=await r.json();
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+
+    cargarMasterStatus();fetchMasterLogs();cargarBotsOnline();
+    cargarRpcStatus(data.rpc_info);
+
+    if(!window._adminRefreshStarted){
+      window._adminRefreshStarted=true;
+      setInterval(()=>{cargarMasterStatus();fetchMasterLogs();cargarBotsOnline();},15000);
     }
-    document.getElementById('totalUsuarios').textContent = data.resumen.total_usuarios;
-    document.getElementById('botsActivos').textContent = data.resumen.bots_activos;
-    document.getElementById('ciclosTotales').textContent = data.resumen.ciclos_totales;
-    document.getElementById('comprasTotales').textContent = data.resumen.compras_totales;
-    document.getElementById('ventasTotales').textContent = data.resumen.ventas_totales;
-    document.getElementById('volumen24h').textContent = '$' + data.resumen.volumen_24h.toFixed(2);
-    document.getElementById('comisionesEvox').textContent = '$' + data.resumen.comisiones_estimadas.toFixed(4);
 
-    const tu = document.getElementById('tablaUsuarios');
-    if (!data.usuarios.length) {
-      tu.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin usuarios aun</div>';
-    } else {
-      tu.innerHTML = '<table><thead><tr><th>#</th><th>Nombre</th><th>Wallet</th><th>Bot</th><th>Ciclos</th><th>Ganancia</th><th>Registro</th></tr></thead><tbody>' +
-        data.usuarios.map((u,i) => `<tr>
+    document.getElementById('totalUsuarios').textContent=data.resumen.total_usuarios;
+    document.getElementById('botsActivos').textContent=data.resumen.bots_activos;
+    document.getElementById('ciclosTotales').textContent=data.resumen.ciclos_totales;
+    document.getElementById('comprasTotales').textContent=data.resumen.compras_totales;
+    document.getElementById('volumen24h').textContent='$'+data.resumen.volumen_24h.toFixed(2);
+    document.getElementById('comisionesEvox').textContent='$'+data.resumen.comisiones_estimadas.toFixed(4);
+
+    const tu=document.getElementById('tablaUsuarios');
+    if(!data.usuarios.length){tu.innerHTML='<div style="color:var(--muted);font-size:12px;">Sin usuarios aun</div>';}
+    else{
+      tu.innerHTML='<table><thead><tr><th>#</th><th>Nombre</th><th>Wallet</th><th>Bot</th><th>Ciclos</th><th>Ganancia</th><th>Registro</th></tr></thead><tbody>'+
+        data.usuarios.map((u,i)=>`<tr>
           <td style="color:var(--muted)">${i+1}</td>
           <td style="font-weight:700">${u.nombre}</td>
           <td style="color:var(--muted)">${u.wallet.slice(0,6)}...${u.wallet.slice(-4)}</td>
@@ -459,15 +463,14 @@ async function cargarDatos() {
           <td style="color:var(--accent3)">${u.ciclos_total}</td>
           <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td>
           <td style="color:var(--muted)">${new Date(u.creado_en).toLocaleDateString()}</td>
-        </tr>`).join('') + '</tbody></table>';
+        </tr>`).join('')+'</tbody></table>';
     }
 
-    const tc = document.getElementById('tablaUltimos');
-    if (!data.ultimos_ciclos.length) {
-      tc.innerHTML = '<div style="color:var(--muted);font-size:12px;">Sin ciclos aun</div>';
-    } else {
-      tc.innerHTML = '<table><thead><tr><th>Nombre</th><th>Wallet</th><th>Fecha</th><th>Hora</th><th>Capital</th><th>Compra</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>' +
-        data.ultimos_ciclos.map(c => `<tr>
+    const tc=document.getElementById('tablaUltimos');
+    if(!data.ultimos_ciclos.length){tc.innerHTML='<div style="color:var(--muted);font-size:12px;">Sin ciclos aun</div>';}
+    else{
+      tc.innerHTML='<table><thead><tr><th>Nombre</th><th>Wallet</th><th>Fecha</th><th>Hora</th><th>Capital</th><th>Compra</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>'+
+        data.ultimos_ciclos.map(c=>`<tr>
           <td style="font-weight:700">${c.nombre}</td>
           <td style="color:var(--muted)">${c.wallet.slice(0,6)}...${c.wallet.slice(-4)}</td>
           <td style="color:var(--muted)">${c.fecha||'—'}</td>
@@ -476,11 +479,9 @@ async function cargarDatos() {
           <td>${c.precio_compra?'$'+parseFloat(c.precio_compra).toFixed(6):'previo'}</td>
           <td>${c.precio_venta?'$'+parseFloat(c.precio_venta).toFixed(6):'—'}</td>
           <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(c.ganancia_usdt).toFixed(4)}</td>
-        </tr>`).join('') + '</tbody></table>';
+        </tr>`).join('')+'</tbody></table>';
     }
-  } catch(e) {
-    document.getElementById('loginError').textContent = 'Error: ' + e.message;
-  }
+  }catch(e){document.getElementById('loginError').textContent='Error: '+e.message;}
 }
 </script>
 </body>
