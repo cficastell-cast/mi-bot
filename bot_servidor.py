@@ -1317,3 +1317,12 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"EVOX Bot 2.0 corriendo en puerto {port}")
     app.run(host="0.0.0.0", port=port)
+@app.route("/debug_rpc", methods=["GET"])
+def debug_rpc():
+    return jsonify({
+        "RPC_1": os.environ.get("RPC_1", "NO ENCONTRADO")[:50],
+        "RPC_2": os.environ.get("RPC_2", "NO ENCONTRADO")[:50],
+        "RPC_3": os.environ.get("RPC_3", "NO ENCONTRADO")[:50],
+        "RPC_4": os.environ.get("RPC_4", "NO ENCONTRADO")[:50],
+        "pool_size": len(RPC_POOL),
+    })
