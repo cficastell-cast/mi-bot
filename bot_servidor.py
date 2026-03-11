@@ -62,7 +62,7 @@ _rpc_lock     = threading.Lock()
 _rpc_fallos   = {}
 _w3_cache     = {}
 _w3_lock      = threading.Lock()
-_rpc_semaphore = threading.Semaphore(8)  # máx 8 llamadas RPC simultáneas
+_rpc_semaphore = threading.Semaphore(20)  # máx 20 llamadas RPC simultáneas
 
 def get_rpc_url():
     with _rpc_lock:
