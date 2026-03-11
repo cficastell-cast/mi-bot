@@ -120,22 +120,21 @@ def llamada_rpc(fn, max_rotaciones=4):
 #  Un solo loop lee todos los balances cada 45s
 #  en lugar de que cada bot lo haga cada 30s
 # ══════════════════════════════════════════════════════════════
-_balance_cache  = {}   # wallet -> {"usdt": float, "cnkt": float, "ts": float}
+_balance_cache  = {}   # wallet -> {"usdt": float, "cnkt": float, "ts_usdt": float, "ts_cnkt": float}
 _balance_lock   = threading.Lock()
 BALANCE_TTL     = 45   # segundos antes de considerar el cache expirado
 
 def get_balance_usdt_cached(wallet):
     with _balance_lock:
         entry = _balance_cache.get(wallet.lower())
-        if entry and (time.time() - entry["ts"]) < BALANCE_TTL:
+        if entry and (time.time() - entry.get("ts_usdt", 0)) < BALANCE_TTL:
             return entry["usdt"]
-    # Cache expirado — leer fresco
     return _leer_balance_usdt(wallet)
 
 def get_balance_cnkt_cached(wallet):
     with _balance_lock:
         entry = _balance_cache.get(wallet.lower())
-        if entry and (time.time() - entry["ts"]) < BALANCE_TTL:
+        if entry and (time.time() - entry.get("ts_cnkt", 0)) < BALANCE_TTL:
             return entry["cnkt"]
     return _leer_balance_cnkt(wallet)
 
@@ -144,9 +143,9 @@ def _leer_balance_usdt(wallet):
     contract = w3.eth.contract(address=USDT_ADDRESS, abi=TOKEN_ABI)
     val = contract.functions.balanceOf(Web3.to_checksum_address(wallet)).call() / 10**6
     with _balance_lock:
-        entry = _balance_cache.get(wallet.lower(), {"usdt": 0, "cnkt": 0, "ts": 0})
-        entry["usdt"] = val
-        entry["ts"]   = time.time()
+        entry = _balance_cache.get(wallet.lower(), {"usdt": 0, "cnkt": 0, "ts_usdt": 0, "ts_cnkt": 0})
+        entry["usdt"]    = val
+        entry["ts_usdt"] = time.time()
         _balance_cache[wallet.lower()] = entry
     return val
 
@@ -158,9 +157,9 @@ def _leer_balance_cnkt(wallet):
         val = raw / 10**18
         print(f"[Balance CNKT] {wallet[:6]}: raw={raw} val={val}")
         with _balance_lock:
-            entry = _balance_cache.get(wallet.lower(), {"usdt": 0, "cnkt": 0, "ts": 0})
-            entry["cnkt"] = val
-            entry["ts"]   = time.time()
+            entry = _balance_cache.get(wallet.lower(), {"usdt": 0, "cnkt": 0, "ts_usdt": 0, "ts_cnkt": 0})
+            entry["cnkt"]    = val
+            entry["ts_cnkt"] = time.time()
             _balance_cache[wallet.lower()] = entry
         return val
     except Exception as e:
