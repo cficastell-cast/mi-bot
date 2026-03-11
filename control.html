@@ -269,9 +269,10 @@
       <div class="card-label">Ganancia</div>
       <div class="gan-row">
         <div class="gan-hoy" id="statGananciaHoy">&#8212;</div>
+        <div class="gan-acum" id="statGananciaMes">&#8212;</div>
         <div class="gan-acum" id="statGananciaAcum">&#8212;</div>
       </div>
-      <div class="gan-labels"><span>Hoy</span><span>Acumulada</span></div>
+      <div class="gan-labels"><span>Hoy</span><span>Mes</span><span>Historico</span></div>
     </div>
   </div>
 
@@ -631,12 +632,20 @@ async function fetchCiclosHoy(){
     if(data.ok){
       document.getElementById('ciclosHoy').textContent=data.ciclos_hoy;
       document.getElementById('ciclosTotal').textContent=data.ciclos_total;
-      const ganHoyEl=document.getElementById('statGananciaHoy');
-      ganHoyEl.textContent='$'+parseFloat(data.ganancia_hoy||0).toFixed(4);
-      ganHoyEl.style.color=data.ganancia_hoy>=0?'var(--accent)':'var(--accent2)';
-      const ganAcumEl=document.getElementById('statGananciaAcum');
-      ganAcumEl.textContent='$'+parseFloat(data.ganancia_acum||0).toFixed(4);
-      ganAcumEl.style.color=data.ganancia_acum>=0?'var(--accent)':'var(--accent2)';
+    }
+  }catch(e){}
+  try{
+    const r2=await fetch(BOT_URL+'/ganancia/'+userWallet);
+    const g=await r2.json();
+    if(g.ok){
+      const setGan=(id,val)=>{
+        const el=document.getElementById(id);
+        el.textContent='$'+parseFloat(val||0).toFixed(4);
+        el.style.color=val>=0?'var(--accent)':'var(--accent2)';
+      };
+      setGan('statGananciaHoy', g.dia);
+      setGan('statGananciaMes', g.mes);
+      setGan('statGananciaAcum', g.historico);
     }
   }catch(e){}
 }
