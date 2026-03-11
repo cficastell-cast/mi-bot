@@ -454,7 +454,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
             "gas": int(build['data']['gas']) + 50000, "chainId": 137
         }
         tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
-            account.sign_transaction(tx).raw_transaction))
+            account.sign_transaction(tx).rawTransaction))
         log_estado(estado, f"COMPRA: https://polygonscan.com/tx/{tx_hash.hex()}")
         registrar_swap(wallet, "COMPRA", AMOUNT_USDT)
         invalidar_balance(wallet)  # fuerza re-lectura del balance
@@ -480,7 +480,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
             "gas": int(build['data']['gas']) + 50000, "chainId": 137
         }
         tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
-            account.sign_transaction(tx).raw_transaction))
+            account.sign_transaction(tx).rawTransaction))
         usdt_real = float(route['data']['routeSummary']['amountOut']) / 10**6
         log_estado(estado, f"VENTA: https://polygonscan.com/tx/{tx_hash.hex()}")
         registrar_swap(wallet, "VENTA", usdt_real)
@@ -668,7 +668,7 @@ def aprobar_tokens_inicial(private_key, wallet):
                     "gasPrice": gas_price, "chainId": 137
                 })
                 tx_hash = llamada_rpc(lambda: w3.eth.send_raw_transaction(
-                    account.sign_transaction(tx).raw_transaction))
+                    account.sign_transaction(tx).rawTransaction))
                 resultados[nombre] = tx_hash.hex()
                 print(f"[Aprobacion] {nombre} aprobado: {tx_hash.hex()}")
                 time.sleep(5)  # pequeña pausa entre las dos aprobaciones
