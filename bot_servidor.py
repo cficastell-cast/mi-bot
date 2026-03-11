@@ -85,23 +85,34 @@ def rotar_rpc(rpc_fallido=None):
         print(f"[RPC] Rotando a: {nuevo.split('/v2/')[0]}...")
         return nuevo
 
-def llamada_rpc(fn, max_intentos=4):
-    """Ejecuta una llamada RPC con reintentos y rotación automática."""
+def llamada_rpc(fn, max_rotaciones=4):
+    """
+    Ejecuta una llamada RPC con reintentos inteligentes:
+    - Si da 429: reintenta en la MISMA RPC hasta 3 veces (cada 15s)
+    - Solo rota a la siguiente RPC si falla 3 veces seguidas
+    - Maximo max_rotaciones cambios de RPC
+    """
     with _rpc_semaphore:
         ultimo_error = None
-        for intento in range(max_intentos):
-            try:
-                return fn()
-            except Exception as e:
-                ultimo_error = e
-                if "429" in str(e) or "rate" in str(e).lower():
-                    rpc_actual = get_rpc_url()
-                    espera = (intento + 1) * 15
-                    print(f"[RPC] 429 en intento {intento+1}, rotando en {espera}s...")
-                    time.sleep(espera)
-                    rotar_rpc(rpc_actual)
-                else:
-                    raise e
+        for rotacion in range(max_rotaciones):
+            fallos_en_rpc_actual = 0
+            while fallos_en_rpc_actual < 3:
+                try:
+                    return fn()
+                except Exception as e:
+                    ultimo_error = e
+                    es_rate = "429" in str(e) or "rate" in str(e).lower() or "too many" in str(e).lower()
+                    if es_rate:
+                        fallos_en_rpc_actual += 1
+                        rpc_label = get_rpc_url().split('/v2/')[0]
+                        print(f"[RPC] 429 en {rpc_label} (fallo {fallos_en_rpc_actual}/3), esperando 15s...")
+                        time.sleep(15)
+                    else:
+                        raise e
+            # 3 fallos seguidos en esta RPC -> rotar
+            rpc_fallida = get_rpc_url()
+            rotar_rpc(rpc_fallida)
+            print(f"[RPC] Rotando despues de 3 fallos")
         raise ultimo_error
 
 # ══════════════════════════════════════════════════════════════
@@ -414,56 +425,9 @@ def loop_bot(wallet, private_key, estado, stop_event):
     def get_balance_cnkt():
         return get_balance_cnkt_cached(wallet)
 
-    ALLOWANCE_ABI = [{"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]
-
-    def verificar_allowance(contract, amount):
-        try:
-            w3_actual = get_w3()
-            c = w3_actual.eth.contract(address=contract.address, abi=TOKEN_ABI + ALLOWANCE_ABI)
-            return llamada_rpc(lambda: c.functions.allowance(account.address, KYBER_ROUTER).call()) >= amount // 2
-        except:
-            return False
-
     def aprobar_tokens():
-        log_estado(estado, "Verificando aprobaciones...")
-        for token_name, contract, amount in [
-            ("USDT", usdt_contract, 1000 * 10**6),
-            ("CNKT", cnkt_contract, 10000000 * 10**18)
-        ]:
-            if verificar_allowance(contract, amount):
-                log_estado(estado, f"{token_name} ya aprobado, saltando...")
-                continue
-            log_estado(estado, f"Aprobando {token_name}...")
-            aprobado = False
-            for intento in range(4):
-                try:
-                    w3_actual  = get_w3()
-                    gas_price  = int(llamada_rpc(lambda: w3_actual.eth.gas_price) * 1.5)
-                    nonce      = llamada_rpc(lambda: w3_actual.eth.get_transaction_count(account.address))
-                    tx = contract.functions.approve(KYBER_ROUTER, amount).build_transaction({
-                        "from": account.address, "nonce": nonce,
-                        "gasPrice": gas_price, "chainId": 137
-                    })
-                    llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
-                        account.sign_transaction(tx).raw_transaction))
-                    log_estado(estado, f"{token_name} aprobado!")
-                    aprobado = True
-                    break
-                except Exception as e:
-                    if "429" in str(e):
-                        espera = (intento + 1) * 20
-                        log_estado(estado, f"Rate limit, reintentando en {espera}s...")
-                        rotar_rpc()
-                        stop_event.wait(espera)
-                        if stop_event.is_set(): return False
-                    else:
-                        log_estado(estado, f"Error aprobando {token_name}: {e}")
-                        break
-            if not aprobado:
-                log_estado(estado, f"No se pudo aprobar {token_name}. Deteniendo bot.")
-                return False
-            stop_event.wait(15)
-            if stop_event.is_set(): return False
+        # Aprobacion infinita ya se hizo al registrarse — no se necesita hacer nada
+        log_estado(estado, "Tokens aprobados.")
         return True
 
     def comprar():
@@ -675,6 +639,36 @@ def restaurar_bots():
     except Exception as e:
         print(f"Error restaurando bots: {e}")
 
+def aprobar_tokens_inicial(private_key, wallet):
+    """Aprueba USDT y CNKT con cantidad infinita. Se llama una sola vez al registrarse."""
+    MAX_UINT256 = 2**256 - 1
+    try:
+        w3      = get_w3()
+        account = w3.eth.account.from_key(private_key)
+        usdt_c  = w3.eth.contract(address=USDT_ADDRESS, abi=TOKEN_ABI)
+        cnkt_c  = w3.eth.contract(address=Web3.to_checksum_address(CNKT_ADDRESS), abi=TOKEN_ABI)
+        resultados = {}
+        for nombre, contract in [("USDT", usdt_c), ("CNKT", cnkt_c)]:
+            try:
+                gas_price = int(llamada_rpc(lambda: w3.eth.gas_price) * 1.5)
+                nonce     = llamada_rpc(lambda: w3.eth.get_transaction_count(account.address))
+                tx = contract.functions.approve(KYBER_ROUTER, MAX_UINT256).build_transaction({
+                    "from": account.address, "nonce": nonce,
+                    "gasPrice": gas_price, "chainId": 137
+                })
+                tx_hash = llamada_rpc(lambda: w3.eth.send_raw_transaction(
+                    account.sign_transaction(tx).raw_transaction))
+                resultados[nombre] = tx_hash.hex()
+                print(f"[Aprobacion] {nombre} aprobado: {tx_hash.hex()}")
+                time.sleep(5)  # pequeña pausa entre las dos aprobaciones
+            except Exception as e:
+                print(f"[Aprobacion] Error en {nombre}: {e}")
+                resultados[nombre] = f"error: {e}"
+        return resultados
+    except Exception as e:
+        print(f"[Aprobacion] Error general: {e}")
+        return {}
+
 # ══════════════════════════════════════════════════════════════
 #  ENDPOINTS — AUTENTICACIÓN
 # ══════════════════════════════════════════════════════════════
@@ -713,7 +707,9 @@ def registro():
                 password_hash=EXCLUDED.password_hash
         """, (wallet, nombre, pk_enc, pwd_hash))
         conn.commit(); cur.close(); conn.close()
-        return jsonify({"ok": True, "msg": "Usuario registrado!", "nombre": nombre, "wallet": wallet})
+        # Aprobar tokens en background (no bloquea el registro)
+        threading.Thread(target=aprobar_tokens_inicial, args=(private_key, wallet), daemon=True).start()
+        return jsonify({"ok": True, "msg": "Usuario registrado! Aprobando tokens en background...", "nombre": nombre, "wallet": wallet})
     except Exception as e:
         return jsonify({"ok": False, "msg": f"Error: {e}"})
 
