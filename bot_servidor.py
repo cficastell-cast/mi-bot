@@ -394,10 +394,14 @@ def nuevo_estado():
         "RANGO_BAJO": None, "RANGO_ALTO": None, "AMOUNT_USDT": None, "STOP_ZONA": None,
     }
 
+LOGS_IMPORTANTES = ["COMPRA", "VENTA", "ERROR", "Error", "STOP", "aprobado", "Ganancia", "DETENIDO", "iniciado", "INICIADO", "restaurado"]
+
 def log_estado(estado, msg):
     hora  = hora_cdmx()
     linea = f"{hora} | {msg}"
-    print(linea)
+    # Solo imprimir en Railway si es un evento importante
+    if any(k in msg for k in LOGS_IMPORTANTES):
+        print(linea)
     estado["ultimo_log"] = linea
     estado["logs"].append(linea)
     if len(estado["logs"]) > 100:
