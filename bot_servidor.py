@@ -496,8 +496,13 @@ def loop_bot(wallet, private_key, estado, stop_event):
         log_estado(estado, "Bot detenido durante aprobacion.")
         return
 
+    # Forzar lectura fresca de balances al arrancar
+    invalidar_balance(wallet)
+    time.sleep(1)
     usdt_actual = get_balance_usdt()
+    time.sleep(1)
     cnkt_actual = get_balance_cnkt()
+    time.sleep(1)
     log_estado(estado, f"USDT: ${round(usdt_actual, 2)}")
     log_estado(estado, f"CNKT: {round(cnkt_actual, 2)}")
 
