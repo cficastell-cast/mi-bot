@@ -170,8 +170,7 @@ def _leer_balance_cnkt(wallet):
 def invalidar_balance(wallet):
     """Fuerza re-lectura del balance después de una tx."""
     with _balance_lock:
-        if wallet.lower() in _balance_cache:
-            _balance_cache[wallet.lower()]["ts"] = 0
+        _balance_cache.pop(wallet.lower(), None)
 
 def loop_balance_global():
     """Actualiza balances de todos los bots activos cada 45s."""
