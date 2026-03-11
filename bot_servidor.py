@@ -493,9 +493,14 @@ def loop_bot(wallet, private_key, estado, stop_event):
         }
         tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
             account.sign_transaction(tx).rawTransaction))
-        log_estado(estado, f"COMPRA: https://polygonscan.com/tx/{tx_hash.hex()}")
+        log_estado(estado, f"COMPRA enviada: https://polygonscan.com/tx/{tx_hash.hex()}")
+        # Esperar confirmacion
+        receipt = llamada_rpc(lambda: w3_actual.eth.wait_for_transaction_receipt(tx_hash, timeout=60))
+        if receipt.status != 1:
+            raise Exception(f"TX revertida: {tx_hash.hex()}")
+        log_estado(estado, f"COMPRA confirmada!")
         registrar_swap(wallet, "COMPRA", AMOUNT_USDT)
-        invalidar_balance(wallet)  # fuerza re-lectura del balance
+        invalidar_balance(wallet)
         stop_event.wait(15)
         return float(route['data']['routeSummary']['amountOut']) / 10**18
 
@@ -520,9 +525,14 @@ def loop_bot(wallet, private_key, estado, stop_event):
         tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
             account.sign_transaction(tx).rawTransaction))
         usdt_real = float(route['data']['routeSummary']['amountOut']) / 10**6
-        log_estado(estado, f"VENTA: https://polygonscan.com/tx/{tx_hash.hex()}")
+        log_estado(estado, f"VENTA enviada: https://polygonscan.com/tx/{tx_hash.hex()}")
+        # Esperar confirmacion
+        receipt = llamada_rpc(lambda: w3_actual.eth.wait_for_transaction_receipt(tx_hash, timeout=60))
+        if receipt.status != 1:
+            raise Exception(f"TX revertida: {tx_hash.hex()}")
+        log_estado(estado, f"VENTA confirmada!")
         registrar_swap(wallet, "VENTA", usdt_real)
-        invalidar_balance(wallet)  # fuerza re-lectura del balance
+        invalidar_balance(wallet)
         stop_event.wait(15)
         return usdt_real
 
