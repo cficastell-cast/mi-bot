@@ -1292,26 +1292,24 @@ for _img in ["icon", "evox", "charlie", "susan"]:
     _make_route(_img)
 
 # ══════════════════════════════════════════════════════════════
-#  MAIN
+#  INICIO — corre tanto con gunicorn como directo
 # ══════════════════════════════════════════════════════════════
+init_db()
+
+threading.Thread(target=loop_precio_global, daemon=True).start()
+print("Loop de precio iniciado!")
+
+threading.Thread(target=loop_balance_global, daemon=True).start()
+print("Loop de balance global iniciado!")
+
+print(f"Pool de RPCs: {len(RPC_POOL)} endpoints disponibles")
+for i, rpc in enumerate(RPC_POOL):
+    label = rpc.split('/v2/')[0] if '/v2/' in rpc else rpc
+    print(f"  [{i+1}] {label}{'...' if '/v2/' in rpc else ''}")
+
+restaurar_bots()
+
 if __name__ == "__main__":
-    init_db()
-
-    # Precio global
-    threading.Thread(target=loop_precio_global, daemon=True).start()
-    print("Loop de precio iniciado!")
-
-    # Balance global — reemplaza las consultas individuales de cada bot
-    threading.Thread(target=loop_balance_global, daemon=True).start()
-    print("Loop de balance global iniciado!")
-
-    print(f"Pool de RPCs: {len(RPC_POOL)} endpoints disponibles")
-    for i, rpc in enumerate(RPC_POOL):
-        label = rpc.split('/v2/')[0] if '/v2/' in rpc else rpc
-        print(f"  [{i+1}] {label}{'...' if '/v2/' in rpc else ''}")
-
-    restaurar_bots()
-
     port = int(os.environ.get("PORT", 5000))
     print(f"EVOX Bot 2.0 corriendo en puerto {port}")
     app.run(host="0.0.0.0", port=port)
