@@ -592,13 +592,17 @@ def loop_bot(wallet, private_key, estado, stop_event):
                 break
 
             if precio <= RANGO_BAJO and modo == "COMPRA":
-                if usdt >= AMOUNT_USDT:
+                if estado["cnkt_comprados"] > 0:
+                    log_estado(estado, "Ya tienes CNKT comprados, esperando venta...")
+                    estado["modo"] = "VENTA"
+                elif usdt >= AMOUNT_USDT:
                     log_estado(estado, "Senal de COMPRA!")
                     hora_compra_actual   = hora_cdmx()
                     precio_compra_actual = precio
                     estado["cnkt_comprados"] = comprar()
                     if stop_event.is_set(): break
                     cnkt_comprado_actual = estado["cnkt_comprados"]
+                    estado["modo"] = "VENTA"  # cambiar modo inmediatamente
                     log_estado(estado, f"CNKT recibidos: {round(estado['cnkt_comprados'], 2)}")
                 else:
                     log_estado(estado, "Esperando USDT suficiente...")
@@ -622,6 +626,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
                     cnkt_comprado_actual      = 0
                     hora_compra_actual        = None
                     precio_compra_actual      = None
+                    estado["modo"] = "COMPRA"  # listo para el siguiente ciclo
 
                 elif cnkt_comp == 0 and cnkt >= cnkt_necesario:
                     log_estado(estado, "Senal de VENTA! (CNKT previo)")
