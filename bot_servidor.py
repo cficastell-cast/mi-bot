@@ -1308,3 +1308,27 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"EVOX Bot 2.0 corriendo en puerto {port}")
     app.run(host="0.0.0.0", port=port)
+
+@app.route("/reset_db_temporal", methods=["GET"])
+def reset_db():
+    pwd = request.args.get("pwd", "")
+    if pwd != BOT_PASSWORD:
+        return "No autorizado", 401
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS ciclos CASCADE")
+        cur.execute("DROP TABLE IF EXISTS swaps CASCADE")
+        cur.execute("DROP TABLE IF EXISTS bots_activos CASCADE")
+        cur.execute("DROP TABLE IF EXISTS bot_estados CASCADE")
+        cur.execute("DROP TABLE IF EXISTS padawans CASCADE")
+        cur.execute("DROP TABLE IF EXISTS master_config CASCADE")
+        cur.execute("DROP TABLE IF EXISTS senales CASCADE")
+        cur.execute("DROP TABLE IF EXISTS usuarios CASCADE")
+        conn.commit()
+        cur.close()
+        conn.close()
+        init_db()
+        return "DB limpiada y recreada!", 200
+    except Exception as e:
+        return f"Error: {e}", 500
