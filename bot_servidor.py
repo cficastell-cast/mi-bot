@@ -1326,12 +1326,3 @@ def debug_rpc():
         "RPC_4": os.environ.get("RPC_4", "NO ENCONTRADO")[:50],
         "pool_size": len(RPC_POOL),
     })
-
-@app.route("/test_rpc", methods=["GET"])
-def test_rpc():
-    try:
-        w3 = Web3(Web3.HTTPProvider(os.environ.get("RPC_2")))
-        block = w3.eth.block_number
-        return jsonify({"ok": True, "block": block})
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)})
