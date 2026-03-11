@@ -52,7 +52,6 @@ def _build_rpc_pool():
     pool += [
         "https://polygon-bor-rpc.publicnode.com",
         "https://1rpc.io/matic",
-        "https://rpc.ankr.com/polygon",
         "https://polygon.drpc.org",
     ]
     return pool
@@ -97,7 +96,7 @@ def llamada_rpc(fn, max_intentos=4):
                 ultimo_error = e
                 if "429" in str(e) or "rate" in str(e).lower():
                     rpc_actual = get_rpc_url()
-                    espera = (intento + 1) * 2
+                    espera = (intento + 1) * 15
                     print(f"[RPC] 429 en intento {intento+1}, rotando en {espera}s...")
                     time.sleep(espera)
                     rotar_rpc(rpc_actual)
@@ -415,12 +414,26 @@ def loop_bot(wallet, private_key, estado, stop_event):
     def get_balance_cnkt():
         return get_balance_cnkt_cached(wallet)
 
+    ALLOWANCE_ABI = [{"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]
+
+    def verificar_allowance(contract, amount):
+        try:
+            w3_actual = get_w3()
+            c = w3_actual.eth.contract(address=contract.address, abi=TOKEN_ABI + ALLOWANCE_ABI)
+            return llamada_rpc(lambda: c.functions.allowance(account.address, KYBER_ROUTER).call()) >= amount // 2
+        except:
+            return False
+
     def aprobar_tokens():
-        log_estado(estado, "Aprobando tokens...")
+        log_estado(estado, "Verificando aprobaciones...")
         for token_name, contract, amount in [
             ("USDT", usdt_contract, 1000 * 10**6),
             ("CNKT", cnkt_contract, 10000000 * 10**18)
         ]:
+            if verificar_allowance(contract, amount):
+                log_estado(estado, f"{token_name} ya aprobado, saltando...")
+                continue
+            log_estado(estado, f"Aprobando {token_name}...")
             aprobado = False
             for intento in range(4):
                 try:
