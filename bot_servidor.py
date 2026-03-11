@@ -1437,26 +1437,6 @@ for _img in ["icon", "evox", "charlie", "susan"]:
 # ══════════════════════════════════════════════════════════════
 #  INICIO — corre tanto con gunicorn como directo
 # ══════════════════════════════════════════════════════════════
-
-@app.route("/limpiar_swaps_falsos", methods=["GET"])
-def limpiar_swaps_falsos():
-    pwd = request.args.get("pwd", "")
-    if pwd != BOT_PASSWORD:
-        return "No autorizado", 401
-    try:
-        conn = get_db(); cur = conn.cursor()
-        wallets = [
-            "0x8619e5ac74a606f669645714a62c1a6ae3ad881b",
-            "0x34fc8e5a19a71f44d36e9f2aa8a6328244fb5674"
-        ]
-        cur.execute("DELETE FROM swaps WHERE wallet = ANY(%s)", (wallets,))
-        cur.execute("DELETE FROM ciclos WHERE wallet = ANY(%s)", (wallets,))
-        conn.commit()
-        cur.close(); conn.close()
-        return "Swaps y ciclos limpiados!", 200
-    except Exception as e:
-        return f"Error: {e}", 500
-
 init_db()
 
 threading.Thread(target=loop_precio_global, daemon=True).start()
