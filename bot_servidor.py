@@ -142,8 +142,7 @@ def get_balance_cnkt_cached(wallet):
 def _leer_balance_usdt(wallet):
     w3 = get_w3()
     contract = w3.eth.contract(address=USDT_ADDRESS, abi=TOKEN_ABI)
-    val = llamada_rpc(lambda: contract.functions.balanceOf(
-        Web3.to_checksum_address(wallet)).call()) / 10**6
+    val = contract.functions.balanceOf(Web3.to_checksum_address(wallet)).call() / 10**6
     with _balance_lock:
         entry = _balance_cache.get(wallet.lower(), {"usdt": 0, "cnkt": 0, "ts": 0})
         entry["usdt"] = val
@@ -154,8 +153,7 @@ def _leer_balance_usdt(wallet):
 def _leer_balance_cnkt(wallet):
     w3 = get_w3()
     contract = w3.eth.contract(address=Web3.to_checksum_address(CNKT_ADDRESS), abi=TOKEN_ABI)
-    val = llamada_rpc(lambda: contract.functions.balanceOf(
-        Web3.to_checksum_address(wallet)).call()) / 10**18
+    val = contract.functions.balanceOf(Web3.to_checksum_address(wallet)).call() / 10**18
     with _balance_lock:
         entry = _balance_cache.get(wallet.lower(), {"usdt": 0, "cnkt": 0, "ts": 0})
         entry["cnkt"] = val
