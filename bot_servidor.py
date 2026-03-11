@@ -151,15 +151,19 @@ def _leer_balance_usdt(wallet):
     return val
 
 def _leer_balance_cnkt(wallet):
-    w3 = get_w3()
-    contract = w3.eth.contract(address=Web3.to_checksum_address(CNKT_ADDRESS), abi=TOKEN_ABI)
-    val = contract.functions.balanceOf(Web3.to_checksum_address(wallet)).call() / 10**18
-    with _balance_lock:
-        entry = _balance_cache.get(wallet.lower(), {"usdt": 0, "cnkt": 0, "ts": 0})
-        entry["cnkt"] = val
-        entry["ts"]   = time.time()
-        _balance_cache[wallet.lower()] = entry
-    return val
+    try:
+        w3 = get_w3()
+        contract = w3.eth.contract(address=Web3.to_checksum_address(CNKT_ADDRESS), abi=TOKEN_ABI)
+        val = contract.functions.balanceOf(Web3.to_checksum_address(wallet)).call() / 10**18
+        with _balance_lock:
+            entry = _balance_cache.get(wallet.lower(), {"usdt": 0, "cnkt": 0, "ts": 0})
+            entry["cnkt"] = val
+            entry["ts"]   = time.time()
+            _balance_cache[wallet.lower()] = entry
+        return val
+    except Exception as e:
+        print(f"[Balance CNKT] Error {wallet[:6]}: {e}")
+        return 0
 
 def invalidar_balance(wallet):
     """Fuerza re-lectura del balance después de una tx."""
