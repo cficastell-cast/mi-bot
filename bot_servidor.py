@@ -116,13 +116,22 @@ def llamada_rpc(fn, max_rotaciones=4):
         raise ultimo_error
 
 # ══════════════════════════════════════════════════════════════
-#  CACHÉ DE BALANCES GLOBAL
-#  Un solo loop lee todos los balances cada 45s
-#  en lugar de que cada bot lo haga cada 30s
+#  CACHÉ DE BALANCES GLOBAL CON MULTICALL
+#  Una sola llamada RPC lee USDT + CNKT de todas las wallets
 # ══════════════════════════════════════════════════════════════
-_balance_cache  = {}   # wallet -> {"usdt": float, "cnkt": float, "ts_usdt": float, "ts_cnkt": float}
+MULTICALL3_ADDRESS = "0xcA11bde05977b3631167028862bE2a173976CA11"
+MULTICALL3_ABI = [{
+    "inputs": [{"components": [{"name": "target","type": "address"},{"name": "callData","type": "bytes"}],
+                "name": "calls","type": "tuple[]"}],
+    "name": "aggregate",
+    "outputs": [{"name": "blockNumber","type": "uint256"},{"name": "returnData","type": "bytes[]"}],
+    "type": "function"
+}]
+BALANCE_OF_SELECTOR = Web3.keccak(text="balanceOf(address)")[:4]
+
+_balance_cache  = {}   # wallet -> {"usdt": float, "cnkt": float, "ts": float}
 _balance_lock   = threading.Lock()
-BALANCE_TTL     = 45   # segundos antes de considerar el cache expirado
+BALANCE_TTL     = 60   # segundos antes de considerar el cache expirado
 
 def get_balance_usdt_cached(wallet):
     with _balance_lock:
@@ -165,28 +174,57 @@ def _leer_balance_cnkt(wallet):
         print(f"[Balance CNKT] Error {wallet[:6]}: {e}")
         return 0
 
+def _multicall_balances(wallets):
+    """Lee USDT y CNKT de todas las wallets en UNA sola llamada RPC."""
+    if not wallets:
+        return
+    try:
+        w3 = get_w3()
+        mc = w3.eth.contract(address=MULTICALL3_ADDRESS, abi=MULTICALL3_ABI)
+        calls = []
+        for wallet in wallets:
+            addr_encoded = b'\x00' * 12 + bytes.fromhex(wallet[2:])
+            calldata = BALANCE_OF_SELECTOR + addr_encoded
+            calls.append((USDT_ADDRESS, calldata))
+            calls.append((Web3.to_checksum_address(CNKT_ADDRESS), calldata))
+        _, return_data = mc.functions.aggregate(calls).call()
+        now = time.time()
+        with _balance_lock:
+            for i, wallet in enumerate(wallets):
+                usdt_raw = int.from_bytes(return_data[i * 2],     "big")
+                cnkt_raw = int.from_bytes(return_data[i * 2 + 1], "big")
+                entry = _balance_cache.get(wallet.lower(), {"usdt": 0, "cnkt": 0, "ts_usdt": 0, "ts_cnkt": 0})
+                entry["usdt"]    = usdt_raw / 10**6
+                entry["cnkt"]    = cnkt_raw / 10**18
+                entry["ts_usdt"] = now
+                entry["ts_cnkt"] = now
+                _balance_cache[wallet.lower()] = entry
+    except Exception as e:
+        print(f"[Multicall] Error: {e} — usando fallback individual")
+        for wallet in wallets:
+            try:
+                _leer_balance_usdt(wallet)
+                _leer_balance_cnkt(wallet)
+            except:
+                pass
+
 def invalidar_balance(wallet):
     """Fuerza re-lectura del balance después de una tx."""
     with _balance_lock:
         _balance_cache.pop(wallet.lower(), None)
 
 def loop_balance_global():
-    """Actualiza balances de todos los bots activos cada 45s."""
+    """Actualiza balances de TODOS los bots activos en una sola llamada RPC cada 60s."""
     while True:
         try:
             with bots_lock:
                 wallets = [w for w, b in bots_activos.items() if b["estado"]["activo"]]
-            for wallet in wallets:
-                try:
-                    _leer_balance_usdt(wallet)
-                    time.sleep(0.3)  # pequeña pausa entre wallets
-                    _leer_balance_cnkt(wallet)
-                    time.sleep(0.3)
-                except Exception as e:
-                    print(f"[Balance] Error {wallet[:6]}: {e}")
+            if wallets:
+                _multicall_balances(wallets)
+                print(f"[Multicall] Balances actualizados: {len(wallets)} wallets en 1 llamada RPC")
         except Exception as e:
             print(f"[Balance Global] Error: {e}")
-        time.sleep(45)
+        time.sleep(60)
 
 # ══════════════════════════════════════════════════════════════
 #  PRECIO GLOBAL
