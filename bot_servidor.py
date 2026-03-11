@@ -1004,13 +1004,14 @@ def post_senal():
 def leaderboard():
     try:
         conn = get_db(); cur = conn.cursor()
-        def query_lb(order_by, periodo_filter=""):
+
+        def query_lb_ganancia(periodo_filter=""):
             cur.execute(f"""
                 SELECT u.nombre, u.wallet,
-                       COALESCE(SUM(c.ganancia_usdt),0) as ganancia_total,
-                       COUNT(c.id) as ciclos_total
-                FROM usuarios u LEFT JOIN ciclos c ON u.wallet=c.wallet {periodo_filter}
-                GROUP BY u.nombre,u.wallet ORDER BY {order_by} DESC LIMIT 25
+                       COALESCE(SUM(CASE WHEN s.tipo='VENTA'  THEN s.amount_usdt ELSE 0 END), 0) -
+                       COALESCE(SUM(CASE WHEN s.tipo='COMPRA' THEN s.amount_usdt ELSE 0 END), 0) as ganancia_total
+                FROM usuarios u LEFT JOIN swaps s ON u.wallet=s.wallet {periodo_filter}
+                GROUP BY u.nombre, u.wallet ORDER BY ganancia_total DESC LIMIT 25
             """)
             rows = []
             for r in cur.fetchall():
@@ -1020,15 +1021,36 @@ def leaderboard():
                 del d["wallet"]
                 rows.append(d)
             return rows
-        hoy_f  = "AND c.fecha=(NOW() AT TIME ZONE 'America/Mexico_City')::date"
-        mes_f  = "AND DATE_TRUNC('month',c.creado_en AT TIME ZONE 'America/Mexico_City')=DATE_TRUNC('month',NOW() AT TIME ZONE 'America/Mexico_City')"
+
+        def query_lb_ciclos(periodo_filter=""):
+            cur.execute(f"""
+                SELECT u.nombre, u.wallet,
+                       COALESCE(SUM(c.ganancia_usdt),0) as ganancia_total,
+                       COUNT(c.id) as ciclos_total
+                FROM usuarios u LEFT JOIN ciclos c ON u.wallet=c.wallet {periodo_filter}
+                GROUP BY u.nombre, u.wallet ORDER BY ciclos_total DESC LIMIT 25
+            """)
+            rows = []
+            for r in cur.fetchall():
+                d = dict(r)
+                w = d["wallet"]
+                d["wallet_short"] = w[:6] + "..." + w[-4:]
+                del d["wallet"]
+                rows.append(d)
+            return rows
+
+        hoy_s = "WHERE s.creado_en >= (NOW() AT TIME ZONE 'America/Mexico_City')::date"
+        mes_s = "WHERE DATE_TRUNC('month', s.creado_en AT TIME ZONE 'America/Mexico_City') = DATE_TRUNC('month', NOW() AT TIME ZONE 'America/Mexico_City')"
+        hoy_c = "AND c.fecha=(NOW() AT TIME ZONE 'America/Mexico_City')::date"
+        mes_c = "AND DATE_TRUNC('month',c.creado_en AT TIME ZONE 'America/Mexico_City')=DATE_TRUNC('month',NOW() AT TIME ZONE 'America/Mexico_City')"
+
         result = {
-            "hoy_ganancias":      query_lb("ganancia_total", hoy_f),
-            "hoy_ciclos":         query_lb("ciclos_total",   hoy_f),
-            "mes_ganancias":      query_lb("ganancia_total", mes_f),
-            "mes_ciclos":         query_lb("ciclos_total",   mes_f),
-            "historico_ganancias": query_lb("ganancia_total"),
-            "historico_ciclos":   query_lb("ciclos_total"),
+            "hoy_ganancias":       query_lb_ganancia(hoy_s),
+            "hoy_ciclos":          query_lb_ciclos(hoy_c),
+            "mes_ganancias":       query_lb_ganancia(mes_s),
+            "mes_ciclos":          query_lb_ciclos(mes_c),
+            "historico_ganancias": query_lb_ganancia(),
+            "historico_ciclos":    query_lb_ciclos(),
         }
         cur.close(); conn.close()
         return jsonify(result)
