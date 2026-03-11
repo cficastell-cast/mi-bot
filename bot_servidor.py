@@ -481,11 +481,12 @@ def loop_bot(wallet, private_key, estado, stop_event):
         }
         tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
             account.sign_transaction(tx).raw_transaction))
+        usdt_real = float(route['data']['routeSummary']['amountOut']) / 10**6
         log_estado(estado, f"VENTA: https://polygonscan.com/tx/{tx_hash.hex()}")
-        registrar_swap(wallet, "VENTA", AMOUNT_USDT)
+        registrar_swap(wallet, "VENTA", usdt_real)
         invalidar_balance(wallet)  # fuerza re-lectura del balance
         stop_event.wait(15)
-        return float(route['data']['routeSummary']['amountOut']) / 10**6
+        return usdt_real
 
     log_estado(estado, f"BOT INICIADO — {wallet[:6]}...{wallet[-4:]}")
     log_estado(estado, f"Compra en: ${RANGO_BAJO}")
@@ -841,7 +842,52 @@ def historial(wallet):
     except Exception as e:
         return jsonify({"historial": [], "error": str(e)})
 
-@app.route("/ciclos_hoy/<wallet>", methods=["GET"])
+@app.route("/ganancia/<wallet>", methods=["GET"])
+def ganancia(wallet):
+    wallet = wallet.lower()
+    try:
+        conn = get_db(); cur = conn.cursor()
+        # Histórico
+        cur.execute("""
+            SELECT
+                COALESCE(SUM(CASE WHEN tipo='VENTA'  THEN amount_usdt ELSE 0 END), 0) as ventas,
+                COALESCE(SUM(CASE WHEN tipo='COMPRA' THEN amount_usdt ELSE 0 END), 0) as compras
+            FROM swaps WHERE wallet = %s
+        """, (wallet,))
+        h = cur.fetchone()
+        # Del mes
+        cur.execute("""
+            SELECT
+                COALESCE(SUM(CASE WHEN tipo='VENTA'  THEN amount_usdt ELSE 0 END), 0) as ventas,
+                COALESCE(SUM(CASE WHEN tipo='COMPRA' THEN amount_usdt ELSE 0 END), 0) as compras
+            FROM swaps WHERE wallet = %s
+            AND DATE_TRUNC('month', creado_en) = DATE_TRUNC('month', NOW())
+        """, (wallet,))
+        m = cur.fetchone()
+        # Del día
+        cur.execute("""
+            SELECT
+                COALESCE(SUM(CASE WHEN tipo='VENTA'  THEN amount_usdt ELSE 0 END), 0) as ventas,
+                COALESCE(SUM(CASE WHEN tipo='COMPRA' THEN amount_usdt ELSE 0 END), 0) as compras
+            FROM swaps WHERE wallet = %s
+            AND creado_en >= NOW() - INTERVAL '24 hours'
+        """, (wallet,))
+        d = cur.fetchone()
+        cur.close(); conn.close()
+        return jsonify({
+            "ok": True,
+            "historico": round(float(h["ventas"]) - float(h["compras"]), 4),
+            "mes":       round(float(m["ventas"]) - float(m["compras"]), 4),
+            "dia":       round(float(d["ventas"]) - float(d["compras"]), 4),
+            "detalle": {
+                "ventas_total":   round(float(h["ventas"]), 4),
+                "compras_total":  round(float(h["compras"]), 4),
+            }
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
 def ciclos_hoy(wallet):
     wallet = wallet.lower()
     try:
