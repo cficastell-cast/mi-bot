@@ -1248,13 +1248,19 @@ def admin():
         comisiones_estimadas = total_swaps_usdt * 0.002
         cur.execute("""
             SELECT u.nombre, u.wallet, u.creado_en,
-                   COALESCE(SUM(CASE WHEN s.tipo='VENTA'  THEN s.amount_usdt ELSE 0 END), 0) -
-                   COALESCE(SUM(CASE WHEN s.tipo='COMPRA' THEN s.amount_usdt ELSE 0 END), 0) as ganancia_total,
-                   COUNT(DISTINCT c.id) as ciclos_total
+                   COALESCE(sv.ventas, 0) - COALESCE(sv.compras, 0) as ganancia_total,
+                   COALESCE(ct.ciclos_total, 0) as ciclos_total
             FROM usuarios u
-            LEFT JOIN swaps s ON u.wallet=s.wallet
-            LEFT JOIN ciclos c ON u.wallet=c.wallet
-            GROUP BY u.nombre, u.wallet, u.creado_en ORDER BY ganancia_total DESC
+            LEFT JOIN (
+                SELECT wallet,
+                       SUM(CASE WHEN tipo='VENTA'  THEN amount_usdt ELSE 0 END) as ventas,
+                       SUM(CASE WHEN tipo='COMPRA' THEN amount_usdt ELSE 0 END) as compras
+                FROM swaps GROUP BY wallet
+            ) sv ON u.wallet = sv.wallet
+            LEFT JOIN (
+                SELECT wallet, COUNT(*) as ciclos_total FROM ciclos GROUP BY wallet
+            ) ct ON u.wallet = ct.wallet
+            ORDER BY ganancia_total DESC
         """)
         usuarios = [dict(r) for r in cur.fetchall()]
         cur.execute("""
