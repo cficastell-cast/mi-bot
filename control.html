@@ -618,7 +618,7 @@ async function fetchHistorial(){
         <td style="color:var(--muted)">${c.hora_venta||'—'}</td>
         <td>${c.precio_compra&&c.precio_compra>0?'$'+parseFloat(c.precio_compra).toFixed(6):'previo'}</td>
         <td>${c.precio_venta?'$'+parseFloat(c.precio_venta).toFixed(6):'—'}</td>
-        <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">${c.ganancia_usdt?'$'+parseFloat(c.ganancia_usdt).toFixed(4):'—'}</td>
+        <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">${c.ganancia_usdt?'$'+parseFloat(c.ganancia_usdt).toFixed(2):'—'}</td>
       </tr>`).join('')+'</tbody></table>';
   }catch(e){}
 }
@@ -640,7 +640,7 @@ async function fetchCiclosHoy(){
     if(g.ok){
       const setGan=(id,val)=>{
         const el=document.getElementById(id);
-        el.textContent='$'+parseFloat(val||0).toFixed(4);
+        el.textContent='$'+parseFloat(val||0).toFixed(2);
         el.style.color=val>=0?'var(--accent)':'var(--accent2)';
       };
       setGan('statGananciaHoy', g.dia);
@@ -677,7 +677,7 @@ function renderLeaderboard(){
     el.innerHTML='<table><thead><tr><th>#</th><th>Nombre</th><th>Ganancia</th></tr></thead><tbody>'+
       lista.map((u,i)=>`<tr><td><span class="rank rank-${i+1}">${medals[i]||i+1}</span></td>
         <td style="font-weight:700">${u.nombre}</td>
-        <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td></tr>`
+        <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(2)}</td></tr>`
       ).join('')+'</tbody></table>';
   } else {
     el.innerHTML='<table><thead><tr><th>#</th><th>Nombre</th><th>Ciclos</th></tr></thead><tbody>'+

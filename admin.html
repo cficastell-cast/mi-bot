@@ -449,7 +449,7 @@ async function cargarDatos(){
     document.getElementById('ciclosTotales').textContent=data.resumen.ciclos_totales;
     document.getElementById('comprasTotales').textContent=data.resumen.compras_totales;
     document.getElementById('volumen24h').textContent='$'+data.resumen.volumen_24h.toFixed(2);
-    document.getElementById('comisionesEvox').textContent='$'+data.resumen.comisiones_estimadas.toFixed(4);
+    document.getElementById('comisionesEvox').textContent='$'+data.resumen.comisiones_estimadas.toFixed(2);
 
     const tu=document.getElementById('tablaUsuarios');
     if(!data.usuarios.length){tu.innerHTML='<div style="color:var(--muted);font-size:12px;">Sin usuarios aun</div>';}
@@ -461,7 +461,7 @@ async function cargarDatos(){
           <td style="color:var(--muted)">${u.wallet.slice(0,6)}...${u.wallet.slice(-4)}</td>
           <td><span class="badge ${u.bot_activo?'on':'off'}">${u.bot_activo?'● ACTIVO':'○ DETENIDO'}</span></td>
           <td style="color:var(--accent3)">${u.ciclos_total}</td>
-          <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(4)}</td>
+          <td class="${u.ganancia_total>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(u.ganancia_total).toFixed(2)}</td>
           <td style="color:var(--muted)">${new Date(u.creado_en).toLocaleDateString()}</td>
         </tr>`).join('')+'</tbody></table>';
     }
@@ -478,7 +478,7 @@ async function cargarDatos(){
           <td style="color:var(--accent3)">$${c.amount_usdt?parseFloat(c.amount_usdt).toFixed(2):'—'}</td>
           <td>${c.precio_compra?'$'+parseFloat(c.precio_compra).toFixed(6):'previo'}</td>
           <td>${c.precio_venta?'$'+parseFloat(c.precio_venta).toFixed(6):'—'}</td>
-          <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(c.ganancia_usdt).toFixed(4)}</td>
+          <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">$${parseFloat(c.ganancia_usdt).toFixed(2)}</td>
         </tr>`).join('')+'</tbody></table>';
     }
   }catch(e){document.getElementById('loginError').textContent='Error: '+e.message;}
