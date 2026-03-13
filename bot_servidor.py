@@ -434,6 +434,8 @@ def nuevo_estado():
 
 
 
+LOGS_IMPORTANTES = ["COMPRA", "VENTA", "ERROR", "Error", "STOP", "aprobado", "Ganancia", "DETENIDO", "iniciado", "INICIADO", "restaurado"]
+
 def log_estado(estado, msg):
     hora  = hora_cdmx()
     linea = f"{hora} | {msg}"
