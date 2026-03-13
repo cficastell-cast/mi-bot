@@ -432,7 +432,7 @@ def nuevo_estado():
         "RANGO_BAJO": None, "RANGO_ALTO": None, "AMOUNT_USDT": None, "STOP_ZONA": None,
     }
 
-LOGS_IMPORTANTES = ["COMPRA", "VENTA", "ERROR", "Error", "STOP", "aprobado", "Ganancia", "DETENIDO", "iniciado", "INICIADO", "restaurado"]
+
 
 def log_estado(estado, msg):
     hora  = hora_cdmx()
@@ -494,7 +494,6 @@ def loop_bot(wallet, private_key, estado, stop_event):
         tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
             account.sign_transaction(tx).rawTransaction))
         log_estado(estado, f"COMPRA enviada: https://polygonscan.com/tx/{tx_hash.hex()}")
-        # Esperar confirmacion
         receipt = llamada_rpc(lambda: w3_actual.eth.wait_for_transaction_receipt(tx_hash, timeout=60))
         if receipt.status != 1:
             raise Exception(f"TX revertida: {tx_hash.hex()}")
@@ -526,7 +525,6 @@ def loop_bot(wallet, private_key, estado, stop_event):
             account.sign_transaction(tx).rawTransaction))
         usdt_real = float(route['data']['routeSummary']['amountOut']) / 10**6
         log_estado(estado, f"VENTA enviada: https://polygonscan.com/tx/{tx_hash.hex()}")
-        # Esperar confirmacion
         receipt = llamada_rpc(lambda: w3_actual.eth.wait_for_transaction_receipt(tx_hash, timeout=60))
         if receipt.status != 1:
             raise Exception(f"TX revertida: {tx_hash.hex()}")
