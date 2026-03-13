@@ -675,8 +675,9 @@ def loop_bot(wallet, private_key, estado, stop_event):
                         finally:
                             estado["en_transaccion"] = False
                         if stop_event.is_set(): break
-                else:
-                    log_estado(estado, "Esperando CNKT suficiente...")
+
+                    else:
+                        log_estado(estado, "Esperando CNKT suficiente...")
             else:
                 log_estado(estado, "Esperando...")
 
