@@ -602,54 +602,79 @@ def loop_bot(wallet, private_key, estado, stop_event):
                 break
 
             if precio <= RANGO_BAJO and modo == "COMPRA":
-                if estado["cnkt_comprados"] > 0:
+                if estado.get("en_transaccion"):
+                    log_estado(estado, "TX en curso, esperando...")
+                elif estado["cnkt_comprados"] > 0:
                     log_estado(estado, "Ya tienes CNKT comprados, esperando venta...")
                     estado["modo"] = "VENTA"
                 elif usdt >= AMOUNT_USDT:
                     log_estado(estado, "Senal de COMPRA!")
                     hora_compra_actual   = hora_cdmx()
                     precio_compra_actual = precio
-                    estado["cnkt_comprados"] = comprar()
+                    estado["en_transaccion"] = True
+                    try:
+                        estado["cnkt_comprados"] = comprar()
+                        cnkt_comprado_actual = estado["cnkt_comprados"]
+                        estado["modo"] = "VENTA"
+                        log_estado(estado, f"CNKT recibidos: {round(estado['cnkt_comprados'], 2)}")
+                    except Exception as e:
+                        log_estado(estado, f"Error en compra: {e}")
+                    finally:
+                        estado["en_transaccion"] = False
                     if stop_event.is_set(): break
-                    cnkt_comprado_actual = estado["cnkt_comprados"]
-                    estado["modo"] = "VENTA"  # cambiar modo inmediatamente
-                    log_estado(estado, f"CNKT recibidos: {round(estado['cnkt_comprados'], 2)}")
                 else:
                     log_estado(estado, "Esperando USDT suficiente...")
 
             elif precio >= RANGO_ALTO and modo == "VENTA":
-                cnkt_comp = estado["cnkt_comprados"]
-                if cnkt_comp > 0 and cnkt >= cnkt_comp:
-                    log_estado(estado, "Senal de VENTA!")
-                    hora_venta    = hora_cdmx()
-                    usdt_recibido = vender(cnkt_comp)
-                    if stop_event.is_set(): break
-                    ganancia = usdt_recibido - AMOUNT_USDT
-                    estado["ganancia_total"] += ganancia
-                    estado["ciclos"] += 1
-                    log_estado(estado, f"Ganancia ciclo: ${round(ganancia, 4)}")
-                    log_estado(estado, f"Ganancia total: ${round(estado['ganancia_total'], 4)}")
-                    guardar_ciclo(wallet, hora_compra_actual, precio_compra_actual,
-                                  hora_venta, precio, cnkt_comprado_actual, cnkt_comp,
-                                  ganancia, AMOUNT_USDT)
-                    estado["cnkt_comprados"] = 0
-                    cnkt_comprado_actual      = 0
-                    hora_compra_actual        = None
-                    precio_compra_actual      = None
-                    estado["modo"] = "COMPRA"  # listo para el siguiente ciclo
+                if estado.get("en_transaccion"):
+                    log_estado(estado, "TX en curso, esperando...")
+                else:
+                    cnkt_comp = estado["cnkt_comprados"]
+                    if cnkt_comp > 0 and cnkt >= cnkt_comp:
+                        log_estado(estado, "Senal de VENTA!")
+                        hora_venta = hora_cdmx()
+                        estado["en_transaccion"] = True
+                        try:
+                            usdt_recibido = vender(cnkt_comp)
+                            ganancia = usdt_recibido - AMOUNT_USDT
+                            estado["ganancia_total"] += ganancia
+                            estado["ciclos"] += 1
+                            log_estado(estado, f"Ganancia ciclo: ${round(ganancia, 2)}")
+                            log_estado(estado, f"Ganancia total: ${round(estado['ganancia_total'], 2)}")
+                            guardar_ciclo(wallet, hora_compra_actual, precio_compra_actual,
+                                          hora_venta, precio, cnkt_comprado_actual, cnkt_comp,
+                                          ganancia, AMOUNT_USDT)
+                            estado["cnkt_comprados"] = 0
+                            cnkt_comprado_actual      = 0
+                            hora_compra_actual        = None
+                            precio_compra_actual      = None
+                            estado["modo"] = "COMPRA"
+                        except Exception as e:
+                            log_estado(estado, f"Error en venta: {e}")
+                        finally:
+                            estado["en_transaccion"] = False
+                        if stop_event.is_set(): break
 
-                elif cnkt_comp == 0 and cnkt >= cnkt_necesario:
-                    log_estado(estado, "Senal de VENTA! (CNKT previo)")
-                    hora_venta    = hora_cdmx()
-                    usdt_recibido = vender(cnkt_necesario)
-                    if stop_event.is_set(): break
-                    ganancia = usdt_recibido - AMOUNT_USDT
-                    estado["ganancia_total"] += ganancia
-                    estado["ciclos"] += 1
-                    log_estado(estado, f"Ganancia ciclo: ${round(ganancia, 4)}")
-                    log_estado(estado, f"Ganancia total: ${round(estado['ganancia_total'], 4)}")
-                    guardar_ciclo(wallet, "previo", precio, hora_venta, precio,
-                                  0, cnkt_necesario, ganancia, AMOUNT_USDT)
+                    elif cnkt_comp == 0 and cnkt >= cnkt_necesario:
+                        log_estado(estado, "Senal de VENTA! (CNKT previo)")
+                        hora_venta = hora_cdmx()
+                        estado["en_transaccion"] = True
+                        try:
+                            usdt_recibido = vender(cnkt_necesario)
+                            ganancia = usdt_recibido - AMOUNT_USDT
+                            estado["ganancia_total"] += ganancia
+                            estado["ciclos"] += 1
+                            log_estado(estado, f"Ganancia ciclo: ${round(ganancia, 2)}")
+                            log_estado(estado, f"Ganancia total: ${round(estado['ganancia_total'], 2)}")
+                            guardar_ciclo(wallet, "previo", precio, hora_venta, precio,
+                                          0, cnkt_necesario, ganancia, AMOUNT_USDT)
+                            estado["cnkt_comprados"] = 0
+                            estado["modo"] = "COMPRA"
+                        except Exception as e:
+                            log_estado(estado, f"Error en venta: {e}")
+                        finally:
+                            estado["en_transaccion"] = False
+                        if stop_event.is_set(): break
                 else:
                     log_estado(estado, "Esperando CNKT suficiente...")
             else:
@@ -1437,6 +1462,26 @@ for _img in ["icon", "evox", "charlie", "susan"]:
 # ══════════════════════════════════════════════════════════════
 #  INICIO — corre tanto con gunicorn como directo
 # ══════════════════════════════════════════════════════════════
+
+@app.route("/limpiar_swaps_falsos", methods=["GET"])
+def limpiar_swaps_falsos():
+    pwd = request.args.get("pwd", "")
+    if pwd != BOT_PASSWORD:
+        return "No autorizado", 401
+    try:
+        conn = get_db(); cur = conn.cursor()
+        wallets = [
+            "0x8619e5ac74a606f669645714a62c1a6ae3ad881b",
+            "0x34fc8e5a19a71f44d36e9f2aa8a6328244fb5674"
+        ]
+        cur.execute("DELETE FROM swaps WHERE wallet = ANY(%s)", (wallets,))
+        cur.execute("DELETE FROM ciclos WHERE wallet = ANY(%s)", (wallets,))
+        conn.commit()
+        cur.close(); conn.close()
+        return "Swaps y ciclos limpiados!", 200
+    except Exception as e:
+        return f"Error: {e}", 500
+
 init_db()
 
 threading.Thread(target=loop_precio_global, daemon=True).start()
