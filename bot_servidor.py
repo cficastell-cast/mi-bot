@@ -58,6 +58,10 @@ def _build_rpc_pool():
 
 RPC_POOL      = _build_rpc_pool()
 _rpc_index    = 0
+
+# RPC dedicado para esperar confirmaciones de tx
+RPC_RECEIPT_URL = os.environ.get("RPC_RECEIPT", "https://polygon-bor-rpc.publicnode.com")
+w3_receipt_global = Web3(Web3.HTTPProvider(RPC_RECEIPT_URL))
 _rpc_lock     = threading.Lock()
 _rpc_fallos   = {}
 _w3_cache     = {}
@@ -187,7 +191,8 @@ def _multicall_balances(wallets):
             calldata = BALANCE_OF_SELECTOR + addr_encoded
             calls.append((USDT_ADDRESS, calldata))
             calls.append((Web3.to_checksum_address(CNKT_ADDRESS), calldata))
-        _, return_data = mc.functions.aggregate(calls).call()
+        gas_price = llamada_rpc(lambda: w3.eth.gas_price)
+        _, return_data = mc.functions.aggregate(calls).call({"gasPrice": gas_price})
         now = time.time()
         with _balance_lock:
             for i, wallet in enumerate(wallets):
@@ -496,7 +501,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
         tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
             account.sign_transaction(tx).rawTransaction))
         log_estado(estado, f"COMPRA enviada: https://polygonscan.com/tx/{tx_hash.hex()}")
-        w3_receipt = Web3(Web3.HTTPProvider("https://polygon-bor-rpc.publicnode.com"))
+        w3_receipt = Web3(Web3.HTTPProvider(RPC_RECEIPT_URL))
         receipt = w3_receipt.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
         if receipt.status != 1:
             raise Exception(f"TX revertida: {tx_hash.hex()}")
@@ -528,7 +533,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
             account.sign_transaction(tx).rawTransaction))
         usdt_real = float(route['data']['routeSummary']['amountOut']) / 10**6
         log_estado(estado, f"VENTA enviada: https://polygonscan.com/tx/{tx_hash.hex()}")
-        w3_receipt = Web3(Web3.HTTPProvider("https://polygon-bor-rpc.publicnode.com"))
+        w3_receipt = Web3(Web3.HTTPProvider(RPC_RECEIPT_URL))
         receipt = w3_receipt.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
         if receipt.status != 1:
             raise Exception(f"TX revertida: {tx_hash.hex()}")
