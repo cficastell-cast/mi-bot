@@ -51,7 +51,6 @@ def _build_rpc_pool():
     # RPCs públicos como respaldo
     pool += [
         "https://polygon-bor-rpc.publicnode.com",
-        "https://1rpc.io/matic",
         "https://polygon.drpc.org",
     ]
     return pool
@@ -106,11 +105,14 @@ def llamada_rpc(fn, max_rotaciones=4):
                 except Exception as e:
                     ultimo_error = e
                     es_rate = "429" in str(e) or "rate" in str(e).lower() or "too many" in str(e).lower()
+                    es_conexion = any(x in str(e).lower() for x in ["ssl", "eof", "connection", "timeout", "max retries"])
                     if es_rate:
                         fallos_en_rpc_actual += 1
                         rpc_label = get_rpc_url().split('/v2/')[0]
                         print(f"[RPC] 429 en {rpc_label} (fallo {fallos_en_rpc_actual}/3), esperando 15s...")
                         time.sleep(15)
+                    elif es_conexion:
+                        break  # rotar inmediatamente sin esperar
                     else:
                         raise e
             # 3 fallos seguidos en esta RPC -> rotar
