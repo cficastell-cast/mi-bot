@@ -266,6 +266,38 @@ def hora_cdmx():
 def get_db():
     return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 
+# ── COMISION (fee) — cache con fallback seguro ────────────────
+FEE_BPS_DEFAULT = 20
+_fee_cache = {"bps": FEE_BPS_DEFAULT, "ts": 0.0}
+_fee_lock  = threading.Lock()
+
+def get_fee_bps():
+    """Comision en puntos base (bps) desde master_config.
+    Cache de 30s + fallback seguro: si la BD falla, devuelve el ultimo
+    valor conocido (o el default) y NUNCA rompe el swap."""
+    with _fee_lock:
+        if time.time() - _fee_cache["ts"] < 30:
+            return _fee_cache["bps"]
+    bps = None
+    try:
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("SELECT fee_bps FROM master_config WHERE id=1")
+        row = cur.fetchone(); cur.close(); conn.close()
+        if row and row["fee_bps"] is not None:
+            bps = int(row["fee_bps"])
+    except Exception:
+        bps = None
+    with _fee_lock:
+        if bps is not None:
+            _fee_cache["bps"] = bps
+            _fee_cache["ts"]  = time.time()
+        return _fee_cache["bps"]
+
+def set_fee_cache(bps):
+    with _fee_lock:
+        _fee_cache["bps"] = bps
+        _fee_cache["ts"]  = time.time()
+
 # ══════════════════════════════════════════════════════════════
 #  BASE DE DATOS
 # ══════════════════════════════════════════════════════════════
@@ -344,6 +376,7 @@ def init_db():
         )
     """)
     cur.execute("INSERT INTO master_config (id, activo) VALUES (1, FALSE) ON CONFLICT (id) DO NOTHING")
+    cur.execute("ALTER TABLE master_config ADD COLUMN IF NOT EXISTS fee_bps INTEGER DEFAULT 20")
     cur.execute("""
         CREATE TABLE IF NOT EXISTS padawans (
             wallet VARCHAR(42) PRIMARY KEY,
@@ -486,7 +519,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
         amount_in = int(AMOUNT_USDT * 10**6)
         route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
             params={"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": amount_in,
-                    "feeAmount": "20", "isInBps": "true", "feeReceiver": FEE_RECEIVER,
+                    "feeAmount": str(get_fee_bps()), "isInBps": "true", "feeReceiver": FEE_RECEIVER,
                     "chargeFeeBy": "currency_in"}, timeout=10).json()
         build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
             json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
@@ -517,7 +550,7 @@ def loop_bot(wallet, private_key, estado, stop_event):
         amount_in = int(cantidad_cnkt * 10**18)
         route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
             params={"tokenIn": CNKT_ADDRESS, "tokenOut": USDT_ADDRESS, "amountIn": amount_in,
-                    "feeAmount": "20", "isInBps": "true", "feeReceiver": FEE_RECEIVER,
+                    "feeAmount": str(get_fee_bps()), "isInBps": "true", "feeReceiver": FEE_RECEIVER,
                     "chargeFeeBy": "currency_in"}, timeout=10).json()
         build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
             json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
@@ -1275,6 +1308,26 @@ def _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt_master, stop_z
 # ══════════════════════════════════════════════════════════════
 #  ENDPOINTS — ADMIN
 # ══════════════════════════════════════════════════════════════
+@app.route("/admin/set-fee", methods=["POST"])
+def admin_set_fee():
+    data = request.json or {}
+    if data.get("password") != BOT_PASSWORD:
+        return jsonify({"ok": False, "msg": "No autorizado"}), 401
+    try:
+        bps = int(data["fee_bps"])
+    except (KeyError, ValueError, TypeError):
+        return jsonify({"ok": False, "msg": "Valor de comision invalido"})
+    if bps < 0 or bps > 1000:
+        return jsonify({"ok": False, "msg": "Rango permitido: 0 a 1000 bps (0% a 10%)"})
+    try:
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("UPDATE master_config SET fee_bps=%s, actualizado_en=NOW() WHERE id=1", (bps,))
+        conn.commit(); cur.close(); conn.close()
+        set_fee_cache(bps)
+        return jsonify({"ok": True, "msg": f"Comision actualizada a {bps/100:.2f}%", "fee_bps": bps})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
+
 @app.route("/admin", methods=["GET"])
 def admin():
     if request.args.get("password") != BOT_PASSWORD:
@@ -1295,7 +1348,8 @@ def admin():
         volumen_24h = float(cur.fetchone()["volumen"])
         cur.execute("SELECT COALESCE(SUM(amount_usdt),0) as total FROM swaps")
         total_swaps_usdt     = float(cur.fetchone()["total"])
-        comisiones_estimadas = total_swaps_usdt * 0.002
+        fee_bps_actual = get_fee_bps()
+        comisiones_estimadas = total_swaps_usdt * (fee_bps_actual / 10000.0)
         cur.execute("""
             SELECT u.nombre, u.wallet, u.creado_en,
                    COALESCE(sv.ventas, 0) - COALESCE(sv.compras, 0) as ganancia_total,
@@ -1342,6 +1396,7 @@ def admin():
                 "ventas_totales":      ventas_totales,
                 "volumen_24h":         volumen_24h,
                 "comisiones_estimadas": comisiones_estimadas,
+                "fee_bps":             fee_bps_actual,
             },
             "rpc_info": {
                 "pool_size": len(RPC_POOL),
