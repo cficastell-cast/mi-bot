@@ -25,6 +25,8 @@ ENCRYPT_KEY  = os.environ.get("ENCRYPT_KEY")
 BOT_PASSWORD = os.environ.get("BOT_PASSWORD", "cnkt1234")
 fernet       = Fernet(ENCRYPT_KEY.encode() if isinstance(ENCRYPT_KEY, str) else ENCRYPT_KEY)
 DATABASE_URL = os.environ.get("DATABASE_URL")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "-1003087331385").strip()
 CDMX         = pytz.timezone('America/Mexico_City')
 
 # ── CONTRATOS POLYGON ─────────────────────────────────────────
@@ -1060,6 +1062,25 @@ def get_senal():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 
+def enviar_senal_telegram(emisor, categoria, mensaje):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return False
+    def esc(t):
+        return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    texto = f"<b>{esc(categoria)}</b> - {esc(emisor)}\n\n{esc(mensaje)}"
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            json={"chat_id": TELEGRAM_CHAT_ID, "text": texto, "parse_mode": "HTML"},
+            timeout=10,
+        )
+        if not r.ok:
+            print(f"[{hora_cdmx()}] Error Telegram: {r.status_code} {r.text}")
+        return r.ok
+    except Exception as e:
+        print(f"[{hora_cdmx()}] Error Telegram: {e}")
+        return False
+
 @app.route("/senal", methods=["POST"])
 def post_senal():
     data = request.json or {}
@@ -1076,6 +1097,8 @@ def post_senal():
         cur.execute("INSERT INTO senales (emisor, categoria, mensaje) VALUES (%s,%s,%s)",
                     (emisor, categoria, mensaje))
         conn.commit(); cur.close(); conn.close()
+        threading.Thread(target=enviar_senal_telegram,
+                         args=(emisor, categoria, mensaje), daemon=True).start()
         return jsonify({"ok": True, "msg": "Senal publicada!"})
     except Exception as e:
         return jsonify({"ok": False, "msg": str(e)})
