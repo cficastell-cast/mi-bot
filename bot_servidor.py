@@ -1067,7 +1067,7 @@ def enviar_senal_telegram(emisor, categoria, mensaje):
         return False
     def esc(t):
         return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    texto = f"<b>{esc(categoria)}</b> - {esc(emisor)}\n\n{esc(mensaje)}"
+    texto = f"\U0001F916 <b>EVOXBOT</b>\n<b>{esc(categoria)}</b>\n\n{esc(mensaje)}"
     try:
         r = requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
