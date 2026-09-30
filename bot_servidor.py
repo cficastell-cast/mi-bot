@@ -1,4 +1,5 @@
 import os
+import random
 import threading
 import time
 import requests
@@ -18,7 +19,7 @@ CORS(app)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ── VERSIÓN ───────────────────────────────────────────────────
-VERSION_ACTUAL = "2.0.0"
+VERSION_ACTUAL = "2.1.0"
 
 # ── CONFIGURACIÓN ─────────────────────────────────────────────
 ENCRYPT_KEY  = os.environ.get("ENCRYPT_KEY")
@@ -241,17 +242,21 @@ def loop_balance_global():
 precio_global = {"valor": 0, "actualizado": 0}
 precio_lock   = threading.Lock()
 
+def cotizar_precio():
+    """Precio de CNKT cotizando una compra de 10 USDT en KyberSwap."""
+    params = {"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": 10 * 10**6}
+    r = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
+                     params=params, timeout=10).json()
+    amount_out    = float(r['data']['routeSummary']['amountOut']) / 10**18
+    amount_in_usd = float(r['data']['routeSummary']['amountInUsd'])
+    return round(amount_in_usd / amount_out, 8)
+
 def loop_precio_global():
     while True:
         try:
-            params = {"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": 10 * 10**6}
-            r = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
-                             params=params, timeout=10).json()
-            amount_out    = float(r['data']['routeSummary']['amountOut']) / 10**18
-            amount_in_usd = float(r['data']['routeSummary']['amountInUsd'])
-            precio = amount_in_usd / amount_out
+            precio = cotizar_precio()
             with precio_lock:
-                precio_global["valor"]       = round(precio, 6)
+                precio_global["valor"]       = precio
                 precio_global["actualizado"] = time.time()
         except Exception as e:
             print(f"[Precio] Error: {e}")
@@ -395,6 +400,30 @@ def init_db():
             actualizado_en TIMESTAMP DEFAULT NOW()
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS posiciones (
+            wallet VARCHAR(42) PRIMARY KEY,
+            usdt_invertido FLOAT DEFAULT 0,
+            cnkt FLOAT DEFAULT 0,
+            hora_primera_compra VARCHAR(20),
+            ronda_cnkt FLOAT DEFAULT 0,
+            ronda_usdt FLOAT DEFAULT 0,
+            ronda_costo FLOAT DEFAULT 0,
+            actualizado_en TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS operaciones (
+            id SERIAL PRIMARY KEY,
+            wallet VARCHAR(42) NOT NULL,
+            tipo VARCHAR(10) NOT NULL,
+            usdt FLOAT NOT NULL,
+            cnkt FLOAT NOT NULL,
+            precio FLOAT NOT NULL,
+            tx VARCHAR(80),
+            creado_en TIMESTAMP DEFAULT NOW()
+        )
+    """)
     conn.commit()
     cur.close()
     conn.close()
@@ -451,6 +480,49 @@ def guardar_ciclo(wallet, hora_compra, precio_compra, hora_venta, precio_venta,
     except Exception as e:
         print(f"[DB] Error guardando ciclo: {e}")
 
+POSICION_VACIA = {"usdt_invertido": 0.0, "cnkt": 0.0, "hora_primera_compra": None,
+                  "ronda_cnkt": 0.0, "ronda_usdt": 0.0, "ronda_costo": 0.0}
+
+def cargar_posicion(wallet):
+    """Devuelve (existe, posicion). existe=None si hubo error de DB."""
+    try:
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("SELECT * FROM posiciones WHERE wallet = %s", (wallet,))
+        row = cur.fetchone(); cur.close(); conn.close()
+        if not row:
+            return False, dict(POSICION_VACIA)
+        return True, {k: (row[k] if row[k] is not None else v) for k, v in POSICION_VACIA.items()}
+    except Exception as e:
+        print(f"[DB] Error cargando posicion: {e}")
+        return None, dict(POSICION_VACIA)
+
+def guardar_posicion(wallet, pos):
+    try:
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO posiciones (wallet, usdt_invertido, cnkt, hora_primera_compra,
+                                    ronda_cnkt, ronda_usdt, ronda_costo)
+            VALUES (%s,%s,%s,%s,%s,%s,%s)
+            ON CONFLICT (wallet) DO UPDATE SET
+                usdt_invertido=EXCLUDED.usdt_invertido, cnkt=EXCLUDED.cnkt,
+                hora_primera_compra=EXCLUDED.hora_primera_compra,
+                ronda_cnkt=EXCLUDED.ronda_cnkt, ronda_usdt=EXCLUDED.ronda_usdt,
+                ronda_costo=EXCLUDED.ronda_costo, actualizado_en=NOW()
+        """, (wallet, pos["usdt_invertido"], pos["cnkt"], pos["hora_primera_compra"],
+              pos["ronda_cnkt"], pos["ronda_usdt"], pos["ronda_costo"]))
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        print(f"[DB] Error guardando posicion: {e}")
+
+def registrar_operacion(wallet, tipo, usdt, cnkt, precio, tx):
+    try:
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("INSERT INTO operaciones (wallet, tipo, usdt, cnkt, precio, tx) VALUES (%s,%s,%s,%s,%s,%s)",
+                    (wallet, tipo, usdt, cnkt, precio, tx))
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        print(f"[DB] Error registrando operacion: {e}")
+
 def cargar_ganancia_acumulada(wallet):
     try:
         conn = get_db(); cur = conn.cursor()
@@ -470,8 +542,9 @@ def nuevo_estado():
     return {
         "activo": False, "modo": "COMPRA", "precio": 0, "usdt": 0, "cnkt": 0,
         "ciclos": 0, "ganancia_total": 0, "ultimo_log": "", "logs": [],
-        "cnkt_comprados": 0,
+        "pos_cnkt": 0, "pos_invertido": 0, "pos_promedio": 0,
         "RANGO_BAJO": None, "RANGO_ALTO": None, "AMOUNT_USDT": None, "STOP_ZONA": None,
+        "ES_PADAWAN": False,
     }
 
 
@@ -489,6 +562,21 @@ def log_estado(estado, msg):
     if len(estado["logs"]) > 100:
         estado["logs"] = estado["logs"][-100:]
 
+TANDA_MAX = 100   # USDT maximo por operacion
+TANDA_MIN = 10    # USDT minimo por operacion
+
+def calcular_tanda(restante):
+    """Tamano de la siguiente tanda en USDT: maximo TANDA_MAX, minimo TANDA_MIN.
+    Si despues de esta tanda quedaria un sobrante menor al minimo, la tanda se
+    achica para que el sobrante tambien se pueda operar."""
+    if restante < TANDA_MIN:
+        return 0
+    tanda = min(TANDA_MAX, restante)
+    sobra = restante - tanda
+    if 0 < sobra < TANDA_MIN:
+        tanda = restante - TANDA_MIN
+    return tanda
+
 def loop_bot(wallet, private_key, estado, stop_event):
     w3      = get_w3()
     account = w3.eth.account.from_key(private_key)
@@ -497,14 +585,12 @@ def loop_bot(wallet, private_key, estado, stop_event):
     RANGO_ALTO  = estado["RANGO_ALTO"]
     AMOUNT_USDT = estado["AMOUNT_USDT"]
     STOP_ZONA   = estado["STOP_ZONA"]
+    ES_PADAWAN  = estado.get("ES_PADAWAN", False)
+    TODO        = AMOUNT_USDT <= 0
+    SIN_STOP    = STOP_ZONA <= 0
     STOP_ABAJO  = RANGO_BAJO  * (1 - STOP_ZONA)
     STOP_ARRIBA = RANGO_ALTO  * (1 + STOP_ZONA)
     INTERVALO   = 30
-    cnkt_necesario = AMOUNT_USDT / RANGO_ALTO
-
-    usdt_contract = get_w3().eth.contract(address=USDT_ADDRESS, abi=TOKEN_ABI)
-    cnkt_contract = get_w3().eth.contract(
-        address=Web3.to_checksum_address(CNKT_ADDRESS), abi=TOKEN_ABI)
 
     def get_balance_usdt():
         return get_balance_usdt_cached(wallet)
@@ -512,114 +598,127 @@ def loop_bot(wallet, private_key, estado, stop_event):
     def get_balance_cnkt():
         return get_balance_cnkt_cached(wallet)
 
-    def aprobar_tokens():
-        # Aprobacion infinita ya se hizo al registrarse — no se necesita hacer nada
-        log_estado(estado, "Tokens aprobados.")
-        return True
+    def enviar_swap(route):
+        build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
+            json={"routeSummary": route, "sender": account.address,
+                  "recipient": account.address, "slippageTolerance": 50}, timeout=10).json()
+        w3_actual = get_w3()
+        tx = {
+            "from": account.address, "to": build['data']['routerAddress'],
+            "data": build['data']['data'],
+            "value": int(build['data']['transactionValue']),
+            "nonce": llamada_rpc(lambda: w3_actual.eth.get_transaction_count(account.address)),
+            "gasPrice": int(llamada_rpc(lambda: w3_actual.eth.gas_price) * 1.5),
+            "gas": int(build['data']['gas']) + 50000, "chainId": 137
+        }
+        tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
+            account.sign_transaction(tx).rawTransaction))
+        w3_receipt = Web3(Web3.HTTPProvider(RPC_RECEIPT_URL))
+        receipt = w3_receipt.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+        if receipt.status != 1:
+            raise Exception(f"TX revertida: {tx_hash.hex()}")
+        invalidar_balance(wallet)
+        return tx_hash.hex()
 
-    def comprar():
-        amount_in = int(AMOUNT_USDT * 10**6)
+    def comprar(usdt_tanda):
+        """Compra una tanda y devuelve los CNKT recibidos, o None si el precio
+        real de la tanda queda arriba del rango bajo."""
+        amount_in = int(usdt_tanda * 10**6)
         route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
             params={"tokenIn": USDT_ADDRESS, "tokenOut": CNKT_ADDRESS, "amountIn": amount_in,
                     "feeAmount": str(get_fee_bps()), "isInBps": "true", "feeReceiver": FEE_RECEIVER,
-                    "chargeFeeBy": "currency_in"}, timeout=10).json()
-        build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
-            json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
-                  "recipient": account.address, "slippageTolerance": 50}, timeout=10).json()
-        w3_actual = get_w3()
-        tx = {
-            "from": account.address, "to": build['data']['routerAddress'],
-            "data": build['data']['data'],
-            "value": int(build['data']['transactionValue']),
-            "nonce": llamada_rpc(lambda: w3_actual.eth.get_transaction_count(account.address)),
-            "gasPrice": int(llamada_rpc(lambda: w3_actual.eth.gas_price) * 1.5),
-            "gas": int(build['data']['gas']) + 50000, "chainId": 137
-        }
-        tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
-            account.sign_transaction(tx).rawTransaction))
-        log_estado(estado, f"COMPRA enviada: https://polygonscan.com/tx/{tx_hash.hex()}")
-        w3_receipt = Web3(Web3.HTTPProvider(RPC_RECEIPT_URL))
-        receipt = w3_receipt.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
-        if receipt.status != 1:
-            raise Exception(f"TX revertida: {tx_hash.hex()}")
-        log_estado(estado, f"COMPRA confirmada!")
-        registrar_swap(wallet, "COMPRA", AMOUNT_USDT)
-        invalidar_balance(wallet)
-        stop_event.wait(15)
-        return float(route['data']['routeSummary']['amountOut']) / 10**18
+                    "chargeFeeBy": "currency_in"}, timeout=10).json()['data']['routeSummary']
+        cnkt_out = float(route['amountOut']) / 10**18
+        precio_tanda = usdt_tanda / cnkt_out
+        if precio_tanda > RANGO_BAJO:
+            log_estado(estado, f"Tanda a ${precio_tanda:.7f} quedaria arriba de ${RANGO_BAJO}, no compra")
+            return None
+        tx = enviar_swap(route)
+        log_estado(estado, f"COMPRA ${round(usdt_tanda, 2)} -> {round(cnkt_out, 0)} CNKT a ${precio_tanda:.7f}")
+        registrar_swap(wallet, "COMPRA", usdt_tanda)
+        registrar_operacion(wallet, "COMPRA", usdt_tanda, cnkt_out, precio_tanda, tx)
+        return cnkt_out
 
-    def vender(cantidad_cnkt):
-        amount_in = int(cantidad_cnkt * 10**18)
+    def vender(cnkt_tanda):
+        """Vende una tanda y devuelve los USDT recibidos."""
+        amount_in = int(cnkt_tanda * 10**18) - 10**12  # margen minimo por redondeo
         route = requests.get("https://aggregator-api.kyberswap.com/polygon/api/v1/routes",
             params={"tokenIn": CNKT_ADDRESS, "tokenOut": USDT_ADDRESS, "amountIn": amount_in,
                     "feeAmount": str(get_fee_bps()), "isInBps": "true", "feeReceiver": FEE_RECEIVER,
-                    "chargeFeeBy": "currency_in"}, timeout=10).json()
-        build = requests.post("https://aggregator-api.kyberswap.com/polygon/api/v1/route/build",
-            json={"routeSummary": route['data']['routeSummary'], "sender": account.address,
-                  "recipient": account.address, "slippageTolerance": 50}, timeout=10).json()
-        w3_actual = get_w3()
-        tx = {
-            "from": account.address, "to": build['data']['routerAddress'],
-            "data": build['data']['data'],
-            "value": int(build['data']['transactionValue']),
-            "nonce": llamada_rpc(lambda: w3_actual.eth.get_transaction_count(account.address)),
-            "gasPrice": int(llamada_rpc(lambda: w3_actual.eth.gas_price) * 1.5),
-            "gas": int(build['data']['gas']) + 50000, "chainId": 137
-        }
-        tx_hash = llamada_rpc(lambda: w3_actual.eth.send_raw_transaction(
-            account.sign_transaction(tx).rawTransaction))
-        usdt_real = float(route['data']['routeSummary']['amountOut']) / 10**6
-        log_estado(estado, f"VENTA enviada: https://polygonscan.com/tx/{tx_hash.hex()}")
-        w3_receipt = Web3(Web3.HTTPProvider(RPC_RECEIPT_URL))
-        receipt = w3_receipt.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
-        if receipt.status != 1:
-            raise Exception(f"TX revertida: {tx_hash.hex()}")
-        log_estado(estado, f"VENTA confirmada!")
-        registrar_swap(wallet, "VENTA", usdt_real)
-        invalidar_balance(wallet)
-        stop_event.wait(15)
-        return usdt_real
+                    "chargeFeeBy": "currency_in"}, timeout=10).json()['data']['routeSummary']
+        usdt_out = float(route['amountOut']) / 10**6
+        precio_tanda = usdt_out / cnkt_tanda
+        tx = enviar_swap(route)
+        log_estado(estado, f"VENTA {round(cnkt_tanda, 0)} CNKT -> ${round(usdt_out, 2)} a ${precio_tanda:.7f}")
+        registrar_swap(wallet, "VENTA", usdt_out)
+        registrar_operacion(wallet, "VENTA", usdt_out, cnkt_tanda, precio_tanda, tx)
+        return usdt_out
+
+    def cerrar_ronda(pos):
+        """Registra como ciclo lo vendido desde que el precio paso el rango alto."""
+        if pos["ronda_cnkt"] <= 0:
+            return
+        ganancia = pos["ronda_usdt"] - pos["ronda_costo"]
+        guardar_ciclo(wallet, pos["hora_primera_compra"],
+                      pos["ronda_costo"] / pos["ronda_cnkt"], hora_cdmx(),
+                      pos["ronda_usdt"] / pos["ronda_cnkt"],
+                      pos["ronda_cnkt"], pos["ronda_cnkt"], ganancia, pos["ronda_costo"])
+        estado["ganancia_total"] += ganancia
+        estado["ciclos"] += 1
+        log_estado(estado, f"Ganancia ciclo: ${round(ganancia, 2)}")
+        log_estado(estado, f"Ganancia total: ${round(estado['ganancia_total'], 2)}")
+        pos["ronda_cnkt"] = pos["ronda_usdt"] = pos["ronda_costo"] = 0.0
+        if pos["cnkt"] <= 0:
+            pos["hora_primera_compra"] = None
+        guardar_posicion(wallet, pos)
+
+    def publicar_posicion(pos):
+        estado["pos_cnkt"]      = round(pos["cnkt"], 2)
+        estado["pos_invertido"] = round(pos["usdt_invertido"], 2)
+        estado["pos_promedio"]  = (pos["usdt_invertido"] / pos["cnkt"]) if pos["cnkt"] > 0 else 0
 
     log_estado(estado, f"BOT INICIADO — {wallet[:6]}...{wallet[-4:]}")
     log_estado(estado, f"Compra en: ${RANGO_BAJO}")
     log_estado(estado, f"Vende en:  ${RANGO_ALTO}")
-    log_estado(estado, f"Capital:   ${AMOUNT_USDT}")
+    log_estado(estado, "Capital:   TODO" if TODO else f"Capital:   ${AMOUNT_USDT}")
+    log_estado(estado, "Stop:      NINGUNO" if SIN_STOP else f"Stop:      {round(STOP_ZONA * 100, 2)}%")
+    log_estado(estado, f"Tandas de maximo ${TANDA_MAX}, minimo ${TANDA_MIN}")
 
-    if not aprobar_tokens():
-        estado["activo"] = False
-        eliminar_bot_activo(wallet)
-        return
-
-    if stop_event.is_set():
-        estado["activo"] = False
-        eliminar_bot_activo(wallet)
-        log_estado(estado, "Bot detenido durante aprobacion.")
-        return
-
-    # Forzar lectura fresca de balances al arrancar
     invalidar_balance(wallet)
-    time.sleep(1)
-    usdt_actual = get_balance_usdt()
-    time.sleep(1)
-    cnkt_actual = get_balance_cnkt()
-    time.sleep(1)
-    log_estado(estado, f"USDT: ${round(usdt_actual, 2)}")
+    usdt_actual = cnkt_actual = 0
+    try:
+        usdt_actual = get_balance_usdt()
+        cnkt_actual = get_balance_cnkt()
+    except Exception as e:
+        log_estado(estado, f"Error leyendo balances: {e}")
+    log_estado(estado, f"USDT: {round(usdt_actual, 2)}")
     log_estado(estado, f"CNKT: {round(cnkt_actual, 2)}")
 
-    if usdt_actual < AMOUNT_USDT and cnkt_actual < cnkt_necesario:
-        log_estado(estado, "ERROR: No tienes USDT ni CNKT suficiente")
-        estado["activo"] = False
-        eliminar_bot_activo(wallet)
-        return
+    existe, pos = cargar_posicion(wallet)
+    while existe is None and not stop_event.is_set():
+        log_estado(estado, "Error leyendo posicion, reintentando...")
+        stop_event.wait(10)
+        existe, pos = cargar_posicion(wallet)
+    if existe is False and not TODO and cnkt_actual > 0 and usdt_actual < AMOUNT_USDT:
+        # Primera vez con esta version: los CNKT que compro la version anterior
+        # se toman como parte del capital, a precio del rango bajo.
+        pos["cnkt"] = min(cnkt_actual, (AMOUNT_USDT - usdt_actual) / RANGO_BAJO)
+        pos["usdt_invertido"] = pos["cnkt"] * RANGO_BAJO
+        pos["hora_primera_compra"] = "previo"
+        guardar_posicion(wallet, pos)
+        log_estado(estado, f"CNKT previo tomado como posicion: {round(pos['cnkt'], 0)}")
+    elif pos["cnkt"] > 0:
+        log_estado(estado, f"Posicion restaurada: {round(pos['cnkt'], 0)} CNKT (${round(pos['usdt_invertido'], 2)})")
 
     estado["ganancia_total"] = cargar_ganancia_acumulada(wallet)
-    hora_compra_actual   = None
-    precio_compra_actual = None
-    cnkt_comprado_actual = 0
+    publicar_posicion(pos)
 
+    espera = INTERVALO
     while not stop_event.is_set():
         try:
-            precio = get_precio_actual()
+            # Entre tandas se cotiza precio fresco: las propias tandas lo mueven
+            precio = cotizar_precio() if espera == 1 else get_precio_actual()
+            espera = INTERVALO
             if precio < 0.000001:
                 log_estado(estado, "Esperando precio...")
                 stop_event.wait(5)
@@ -631,115 +730,101 @@ def loop_bot(wallet, private_key, estado, stop_event):
             estado["usdt"]   = round(usdt, 2)
             estado["cnkt"]   = round(cnkt, 2)
 
+            # Si sacaron CNKT de la wallet, la posicion no puede ser mayor al balance
+            if pos["cnkt"] > cnkt + 1:
+                factor = cnkt / pos["cnkt"] if pos["cnkt"] > 0 else 0
+                pos["usdt_invertido"] *= factor
+                pos["cnkt"] = cnkt
+                guardar_posicion(wallet, pos)
+                publicar_posicion(pos)
+
             if precio <= RANGO_BAJO:
                 estado["modo"] = "COMPRA"
             elif precio >= RANGO_ALTO:
                 estado["modo"] = "VENTA"
+            else:
+                estado["modo"] = "ESPERA"
 
-            modo = estado["modo"]
-            log_estado(estado, f"${precio} | USDT:${round(usdt,2)} | CNKT:{round(cnkt,0)} | {modo} | Ciclos:{estado['ciclos']}")
+            log_estado(estado, f"${precio} | USDT:${round(usdt,2)} | CNKT:{round(cnkt,0)} | {estado['modo']} | Ciclos:{estado['ciclos']}")
 
-            if precio < STOP_ABAJO or precio > STOP_ARRIBA:
+            if not SIN_STOP and (precio < STOP_ABAJO or precio > STOP_ARRIBA):
                 log_estado(estado, "PRECIO FUERA DE RANGO — BOT DETENIDO")
-                estado["activo"] = False
-                eliminar_bot_activo(wallet)
                 break
 
-            if precio <= RANGO_BAJO and modo == "COMPRA":
-                if estado.get("en_transaccion"):
-                    log_estado(estado, "TX en curso, esperando...")
-                elif estado["cnkt_comprados"] > 0:
-                    log_estado(estado, "Ya tienes CNKT comprados, esperando venta...")
-                    estado["modo"] = "VENTA"
-                elif usdt >= AMOUNT_USDT:
-                    log_estado(estado, "Senal de COMPRA!")
-                    hora_compra_actual   = hora_cdmx()
-                    precio_compra_actual = precio
-                    estado["en_transaccion"] = True
-                    try:
-                        estado["cnkt_comprados"] = comprar()
-                        cnkt_comprado_actual = estado["cnkt_comprados"]
-                        estado["modo"] = "VENTA"
-                        log_estado(estado, f"CNKT recibidos: {round(estado['cnkt_comprados'], 2)}")
-                    except Exception as e:
-                        log_estado(estado, f"Error en compra: {e}")
-                    finally:
-                        estado["en_transaccion"] = False
-                    if stop_event.is_set(): break
-                else:
-                    log_estado(estado, "Esperando USDT suficiente...")
+            if precio < RANGO_ALTO and pos["ronda_cnkt"] > 0:
+                cerrar_ronda(pos)
 
-            elif precio >= RANGO_ALTO and modo == "VENTA":
-                if estado.get("en_transaccion"):
-                    log_estado(estado, "TX en curso, esperando...")
-                else:
-                    cnkt_comp = estado["cnkt_comprados"]
-                    if cnkt_comp > 0 and cnkt >= cnkt_comp:
-                        log_estado(estado, "Senal de VENTA!")
-                        hora_venta = hora_cdmx()
-                        estado["en_transaccion"] = True
-                        try:
-                            usdt_recibido = vender(cnkt_comp)
-                            ganancia = usdt_recibido - AMOUNT_USDT
-                            estado["ganancia_total"] += ganancia
-                            estado["ciclos"] += 1
-                            log_estado(estado, f"Ganancia ciclo: ${round(ganancia, 2)}")
-                            log_estado(estado, f"Ganancia total: ${round(estado['ganancia_total'], 2)}")
-                            guardar_ciclo(wallet, hora_compra_actual, precio_compra_actual,
-                                          hora_venta, precio, cnkt_comprado_actual, cnkt_comp,
-                                          ganancia, AMOUNT_USDT)
-                            estado["cnkt_comprados"] = 0
-                            cnkt_comprado_actual      = 0
-                            hora_compra_actual        = None
-                            precio_compra_actual      = None
-                            estado["modo"] = "COMPRA"
-                        except Exception as e:
-                            log_estado(estado, f"Error en venta: {e}")
-                        finally:
-                            estado["en_transaccion"] = False
+            if precio <= RANGO_BAJO:
+                disponible = usdt if TODO else min(usdt, AMOUNT_USDT - pos["usdt_invertido"])
+                tanda = calcular_tanda(disponible)
+                if tanda > 0:
+                    if ES_PADAWAN:
+                        stop_event.wait(random.uniform(1, 6))
                         if stop_event.is_set(): break
+                    cnkt_out = comprar(tanda)
+                    if cnkt_out:
+                        pos["usdt_invertido"] += tanda
+                        pos["cnkt"]           += cnkt_out
+                        if not pos["hora_primera_compra"]:
+                            pos["hora_primera_compra"] = hora_cdmx()
+                        guardar_posicion(wallet, pos)
+                        publicar_posicion(pos)
+                        espera = 1
+                else:
+                    log_estado(estado, "Sin USDT disponible para comprar, vigilando...")
 
-                    elif cnkt_comp == 0 and cnkt >= cnkt_necesario:
-                        log_estado(estado, "Senal de VENTA! (CNKT previo)")
-                        hora_venta = hora_cdmx()
-                        estado["en_transaccion"] = True
-                        try:
-                            usdt_recibido = vender(cnkt_necesario)
-                            ganancia = usdt_recibido - AMOUNT_USDT
-                            estado["ganancia_total"] += ganancia
-                            estado["ciclos"] += 1
-                            log_estado(estado, f"Ganancia ciclo: ${round(ganancia, 2)}")
-                            log_estado(estado, f"Ganancia total: ${round(estado['ganancia_total'], 2)}")
-                            guardar_ciclo(wallet, "previo", precio, hora_venta, precio,
-                                          0, cnkt_necesario, ganancia, AMOUNT_USDT)
-                            estado["cnkt_comprados"] = 0
-                            estado["modo"] = "COMPRA"
-                        except Exception as e:
-                            log_estado(estado, f"Error en venta: {e}")
-                        finally:
-                            estado["en_transaccion"] = False
+            elif precio >= RANGO_ALTO:
+                vendible = cnkt if TODO else min(pos["cnkt"], cnkt)
+                valor    = vendible * precio
+                tanda    = calcular_tanda(valor)
+                if tanda > 0:
+                    cnkt_tanda = vendible if tanda >= valor else tanda / precio
+                    if ES_PADAWAN:
+                        stop_event.wait(random.uniform(1, 6))
                         if stop_event.is_set(): break
-
-                    else:
-                        log_estado(estado, "Esperando CNKT suficiente...")
+                    usdt_out = vender(cnkt_tanda)
+                    if usdt_out:
+                        # Parte de la posicion del bot: costo real. CNKT fuera de la
+                        # posicion (solo en TODO): costo desconocido, no suma ganancia.
+                        propio       = min(cnkt_tanda, pos["cnkt"])
+                        costo_propio = pos["usdt_invertido"] * propio / pos["cnkt"] if pos["cnkt"] > 0 else 0
+                        costo_ajeno  = usdt_out * (cnkt_tanda - propio) / cnkt_tanda
+                        pos["usdt_invertido"] = max(0.0, pos["usdt_invertido"] - costo_propio)
+                        pos["cnkt"]           = max(0.0, pos["cnkt"] - propio)
+                        costo = costo_propio + costo_ajeno
+                        pos["ronda_cnkt"]    += cnkt_tanda
+                        pos["ronda_usdt"]    += usdt_out
+                        pos["ronda_costo"]   += costo
+                        guardar_posicion(wallet, pos)
+                        publicar_posicion(pos)
+                        espera = 1
+                        restante = (cnkt - cnkt_tanda) if TODO else pos["cnkt"]
+                        if restante * precio < TANDA_MIN:
+                            cerrar_ronda(pos)
+                elif pos["ronda_cnkt"] > 0:
+                    cerrar_ronda(pos)
+                else:
+                    log_estado(estado, "Sin CNKT para vender, vigilando...")
             else:
                 log_estado(estado, "Esperando...")
 
-            stop_event.wait(INTERVALO)
-
         except Exception as e:
             log_estado(estado, f"Error: {e}")
-            stop_event.wait(30)
+            espera = 30
 
+        stop_event.wait(espera)
+
+    cerrar_ronda(pos)
     estado["activo"] = False
     eliminar_bot_activo(wallet)
     log_estado(estado, "Bot detenido.")
 
-def iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt, stop_zona):
+def iniciar_bot_thread(wallet, private_key, rango_bajo, rango_alto, amount_usdt, stop_zona, es_padawan=False):
     estado = nuevo_estado()
     estado.update({
         "activo": True, "RANGO_BAJO": rango_bajo,
         "RANGO_ALTO": rango_alto, "AMOUNT_USDT": amount_usdt, "STOP_ZONA": stop_zona,
+        "ES_PADAWAN": es_padawan,
     })
     stop_event = threading.Event()
     t = threading.Thread(target=loop_bot,
@@ -754,8 +839,9 @@ def restaurar_bots():
         conn = get_db(); cur = conn.cursor()
         cur.execute("""
             SELECT ba.wallet, ba.rango_bajo, ba.rango_alto, ba.amount_usdt, ba.stop_zona,
-                   u.private_key_enc
+                   u.private_key_enc, COALESCE(p.activo, FALSE) AS es_padawan
             FROM bots_activos ba JOIN usuarios u ON ba.wallet = u.wallet
+            LEFT JOIN padawans p ON p.wallet = ba.wallet
             WHERE u.private_key_enc != 'local'
         """)
         rows = cur.fetchall(); cur.close(); conn.close()
@@ -764,7 +850,7 @@ def restaurar_bots():
                 pk = fernet.decrypt(row["private_key_enc"].encode()).decode()
                 threading.Timer(i * 3, iniciar_bot_thread, args=[
                     row["wallet"], pk, row["rango_bajo"],
-                    row["rango_alto"], row["amount_usdt"], row["stop_zona"]
+                    row["rango_alto"], row["amount_usdt"], row["stop_zona"], row["es_padawan"]
                 ]).start()
                 print(f"Bot restaurado: {row['wallet'][:6]}...")
             except Exception as e:
@@ -871,6 +957,28 @@ def login():
 # ══════════════════════════════════════════════════════════════
 #  ENDPOINTS — BOT
 # ══════════════════════════════════════════════════════════════
+def leer_capital_y_stop(data):
+    """amount_usdt: numero o "TODO" (se guarda como 0).
+    stop_zona: fraccion (0.05 = 5%) o "NINGUNO" (se guarda como 0)."""
+    capital = data["amount_usdt"]
+    capital = 0.0 if str(capital).upper() == "TODO" else float(capital)
+    stop = data.get("stop_zona", 0.03)
+    stop = 0.0 if str(stop).upper() == "NINGUNO" else float(stop)
+    return capital, stop
+
+def validar_config(rango_bajo, rango_alto, amount_usdt, stop_zona):
+    if rango_bajo <= 0 or rango_alto <= rango_bajo:
+        return "Rango bajo debe ser menor al alto"
+    if 0 < amount_usdt < TANDA_MIN or amount_usdt < 0:
+        return f"Capital minimo ${TANDA_MIN} (o TODO)"
+    if stop_zona < 0:
+        return "Stop invalido"
+    min_pct   = 0.03 if 0 < amount_usdt <= 10 else 0.04
+    pct_rango = (rango_alto - rango_bajo) / rango_bajo
+    if pct_rango < min_pct:
+        return f"Margen demasiado pequeno (minimo {int(min_pct*100)}%)"
+    return None
+
 @app.route("/start/<wallet>", methods=["POST"])
 def start(wallet):
     wallet = wallet.lower()
@@ -889,15 +997,12 @@ def start(wallet):
     try:
         rango_bajo  = float(data["rango_bajo"])
         rango_alto  = float(data["rango_alto"])
-        amount_usdt = float(data["amount_usdt"])
-        stop_zona   = float(data.get("stop_zona", 0.03))
-    except (KeyError, ValueError):
+        amount_usdt, stop_zona = leer_capital_y_stop(data)
+    except (KeyError, ValueError, TypeError):
         return jsonify({"ok": False, "msg": "Faltan parametros"})
-    min_pct   = 0.03 if amount_usdt <= 10 else 0.04
-    pct_rango = (rango_alto - rango_bajo) / rango_bajo
-    if pct_rango < min_pct:
-        return jsonify({"ok": False,
-                        "msg": f"Margen demasiado pequeno (minimo {int(min_pct*100)}%)"})
+    error = validar_config(rango_bajo, rango_alto, amount_usdt, stop_zona)
+    if error:
+        return jsonify({"ok": False, "msg": error})
     try:
         private_key = fernet.decrypt(row["private_key_enc"].encode()).decode()
     except:
@@ -928,6 +1033,8 @@ def status(wallet):
                 "precio": est["precio"], "usdt": est["usdt"], "cnkt": est["cnkt"],
                 "ciclos": est["ciclos"], "ganancia_total": est["ganancia_total"],
                 "ultimo_log": est["ultimo_log"],
+                "posicion": {"cnkt": est["pos_cnkt"], "invertido": est["pos_invertido"],
+                             "promedio": est["pos_promedio"]},
                 "config": {
                     "RANGO_BAJO": est["RANGO_BAJO"], "RANGO_ALTO": est["RANGO_ALTO"],
                     "AMOUNT_USDT": est["AMOUNT_USDT"], "STOP_ZONA": est["STOP_ZONA"]
@@ -964,6 +1071,21 @@ def historial(wallet):
         return jsonify({"historial": [dict(r) for r in rows]})
     except Exception as e:
         return jsonify({"historial": [], "error": str(e)})
+
+@app.route("/operaciones/<wallet>", methods=["GET"])
+def operaciones(wallet):
+    wallet = wallet.lower()
+    try:
+        conn = get_db(); cur = conn.cursor()
+        cur.execute("""
+            SELECT tipo, usdt, cnkt, precio, tx,
+                   to_char(creado_en AT TIME ZONE 'America/Mexico_City','DD/MM HH24:MI:SS') as hora
+            FROM operaciones WHERE wallet = %s ORDER BY creado_en DESC LIMIT 100
+        """, (wallet,))
+        rows = cur.fetchall(); cur.close(); conn.close()
+        return jsonify({"operaciones": [dict(r) for r in rows]})
+    except Exception as e:
+        return jsonify({"operaciones": [], "error": str(e)})
 
 @app.route("/ganancia/<wallet>", methods=["GET"])
 def ganancia(wallet):
@@ -1187,13 +1309,15 @@ def master_start():
     try:
         rango_bajo    = float(data["rango_bajo"])
         rango_alto    = float(data["rango_alto"])
-        amount_usdt   = float(data["amount_usdt"])
-        stop_zona     = float(data.get("stop_zona", 0.03))
+        amount_usdt, stop_zona = leer_capital_y_stop(data)
         wallet_master = data.get("wallet_master", "").lower()
-    except (KeyError, ValueError):
+    except (KeyError, ValueError, TypeError):
         return jsonify({"ok": False, "msg": "Faltan parametros"})
     if not wallet_master:
         return jsonify({"ok": False, "msg": "Falta wallet del master"})
+    error = validar_config(rango_bajo, rango_alto, amount_usdt, stop_zona)
+    if error:
+        return jsonify({"ok": False, "msg": error})
     try:
         conn = get_db(); cur = conn.cursor()
         cur.execute("SELECT private_key_enc FROM usuarios WHERE wallet=%s", (wallet_master,))
@@ -1308,22 +1432,14 @@ def _arrancar_padawan(wallet, rango_bajo, rango_alto, amount_usdt_master, stop_z
         if not row or row["private_key_enc"] == "local":
             print(f"Padawan {wallet[:6]} sin key en servidor")
             return
-        usdt_contract = get_w3().eth.contract(address=USDT_ADDRESS, abi=TOKEN_ABI)
-        try:
-            balance = llamada_rpc(lambda: usdt_contract.functions.balanceOf(
-                Web3.to_checksum_address(wallet)).call()) / 10**6
-        except:
-            balance = 0
-        capital = min(int(balance // 5) * 5, amount_usdt_master)
-        if capital < 5:
-            print(f"Padawan {wallet[:6]} sin capital suficiente")
-            return
+        # Mismo capital que el master (o TODO); el bot opera con lo que haya en la wallet
+        capital = amount_usdt_master
         pk = fernet.decrypt(row["private_key_enc"].encode()).decode()
         with bots_lock:
             if wallet in bots_activos and bots_activos[wallet]["estado"]["activo"]:
                 return
         guardar_bot_activo(wallet, rango_bajo, rango_alto, capital, stop_zona)
-        iniciar_bot_thread(wallet, pk, rango_bajo, rango_alto, capital, stop_zona)
+        iniciar_bot_thread(wallet, pk, rango_bajo, rango_alto, capital, stop_zona, es_padawan=True)
         print(f"Padawan arrancado: {wallet[:6]} capital: ${capital}")
     except Exception as e:
         print(f"Error arrancando padawan {wallet[:6]}: {e}")

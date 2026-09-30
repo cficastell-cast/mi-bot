@@ -111,6 +111,8 @@
   .config-activa-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
   .config-activa-datos{font-size:12px;color:var(--muted);line-height:1.9;transition:color 0.3s}
   .config-activa-datos.activo{color:var(--accent)}
+  .opcion-check{float:right;font-size:10px;letter-spacing:1px;color:var(--accent3);cursor:pointer;text-transform:uppercase}
+  .opcion-check input{width:auto;vertical-align:middle;margin:0 2px 0 0}
 
   /* ── LOGS ────────────────────────────────────────────────── */
   .log-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px}
@@ -238,7 +240,7 @@
 ══════════════════════════════════════════════════════════ -->
 <div class="container" id="mainApp" style="display:none">
   <header>
-    <h1>EVOX <span>Bot</span><span class="version-badge" id="versionBadge">v2.0.0</span></h1>
+    <h1>EVOX <span>Bot</span><span class="version-badge" id="versionBadge">v2.1.0</span></h1>
     <div style="display:flex;gap:12px;align-items:center;">
       <span class="nombre-bienvenida" id="nombreBienvenida"></span>
       <div class="wallet-badge" id="walletBadge"></div>
@@ -291,13 +293,14 @@
         <input type="number" id="rangoBajo" placeholder="0.001720" step="0.000001" oninput="calcularPorcentaje()">
       </div>
       <div class="field">
-        <label>Capital USDT</label>
+        <label>Capital USDT <span class="opcion-check"><input type="checkbox" id="capitalTodo" onchange="toggleOpcion('capitalTodo','amountUsdt');calcularPorcentaje()"> TODO</span></label>
         <input type="number" id="amountUsdt" placeholder="10" oninput="calcularPorcentaje()">
       </div>
       <div class="field">
-        <label>Stop Loss (%)</label>
+        <label>Stop Loss (%) <span class="opcion-check"><input type="checkbox" id="stopNinguno" onchange="toggleOpcion('stopNinguno','stopZona')"> NINGUNO</span></label>
         <input type="number" id="stopZona" placeholder="3" step="1">
       </div>
+      <div class="calc-hint" style="color:var(--muted)">Opera en tandas de maximo $100 (minimo $10)</div>
       <div class="btn-row">
         <button class="btn-start" id="btnStart" onclick="startBot()">&#9654; INICIAR</button>
         <button class="btn-stop"  id="btnStop"  onclick="stopBot()" disabled>&#9632; DETENER</button>
@@ -351,6 +354,15 @@
     <div class="log-box" id="logBox">
       <div class="log-line info">Inicia el bot para ver los logs...</div>
     </div>
+  </div>
+
+  <!-- OPERACIONES -->
+  <div class="log-panel">
+    <div class="log-header">
+      <h2>Mis Operaciones</h2>
+      <button class="btn-secondary" onclick="fetchOperaciones()">&#8635; Actualizar</button>
+    </div>
+    <div id="operacionesTabla" style="max-height:260px;overflow-y:auto"><div style="color:var(--muted);font-size:12px;">Sin operaciones aun...</div></div>
   </div>
 
   <!-- HISTORIAL + LEADERBOARD -->
@@ -493,9 +505,9 @@ function entrarApp(nombre){
   document.getElementById('nombreBienvenida').textContent=nombre||'';
   pedirPermisoNotificaciones();
   fetchVersionBanner();
-  fetchPrecio();fetchStatus();fetchHistorial();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();
+  fetchPrecio();fetchStatus();fetchHistorial();fetchOperaciones();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();
   setInterval(fetchPrecio,15000);
-  setInterval(()=>{fetchStatus();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();},15000);
+  setInterval(()=>{fetchStatus();fetchHistorial();fetchOperaciones();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();},15000);
 }
 
 // ── VERSION ──────────────────────────────────────────────────
@@ -565,14 +577,18 @@ function actualizarUI(data){
   document.getElementById('statCNKT').textContent=data.cnkt!==undefined?data.cnkt:'—';
   const modoEl=document.getElementById('modoActual');
   modoEl.textContent=data.modo||'—';
-  modoEl.style.color=data.modo==='COMPRA'?'var(--accent)':'var(--accent2)';
+  modoEl.style.color=data.modo==='COMPRA'?'var(--accent)':data.modo==='VENTA'?'var(--accent2)':'var(--muted)';
   if(data.config&&data.config.RANGO_BAJO){
     const c=data.config;
     const cfgEl=document.getElementById('configActiva');
     const cfgPanel=document.getElementById('configActivaPanel');
     const badge=document.getElementById('configActivaBadge');
+    const p=data.posicion||{};
     cfgEl.innerHTML='Compra: $'+c.RANGO_BAJO+'<br>Vende: $'+c.RANGO_ALTO+
-                    '<br>Capital: $'+c.AMOUNT_USDT+'<br>Stop: '+(c.STOP_ZONA*100)+'%';
+                    '<br>Capital: '+(c.AMOUNT_USDT>0?'$'+c.AMOUNT_USDT:'TODO')+
+                    '<br>Stop: '+(c.STOP_ZONA>0?+(c.STOP_ZONA*100).toFixed(2)+'%':'NINGUNO')+
+                    (p.cnkt>0?'<br>Comprado: '+Math.round(p.cnkt).toLocaleString()+' CNKT ($'+p.invertido+')'+
+                              '<br>Precio promedio: $'+parseFloat(p.promedio).toFixed(7):'');
     if(data.activo){
       cfgEl.classList.add('activo');cfgPanel.classList.add('activo');
       badge.style.display='inline-block';
@@ -613,15 +629,42 @@ async function fetchHistorial(){
     const data=await r.json();
     const el=document.getElementById('historialTabla');
     if(!data.historial.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Sin ciclos aun...</div>';return;}
-    el.innerHTML='<table><thead><tr><th>Fecha</th><th>Hora</th><th>Compra</th><th>Venta</th><th>Gan.</th></tr></thead><tbody>'+
+    el.innerHTML='<table><thead><tr><th>Fecha</th><th>Hora</th><th>Compra prom.</th><th>Venta prom.</th><th>Gan.</th></tr></thead><tbody>'+
       data.historial.map(c=>`<tr>
         <td>${c.fecha||'—'}</td>
         <td style="color:var(--muted)">${c.hora_venta||'—'}</td>
-        <td>${c.precio_compra&&c.precio_compra>0?'$'+parseFloat(c.precio_compra).toFixed(6):'previo'}</td>
-        <td>${c.precio_venta?'$'+parseFloat(c.precio_venta).toFixed(6):'—'}</td>
+        <td>${c.precio_compra&&c.precio_compra>0?'$'+parseFloat(c.precio_compra).toFixed(7):'previo'}</td>
+        <td>${c.precio_venta?'$'+parseFloat(c.precio_venta).toFixed(7):'—'}</td>
         <td class="${c.ganancia_usdt>=0?'ganancia-pos':'ganancia-neg'}">${c.ganancia_usdt?'$'+parseFloat(c.ganancia_usdt).toFixed(2):'—'}</td>
       </tr>`).join('')+'</tbody></table>';
   }catch(e){}
+}
+
+// ── OPERACIONES ──────────────────────────────────────────────
+async function fetchOperaciones(){
+  if(!userWallet)return;
+  try{
+    const r=await fetch(BOT_URL+'/operaciones/'+userWallet);
+    const data=await r.json();
+    const el=document.getElementById('operacionesTabla');
+    if(!data.operaciones||!data.operaciones.length){el.innerHTML='<div style="color:var(--muted);font-size:12px;">Sin operaciones aun...</div>';return;}
+    el.innerHTML='<table><thead><tr><th>Fecha</th><th>Tipo</th><th>USDT</th><th>CNKT</th><th>Precio</th><th>Tx</th></tr></thead><tbody>'+
+      data.operaciones.map(o=>`<tr>
+        <td style="color:var(--muted)">${o.hora}</td>
+        <td class="${o.tipo==='COMPRA'?'ganancia-pos':'ganancia-neg'}">${o.tipo}</td>
+        <td>$${parseFloat(o.usdt).toFixed(2)}</td>
+        <td>${Math.round(o.cnkt).toLocaleString()}</td>
+        <td>$${parseFloat(o.precio).toFixed(7)}</td>
+        <td>${o.tx?`<a href="https://polygonscan.com/tx/${o.tx.startsWith('0x')?o.tx:'0x'+o.tx}" target="_blank" style="color:var(--accent3)">ver</a>`:'—'}</td>
+      </tr>`).join('')+'</tbody></table>';
+  }catch(e){}
+}
+
+function toggleOpcion(checkId,inputId){
+  const on=document.getElementById(checkId).checked;
+  const inp=document.getElementById(inputId);
+  inp.disabled=on;
+  if(on)inp.value='';
 }
 
 // ── CICLOS HOY ───────────────────────────────────────────────
@@ -693,7 +736,8 @@ function renderLeaderboard(){
 function calcularPorcentaje(){
   const rb=parseFloat(document.getElementById('rangoBajo').value);
   const ra=parseFloat(document.getElementById('rangoAlto').value);
-  const au=parseFloat(document.getElementById('amountUsdt').value)||0;
+  const todo=document.getElementById('capitalTodo').checked;
+  const au=todo?1e9:(parseFloat(document.getElementById('amountUsdt').value)||0);
   const hint=document.getElementById('calcHint');
   if(!rb||!ra){hint.textContent='';return;}
   if(ra<=rb){hint.textContent='El rango alto debe ser mayor al bajo';hint.style.color='var(--accent2)';return;}
@@ -724,7 +768,7 @@ async function fetchPadawanStatus(){
     const btn=document.getElementById('btnPadawan');
     const statusEl=document.getElementById('padawanStatus');
     if(data.es_wallet_master){
-      ['rangoAlto','rangoBajo','amountUsdt','stopZona'].forEach(id=>document.getElementById(id).disabled=true);
+      ['rangoAlto','rangoBajo','amountUsdt','stopZona','capitalTodo','stopNinguno'].forEach(id=>document.getElementById(id).disabled=true);
       document.getElementById('btnStart').disabled=true;document.getElementById('btnStop').disabled=true;
       btn.disabled=true;btn.textContent='⚔️ Wallet en uso como Master';
       btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';
@@ -737,13 +781,14 @@ async function fetchPadawanStatus(){
       btn.style.borderColor='var(--accent2)';btn.style.color='var(--accent2)';
       statusEl.textContent=data.master_activo?'✅ Master activo — bot opera automaticamente':'⏳ Esperando al master...';
       statusEl.style.color=data.master_activo?'var(--accent)':'var(--muted)';
-      ['rangoAlto','rangoBajo','amountUsdt','stopZona'].forEach(id=>document.getElementById(id).disabled=true);
+      ['rangoAlto','rangoBajo','amountUsdt','stopZona','capitalTodo','stopNinguno'].forEach(id=>document.getElementById(id).disabled=true);
       document.getElementById('btnStart').disabled=true;
     } else {
       btn.textContent='🎓 Activar Modo Padawan';
       btn.style.borderColor='var(--accent3)';btn.style.color='var(--accent3)';
       statusEl.textContent='';
-      ['rangoAlto','rangoBajo','amountUsdt','stopZona'].forEach(id=>document.getElementById(id).disabled=false);
+      ['rangoAlto','rangoBajo','capitalTodo','stopNinguno'].forEach(id=>document.getElementById(id).disabled=false);
+      toggleOpcion('capitalTodo','amountUsdt');toggleOpcion('stopNinguno','stopZona');
     }
   }catch(e){}
 }
@@ -766,11 +811,14 @@ async function togglePadawan(){
 async function startBot(){
   const rb=parseFloat(document.getElementById('rangoBajo').value);
   const ra=parseFloat(document.getElementById('rangoAlto').value);
-  const au=parseFloat(document.getElementById('amountUsdt').value);
-  const sz=(parseFloat(document.getElementById('stopZona').value)||3)/100;
+  const todo=document.getElementById('capitalTodo').checked;
+  const ninguno=document.getElementById('stopNinguno').checked;
+  const au=todo?'TODO':parseFloat(document.getElementById('amountUsdt').value);
+  const sz=ninguno?'NINGUNO':(parseFloat(document.getElementById('stopZona').value)||3)/100;
   if(!rb||!ra||!au){showToast('Completa todos los campos','err');return;}
+  if(!todo&&au<10){showToast('Capital minimo $10 (o TODO)','err');return;}
   if(rb>=ra){showToast('Rango bajo debe ser menor al alto','err');return;}
-  const minRango=(au<=10?3:4)/100;
+  const minRango=(!todo&&au<=10?3:4)/100;
   if((ra-rb)/rb<minRango){showToast('Margen demasiado pequeno','err');return;}
   try{
     const r=await fetch(BOT_URL+'/start/'+userWallet,{method:'POST',

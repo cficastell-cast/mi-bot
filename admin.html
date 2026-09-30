@@ -49,6 +49,8 @@
   .master-field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
   .master-field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;padding:9px 12px;border-radius:6px;outline:none}
   .master-field input:focus{border-color:var(--accent)}
+  .opcion-check{float:right;font-size:10px;letter-spacing:1px;color:var(--accent3);cursor:pointer}
+  .master-field .opcion-check input{width:auto;padding:0;vertical-align:middle;margin:0 2px 0 0}
   .master-btns{display:flex;gap:10px;margin-top:12px}
   .btn-master-start{flex:1;padding:11px;border-radius:8px;border:none;background:var(--accent);color:#0a0a0f;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
   .btn-master-start:disabled{opacity:0.3;cursor:not-allowed}
@@ -98,7 +100,7 @@
 <div class="overlay" id="loginOverlay">
   <div class="box">
     <h2>EVOX <span style="color:var(--accent)">Admin</span></h2>
-    <p>Acceso restringido — v2.0.0</p>
+    <p>Acceso restringido — v2.1.0</p>
     <input type="password" id="pwdInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()"/>
     <button class="btn-main" onclick="doLogin()">ENTRAR</button>
     <div id="loginError" style="color:var(--accent2);font-size:12px;margin-top:12px;"></div>
@@ -107,7 +109,7 @@
 
 <div class="container" id="mainApp" style="display:none">
   <header>
-    <h1>EVOX <span>Admin</span> <span style="font-size:13px;color:var(--muted);font-family:'Space Mono'">v2.0.0</span></h1>
+    <h1>EVOX <span>Admin</span> <span style="font-size:13px;color:var(--muted);font-family:'Space Mono'">v2.1.0</span></h1>
     <button class="refresh-btn" onclick="cargarDatos()">&#8635; Actualizar</button>
   </header>
 
@@ -169,8 +171,9 @@
           <div class="master-field"><label>Wallet del Master</label><input type="text" id="masterWallet" placeholder="0x..."/></div>
           <div class="master-field"><label>Rango Alto ($)</label><input type="number" id="masterRangoAlto" placeholder="0.001750" step="0.000001" oninput="calcMasterSemaforo()"/></div>
           <div class="master-field"><label>Rango Bajo ($)</label><input type="number" id="masterRangoBajo" placeholder="0.001700" step="0.000001" oninput="calcMasterSemaforo()"/></div>
-          <div class="master-field"><label>Capital Maximo USDT</label><input type="number" id="masterCapital" placeholder="50" oninput="calcMasterSemaforo()"/></div>
-          <div class="master-field"><label>Stop Loss (%)</label><input type="number" id="masterStop" placeholder="3"/></div>
+          <div class="master-field"><label>Capital Maximo USDT <span class="opcion-check"><input type="checkbox" id="masterTodo" onchange="toggleOpcion('masterTodo','masterCapital');calcMasterSemaforo()"> TODO</span></label><input type="number" id="masterCapital" placeholder="50" oninput="calcMasterSemaforo()"/></div>
+          <div class="master-field"><label>Stop Loss (%) <span class="opcion-check"><input type="checkbox" id="masterNinguno" onchange="toggleOpcion('masterNinguno','masterStop')"> NINGUNO</span></label><input type="number" id="masterStop" placeholder="3"/></div>
+          <div style="font-size:11px;color:var(--muted)">Opera en tandas de maximo $100 (minimo $10)</div>
           <div id="masterSemaforo" style="font-size:12px;min-height:16px;margin-top:2px;"></div>
         </div>
         <div class="master-btns">
@@ -312,10 +315,18 @@ async function publicarSenal(){
 }
 
 // ── MASTER ───────────────────────────────────────────────────
+function toggleOpcion(checkId,inputId){
+  const on=document.getElementById(checkId).checked;
+  const inp=document.getElementById(inputId);
+  inp.disabled=on;
+  if(on)inp.value='';
+}
+
 function calcMasterSemaforo(){
   const rb=parseFloat(document.getElementById('masterRangoBajo').value);
   const ra=parseFloat(document.getElementById('masterRangoAlto').value);
-  const au=parseFloat(document.getElementById('masterCapital').value)||0;
+  const todo=document.getElementById('masterTodo').checked;
+  const au=todo?1e9:(parseFloat(document.getElementById('masterCapital').value)||0);
   const el=document.getElementById('masterSemaforo');
   if(!rb||!ra){el.textContent='';return;}
   if(ra<=rb){el.style.color='var(--accent2)';el.textContent='El rango alto debe ser mayor al bajo';return;}
@@ -360,7 +371,7 @@ async function cargarMasterStatus(){
       document.getElementById('masterConfigActiva').innerHTML=
         'Master: '+mc.wallet_master.slice(0,6)+'...'+mc.wallet_master.slice(-4)+'<br>'+
         'Compra: $'+mc.rango_bajo+'<br>Vende: $'+mc.rango_alto+
-        '<br>Capital: $'+mc.amount_usdt+'<br>Stop: '+(mc.stop_zona*100)+'%';
+        '<br>Capital: '+(mc.amount_usdt>0?'$'+mc.amount_usdt:'TODO')+'<br>Stop: '+(mc.stop_zona>0?+(mc.stop_zona*100).toFixed(2)+'%':'NINGUNO');
     } else {
       badge.textContent='● INACTIVO';badge.className='master-status-badge off';
       document.getElementById('btnMasterStart').disabled=false;
@@ -420,9 +431,11 @@ async function masterStart(){
   const wallet=document.getElementById('masterWallet').value.trim().toLowerCase();
   const rb=parseFloat(document.getElementById('masterRangoBajo').value);
   const ra=parseFloat(document.getElementById('masterRangoAlto').value);
-  const capital=parseFloat(document.getElementById('masterCapital').value);
-  const stop=(parseFloat(document.getElementById('masterStop').value)||3)/100;
+  const todo=document.getElementById('masterTodo').checked;
+  const capital=todo?'TODO':parseFloat(document.getElementById('masterCapital').value);
+  const stop=document.getElementById('masterNinguno').checked?'NINGUNO':(parseFloat(document.getElementById('masterStop').value)||3)/100;
   if(!wallet||!rb||!ra||!capital){document.getElementById('masterMsg').textContent='Completa todos los campos';return;}
+  if(!todo&&capital<10){document.getElementById('masterMsg').textContent='Capital minimo $10 (o TODO)';return;}
   if(rb>=ra){document.getElementById('masterMsg').textContent='Rango bajo debe ser menor al alto';return;}
   try{
     const r=await fetch(BOT_URL+'/master/start',{method:'POST',
