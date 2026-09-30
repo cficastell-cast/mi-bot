@@ -19,6 +19,23 @@
   header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border)}
   h1{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px}
   h1 span{color:var(--accent)}
+  .header-marca{display:flex;align-items:center}
+  .header-logo{height:42px;width:auto;display:block}
+  .btn-manual{background:transparent;border:1px solid var(--border);color:var(--accent);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:6px 14px;border-radius:100px;cursor:pointer;transition:border-color 0.2s}
+  .btn-manual:hover{border-color:var(--accent)}
+  .manual-overlay{display:none;position:fixed;inset:0;background:rgba(5,5,8,0.85);z-index:1000;overflow-y:auto;padding:24px 16px}
+  .manual-overlay.visible{display:block}
+  .manual-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:720px;margin:0 auto;padding:28px;position:relative}
+  .manual-cerrar{position:absolute;top:14px;right:16px;background:transparent;border:none;color:var(--muted);font-size:22px;cursor:pointer}
+  .manual-cerrar:hover{color:var(--text)}
+  .manual-logo{display:block;width:100%;max-width:320px;height:auto;margin:0 auto 8px}
+  .manual-sub{text-align:center;color:var(--muted);font-size:12px;margin-bottom:24px}
+  .manual-box h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--accent);margin:22px 0 10px;text-transform:uppercase;letter-spacing:1px}
+  .manual-box p,.manual-box li{font-size:12.5px;line-height:1.8;color:var(--text)}
+  .manual-box ul{padding-left:18px}
+  .manual-box li{margin-bottom:6px}
+  .manual-box b{color:var(--accent3)}
+  .manual-nota{border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:12px;color:var(--muted);line-height:1.7}
   .version-badge{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin-left:8px;vertical-align:middle}
   .status-pill{display:flex;align-items:center;gap:8px;padding:6px 16px;border-radius:100px;border:1px solid var(--border);font-size:13px}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background 0.3s}
@@ -240,8 +257,9 @@
 ══════════════════════════════════════════════════════════ -->
 <div class="container" id="mainApp" style="display:none">
   <header>
-    <h1>EVOX <span>Bot</span><span class="version-badge" id="versionBadge">v2.1.0</span></h1>
-    <div style="display:flex;gap:12px;align-items:center;">
+    <h1 class="header-marca"><img src="/logo.png" alt="EVOX Bot" class="header-logo"/><span class="version-badge" id="versionBadge">v2.1.0</span></h1>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+      <button class="btn-manual" onclick="abrirManual()">&#128214; Manual</button>
       <span class="nombre-bienvenida" id="nombreBienvenida"></span>
       <div class="wallet-badge" id="walletBadge"></div>
       <div class="status-pill">
@@ -388,6 +406,54 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- MANUAL -->
+<div class="manual-overlay" id="manualOverlay" onclick="if(event.target===this)cerrarManual()">
+  <div class="manual-box">
+    <button class="manual-cerrar" onclick="cerrarManual()" aria-label="Cerrar">&#10005;</button>
+    <img src="/logo.png" alt="EVOX Bot" class="manual-logo"/>
+    <div class="manual-sub">Manual de uso &middot; v2.1.0</div>
+
+    <h3>1. Como funciona</h3>
+    <ul>
+      <li>El bot <b>compra</b> CNKT cuando el precio esta en tu <b>Rango Bajo</b> o mas abajo.</li>
+      <li>El bot <b>vende</b> CNKT cuando el precio esta en tu <b>Rango Alto</b> o mas arriba.</li>
+      <li>Opera en <b>tandas de maximo $100</b> (minimo $10), una tras otra, hasta terminar o hasta que el precio salga de la zona. Asi mueve poco el precio y las operaciones no fallan.</li>
+      <li>Nunca compra una tanda arriba de tu Rango Bajo. Si el precio cae de golpe, compra al precio que haya en ese momento.</li>
+      <li>Si alcanza a comprar solo una parte y el precio vuelve a bajar despues, compra lo que faltaba.</li>
+      <li>Si tiene poco saldo, opera con lo que tenga. Si no tiene nada, no se apaga: sigue vigilando.</li>
+    </ul>
+
+    <h3>2. Configuracion</h3>
+    <ul>
+      <li><b>Rango Alto:</b> precio al que vende.</li>
+      <li><b>Rango Bajo:</b> precio al que compra. Debe haber al menos 4% de diferencia con el Rango Alto (3% con capital de $10).</li>
+      <li><b>Capital USDT:</b> cuanto dinero usa el bot (minimo $10). Solo vende los CNKT que compro con ese capital.</li>
+      <li><b>TODO:</b> el bot usa todo el USDT de la wallet, tambien lo que deposites despues, y vende todos los CNKT de la wallet.</li>
+      <li><b>Stop Loss:</b> si el precio se aleja ese porcentaje abajo del Rango Bajo o arriba del Rango Alto, el bot se apaga <b>sin vender</b>.</li>
+      <li><b>NINGUNO:</b> el bot nunca se apaga solo, aunque el precio caiga mucho.</li>
+    </ul>
+
+    <h3>3. Lo que ves en el panel</h3>
+    <ul>
+      <li><b>Modo:</b> COMPRA (precio en zona de compra), VENTA (precio en zona de venta) o ESPERA (en medio).</li>
+      <li><b>Comprado y Precio promedio:</b> cuantos CNKT tiene comprados el bot y a que precio promedio le salieron.</li>
+      <li><b>Mis Operaciones:</b> cada tanda de compra o venta, con enlace para verla en Polygonscan.</li>
+      <li><b>Mi Historial:</b> cada ciclo terminado, con precio promedio de compra, de venta y la ganancia.</li>
+      <li><b>Ciclo:</b> termina cuando el precio baja del Rango Alto, aunque no haya vendido todo. La ganancia es lo que recibio menos lo que le costaron esos CNKT. Lo que falte se vende la siguiente vez.</li>
+    </ul>
+
+    <h3>4. Recomendaciones</h3>
+    <ul>
+      <li>Ten siempre <b>POL</b> en la wallet: cada tanda paga gas. Sin POL el bot no puede operar.</li>
+      <li>Puedes detener y volver a iniciar el bot: recuerda lo que ya compro.</li>
+      <li>Si quieres que compre en caidas fuertes, usa Stop <b>NINGUNO</b> o un stop grande.</li>
+      <li><b>Modo Padawan:</b> tu bot copia la configuracion del Master y opera solo, con unos segundos de diferencia entre bots.</li>
+    </ul>
+
+    <div class="manual-nota">El bot no garantiza ganancias. Si el precio baja y no vuelve a tu Rango Alto, te quedas con CNKT que vale menos de lo que pagaste.</div>
+  </div>
+</div>
 
 <script>
 // ── CONFIGURACIÓN ────────────────────────────────────────────
@@ -659,6 +725,10 @@ async function fetchOperaciones(){
       </tr>`).join('')+'</tbody></table>';
   }catch(e){}
 }
+
+function abrirManual(){document.getElementById('manualOverlay').classList.add('visible');}
+function cerrarManual(){document.getElementById('manualOverlay').classList.remove('visible');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrarManual();});
 
 function toggleOpcion(checkId,inputId){
   const on=document.getElementById(checkId).checked;

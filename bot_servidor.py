@@ -1652,7 +1652,7 @@ def admin_panel():
     except Exception as e:
         return f"admin.html no encontrado: {e}", 404
 
-for _img in ["icon", "evox", "charlie", "susan"]:
+for _img in ["icon", "logo", "evox", "charlie", "susan"]:
     def _make_route(name):
         @app.route(f"/{name}.png", methods=["GET"], endpoint=f"img_{name}")
         def _img_route():
