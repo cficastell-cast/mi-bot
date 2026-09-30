@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-RWP7BXXCXK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-RWP7BXXCXK');
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="EVOX Bot">
@@ -570,6 +579,7 @@ function entrarApp(nombre){
   document.getElementById('walletBadge').textContent=userWallet.slice(0,6)+'...'+userWallet.slice(-4);
   document.getElementById('nombreBienvenida').textContent=nombre||'';
   pedirPermisoNotificaciones();
+  gtag('event','login');
   fetchVersionBanner();
   fetchPrecio();fetchStatus();fetchHistorial();fetchOperaciones();fetchLeaderboard();fetchCiclosHoy();fetchSenal();fetchPadawanStatus();
   setInterval(fetchPrecio,15000);
@@ -726,7 +736,7 @@ async function fetchOperaciones(){
   }catch(e){}
 }
 
-function abrirManual(){document.getElementById('manualOverlay').classList.add('visible');}
+function abrirManual(){document.getElementById('manualOverlay').classList.add('visible');gtag('event','manual_abierto');}
 function cerrarManual(){document.getElementById('manualOverlay').classList.remove('visible');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrarManual();});
 
@@ -895,7 +905,7 @@ async function startBot(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({rango_bajo:rb,rango_alto:ra,amount_usdt:au,stop_zona:sz})});
     const data=await r.json();
-    if(data.ok){showToast('Bot iniciado!','ok');setTimeout(fetchStatus,2000);}
+    if(data.ok){showToast('Bot iniciado!','ok');gtag('event','bot_iniciado',{capital:todo?'TODO':'cantidad',stop:ninguno?'NINGUNO':'porcentaje'});setTimeout(fetchStatus,2000);}
     else{showToast(data.msg,'err');}
   }catch(e){showToast('Error: '+e.message,'err');}
 }
